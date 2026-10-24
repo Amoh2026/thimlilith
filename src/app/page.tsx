@@ -431,21 +431,24 @@ export default function ThimlilithChatUI() {
   const isDMPartnerBlocked = dmPartnerUid && userDoc?.blockedUsers?.includes(dmPartnerUid);
 
   return (
-    <div className="flex h-screen bg-[#0f172a] text-gray-300 font-sans">
-      {/* Far Left Sidebar */}
-      <div className="w-16 flex flex-col items-center py-4 bg-[#0b1120] border-r border-slate-800">
-        <div className="w-10 h-10 bg-teal-500 rounded-xl mb-8 flex items-center justify-center text-white font-bold">T</div>
-        <div className="flex flex-col gap-6 text-slate-500">
-          <button className="text-teal-400" title="Chat">💬</button>
+            <div className="flex flex-col gap-6 text-slate-500">
+          <button className="text-teal-400 text-xl" title="Chat">💬</button>
           <Link href="/feed" className="hover:text-teal-400 text-xl" title="Home/Feed">🏠</Link>
-          <button className="hover:text-teal-400" title="Groups">👥</button>
-          <button className="hover:text-teal-400" title="Files">📁</button>
+          
+          {/* NEW LINK TO ATK */}
+          <a 
+            href="https://apprendre-tamazight-kabyle.vercel.app" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="hover:text-teal-400 text-xl" 
+            title="Learn Kabyle (ATK)"
+          >
+            📖
+          </a>
+
+          <button className="hover:text-teal-400 text-xl" title="Groups">👥</button>
+          <button className="hover:text-teal-400 text-xl" title="Files">📁</button>
         </div>
-        <div className="mt-auto flex flex-col items-center gap-4 pb-4">
-           {user.photoURL ? <img src={user.photoURL} alt="User" className="w-8 h-8 rounded-full border-2 border-teal-500" /> : <div className="w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center text-white font-bold text-xs">{(user.displayName || user.email)?.[0].toUpperCase()}</div>}
-           <button onClick={handleLogout} className="text-[10px] text-red-400 hover:text-red-300 font-medium">Logout</button>
-        </div>
-      </div>
 
       {/* Chat List Sidebar */}
       <div className="w-80 bg-[#0f172a] border-r border-slate-800 flex flex-col hidden md:flex">
