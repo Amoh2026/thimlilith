@@ -1,0 +1,42 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { auth } from "@/lib/firebase/client";
+import { signInWithCustomToken } from "firebase/auth";
+import { useRouter } from "next/navigation";
+
+export default function SSOPage() {
+  const router = useRouter();
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+
+    if (token) {
+      // Log the user in using the token from ATK
+      signInWithCustomToken(auth, token)
+        .then(() => {
+          // Success! Go to the chat.
+          router.push("/");
+        })
+        .catch((err) => {
+          console.error("SSO failed", err);
+          setError("SSO failed. Please log in manually.");
+          setTimeout(() => router.push("/"), 2000);
+        });
+    } else {
+      router.push("/");
+    }
+  }, [router]);
+
+  return (
+    <div className="flex h-screen items-center justify-center bg-[#0f172a] text-white">
+      {error ? (
+        <p className="text-red-400">{error}</p>
+      ) : (
+        <p className="text-teal-400">Syncing your account...</p>
+      )}
+    </div>
+  );
+}
