@@ -1,0 +1,60 @@
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+
+const locales = ['sv', 'ar', 'en', 'fr'] as const;
+const defaultLocale = 'sv';
+
+// Routes that should NEVER be localized
+const nonLocalizedRoutes = [
+  '/admin',
+  '/api',
+  '/_next',
+  '/favicon.ico',
+  '/images',
+  '/member',
+];
+
+export function proxy(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+
+  // 1. Skip non-localized routes entirely
+  if (nonLocalizedRoutes.some((route) => pathname.startsWith(route))) {
+    return NextResponse.next();
+  }
+
+  // 2. Skip static file extensions
+  if (/\.(png|jpg|jpeg|svg|gif|webp|ico|css|js|woff|woff2|ttf|otf|map)$/i.test(pathname)) {
+    return NextResponse.next();
+  }
+
+  // 3. Does the path start with a locale?
+  const pathnameLocale = locales.find(
+    (locale) =>
+      pathname === `/${locale}` || pathname.startsWith(`/${locale}/`)
+  );
+
+  // 3a. Has locale AND it's the default (sv) → redirect to strip the prefix
+  if (pathnameLocale === defaultLocale) {
+    const stripped = pathname.replace(`/${defaultLocale}`, '') || '/';
+    const url = request.nextUrl.clone();
+    url.pathname = stripped;
+    return NextResponse.redirect(url);
+  }
+
+  // 3b. Has a non-default locale (en/ar/fr) → let it through
+  if (pathnameLocale) {
+    return NextResponse.next();
+  }
+
+  // 4. No locale at all → rewrite internally to default locale (URL stays clean)
+  const url = request.nextUrl.clone();
+  url.pathname = `/${defaultLocale}${pathname}`;
+  return NextResponse.rewrite(url);
+}
+
+export const config = {
+  matcher: [
+    // Skip all internal paths
+    '/((?!_next|api|admin|member|images|favicon.ico|.*\\..*).*)',
+  ],
+};

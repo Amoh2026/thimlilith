@@ -1,0 +1,91 @@
+﻿rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() { return request.auth != null; }
+    function isAdmin() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    match /admins/{uid} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    match /users/{uid} {
+      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow create: if isSignedIn() && request.auth.uid == uid;
+      allow update: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /members/{docId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /pending_verifications/{token} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /member_content/{docId} {
+      allow read: if isAdmin() || (isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)));
+      allow write: if isAdmin();
+    }
+
+    match /messages/{docId} {
+      allow read: if isSignedIn() && (resource.data.fromUserId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && request.resource.data.fromUserId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    match /bookings/{docId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    match /events/{docId} { allow read: if true; allow write: if isAdmin(); }
+    match /posts/{docId} { allow read: if true; allow write: if isAdmin(); }
+    match /newsletters/{docId} { allow read: if true; allow write: if isAdmin(); }
+
+    // ============================================================
+    // CHAT RULES — v2 (simplified to fix permission error)
+    // ============================================================
+
+    match /chatRooms/{roomId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.resource.data.createdBy == request.auth.uid;
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn()
+        && request.auth.uid == resource.data.createdBy;
+
+      match /messages/{msgId} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn()
+          && request.resource.data.userId == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() < 2000;
+        allow update, delete: if false;
+      }
+    }
+
+    match /chatPresence/{docId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid;
+      allow delete: if isSignedIn()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    // ------------------------------------------------------------
+    // Catch-all deny — MUST BE LAST
+    // ------------------------------------------------------------
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,36 @@
+import type { Metadata } from 'next';
+import { headers } from 'next/headers';
+import './globals.css';
+
+export const metadata: Metadata = {
+  title: 'Svensk Algeriska Föreningen',
+  description: 'Svensk Algeriska Föreningen i Malmö',
+};
+
+const locales = ['sv', 'ar', 'en', 'fr'];
+const defaultLocale = 'sv';
+
+export default async function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  // Read the URL to determine the current locale
+  const headersList = await headers();
+  const pathname = headersList.get('x-invoke-path') || headersList.get('x-pathname') || '/';
+
+  // Extract locale from pathname (first segment)
+  const segments = pathname.split('/').filter(Boolean);
+  const firstSegment = segments[0] || '';
+  const locale = locales.includes(firstSegment) ? firstSegment : defaultLocale;
+
+  const dir = locale === 'ar' ? 'rtl' : 'ltr';
+
+  return (
+    <html lang={locale} dir={dir} data-scroll-behavior="smooth">
+      <body className="min-h-screen flex flex-col">
+        {children}
+      </body>
+    </html>
+  );
+}
