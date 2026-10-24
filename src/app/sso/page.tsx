@@ -14,10 +14,8 @@ export default function SSOPage() {
     const token = params.get("token");
 
     if (token) {
-      // Log the user in using the token from ATK
       signInWithCustomToken(auth, token)
         .then(() => {
-          // Success! Go to the chat.
           router.push("/");
         })
         .catch((err) => {
