@@ -40,7 +40,7 @@ export default function ThimlilithChatUI() {
 
   const [friendRequests, setFriendRequests] = useState<any[]>([]);
   const [friendsList, setFriendsList] = useState<any[]>([]);
-  const [blockedUsersList, setBlockedUsersList] = useState<any[]>([]); // NEW
+  const [blockedUsersList, setBlockedUsersList] = useState<any[]>([]); 
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -272,7 +272,6 @@ export default function ThimlilithChatUI() {
     } catch (err) { alert("Failed to add member."); }
   };
 
-  // BLOCK / UNBLOCK LOGIC
   const handleBlockUser = async (targetUid: string, targetName: string) => {
     if (!user || !userDoc) return;
     const isBlocked = userDoc.blockedUsers?.includes(targetUid);
@@ -285,7 +284,7 @@ export default function ThimlilithChatUI() {
         if (confirm(`Are you sure you want to block ${targetName}?`)) {
           await updateDoc(doc(db, "users", user.uid), { blockedUsers: arrayUnion(targetUid) });
           alert(`${targetName} has been blocked.`);
-          setActiveRoom(null); // Close the chat
+          setActiveRoom(null); 
         }
       }
     } catch (err) { alert("Failed to update block status."); }
@@ -293,7 +292,7 @@ export default function ThimlilithChatUI() {
 
   const handleReportUser = async (targetUid: string, targetName: string) => {
     if (!user) return;
-    const reason = prompt(`Why are you reporting ${targetName}? (e.g., Spam, Harassment, Inappropriate content)`);
+    const reason = prompt(`Why are you reporting ${targetName}? (e.g., Spam, Harassment)`);
     if (!reason) return;
 
     try {
@@ -431,7 +430,11 @@ export default function ThimlilithChatUI() {
   const isDMPartnerBlocked = dmPartnerUid && userDoc?.blockedUsers?.includes(dmPartnerUid);
 
   return (
-            <div className="flex flex-col gap-6 text-slate-500">
+    <div className="flex h-screen bg-[#0f172a] text-gray-300 font-sans">
+      {/* Far Left Sidebar */}
+      <div className="w-16 flex flex-col items-center py-4 bg-[#0b1120] border-r border-slate-800">
+        <div className="w-10 h-10 bg-teal-500 rounded-xl mb-8 flex items-center justify-center text-white font-bold">T</div>
+        <div className="flex flex-col gap-6 text-slate-500">
           <button className="text-teal-400 text-xl" title="Chat">💬</button>
           <Link href="/feed" className="hover:text-teal-400 text-xl" title="Home/Feed">🏠</Link>
           
@@ -449,6 +452,11 @@ export default function ThimlilithChatUI() {
           <button className="hover:text-teal-400 text-xl" title="Groups">👥</button>
           <button className="hover:text-teal-400 text-xl" title="Files">📁</button>
         </div>
+        <div className="mt-auto flex flex-col items-center gap-4 pb-4">
+           {user.photoURL ? <img src={user.photoURL} alt="User" className="w-8 h-8 rounded-full border-2 border-teal-500" /> : <div className="w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center text-white font-bold text-xs">{(user.displayName || user.email)?.[0].toUpperCase()}</div>}
+           <button onClick={handleLogout} className="text-[10px] text-red-400 hover:text-red-300 font-medium">Logout</button>
+        </div>
+      </div>
 
       {/* Chat List Sidebar */}
       <div className="w-80 bg-[#0f172a] border-r border-slate-800 flex flex-col hidden md:flex">
@@ -461,7 +469,6 @@ export default function ThimlilithChatUI() {
           <button onClick={() => setSidebarTab('search')} className={`flex-1 py-3 px-2 text-sm font-medium ${sidebarTab === 'search' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500 hover:text-gray-300'}`}>Find Users</button>
         </div>
 
-        {/* Tab Content: Rooms */}
         {sidebarTab === 'rooms' && (
           <>
             <div className="p-4 flex justify-between items-center">
@@ -516,7 +523,6 @@ export default function ThimlilithChatUI() {
           </>
         )}
 
-        {/* Tab Content: Friends & Blocked */}
         {sidebarTab === 'friends' && (
           <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-4">
             {friendRequests.length > 0 && (
@@ -533,7 +539,6 @@ export default function ThimlilithChatUI() {
                 ))}
               </div>
             )}
-            
             <div>
               <h3 className="text-xs font-bold text-gray-400 uppercase mb-2">My Friends</h3>
               {friendsList.length === 0 && <p className="text-gray-500 text-sm">You have no friends yet.</p>}
@@ -552,8 +557,6 @@ export default function ThimlilithChatUI() {
                 );
               })}
             </div>
-
-            {/* BLOCKED USERS SECTION */}
             {blockedUsersList.length > 0 && (
               <div className="mt-4 border-t border-slate-800 pt-4">
                 <h3 className="text-xs font-bold text-red-400 uppercase mb-2">Blocked Users</h3>
@@ -571,7 +574,6 @@ export default function ThimlilithChatUI() {
           </div>
         )}
 
-        {/* Tab Content: Search Users */}
         {sidebarTab === 'search' && (
           <div className="flex flex-col h-full">
             <form onSubmit={handleSearchUsers} className="p-3 border-b border-slate-800">
@@ -616,12 +618,10 @@ export default function ThimlilithChatUI() {
                   </p>
                 </div>
               </div>
-              
               <div className="flex gap-2">
                  {activeRoom.type === "group" && (
                    <button onClick={handleAddMember} className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2">➕ Add Member</button>
                  )}
-
                  {activeRoom.type === "direct" && dmPartnerUid && (
                    <>
                     <button 
@@ -633,7 +633,6 @@ export default function ThimlilithChatUI() {
                     <button onClick={() => handleReportUser(dmPartnerUid, getDMName(activeRoom))} className="bg-slate-700 hover:bg-slate-600 text-gray-300 px-3 py-1.5 rounded-lg text-sm font-medium">⚠️ Report</button>
                    </>
                  )}
-
                  <button className="text-gray-400 hover:text-white px-3 py-1.5">📞</button>
                  <button 
                   onClick={async () => {
