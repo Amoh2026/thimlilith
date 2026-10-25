@@ -1,5 +1,7 @@
 ﻿"use client";
 
+"use client";
+
 import Link from 'next/link';
 import React, { useState, useEffect, useRef } from 'react';
 import { db, auth, storage } from '@/lib/firebase/client';
@@ -9,6 +11,8 @@ import {
   onAuthStateChanged, signOut, User, signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, updateProfile, GoogleAuthProvider, signInWithPopup
 } from 'firebase/auth';
+
+// ... rest of your code
 
 const getYouTubeID = (url: string) => {
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
