@@ -439,8 +439,8 @@ export default function ThimlilithChatUI() {
           <Link href="/feed" className="hover:text-teal-400 text-xl" title="Home/Feed">🏠</Link>
           
           {/* NEW LINK TO ATK */}
-          <a 
-            href="https://apprendre-tamazight-kabyle.vercel.app" 
+                   <a 
+            href="https://apprendrethamazightkabyle.com" 
             target="_blank" 
             rel="noopener noreferrer" 
             className="hover:text-teal-400 text-xl" 
