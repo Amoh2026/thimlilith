@@ -33,7 +33,6 @@ interface SidebarsProps {
   handleStartDM: (u: any) => void;
   handleBlockUser: (uid: string, name: string) => void;
   handleLogout: () => void;
-  // 👇 NEW PROPS FOR MOBILE
   isMobileSidebarOpen: boolean;
   setIsMobileSidebarOpen: (v: boolean) => void;
 }
@@ -66,7 +65,7 @@ export function Sidebars(p: SidebarsProps) {
 
   return (
     <>
-      {/* Far Left Sidebar */}
+      {/* Far Left Sidebar (Desktop Only) */}
       <div className="hidden md:flex w-16 flex-col items-center py-4 bg-[#0b1120] border-r border-slate-800">
         <div className="w-10 h-10 bg-teal-500 rounded-xl mb-8 flex items-center justify-center text-white font-bold">T</div>
         <div className="flex flex-col gap-6 text-slate-500">
@@ -83,6 +82,14 @@ export function Sidebars(p: SidebarsProps) {
           <button onClick={p.handleLogout} className="text-[10px] text-red-400 hover:text-red-300 font-medium">Logout</button>
         </div>
       </div>
+
+      {/* 👇 MOBILE BACKDROP - TAP ANYWHERE TO CLOSE */}
+      {p.isMobileSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 z-[90] md:hidden"
+          onClick={() => p.setIsMobileSidebarOpen(false)}
+        />
+      )}
 
       {/* Chat List Sidebar */}
       <div className={`fixed inset-y-0 left-0 z-[100] w-80 bg-[#0f172a] border-r border-slate-800 flex flex-col transform transition-transform duration-300 md:relative md:translate-x-0 ${p.isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
@@ -138,14 +145,14 @@ export function Sidebars(p: SidebarsProps) {
                   const lastMessageTime = room.lastMessageAt?.toMillis() || 0;
                   const isUnread = room.lastMessageSenderId !== p.user.uid && lastMessageTime > lastReadTime;
                   return (
-                   <div 
-  key={room.id} 
-  onClick={() => {
-    p.handleSelectRoom(room);
-    p.setIsMobileSidebarOpen(false); // 👈 THIS closes the sidebar
-  }} 
-  className={`flex items-center gap-3 p-3 cursor-pointer ${p.activeRoom?.id === room.id ? 'bg-[#1e293b] border-l-4 border-teal-500' : 'hover:bg-[#1e293b]'}`}
->
+                    <div 
+                      key={room.id} 
+                      onClick={() => {
+                        p.handleSelectRoom(room);
+                        p.setIsMobileSidebarOpen(false); // 👈 Auto-close on mobile
+                      }} 
+                      className={`flex items-center gap-3 p-3 cursor-pointer ${p.activeRoom?.id === room.id ? 'bg-[#1e293b] border-l-4 border-teal-500' : 'hover:bg-[#1e293b]'}`}
+                    >
                       <div className="relative">
                         <div className="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center text-xl">{isDM ? '👤' : '👥'}</div>
                       </div>
@@ -193,14 +200,14 @@ export function Sidebars(p: SidebarsProps) {
                       <p className="text-xs text-teal-400">Friend</p>
                     </div>
                     <button 
-  onClick={() => { 
-    p.handleStartDM({ id: friendId, name: friendName }); 
-    p.setIsMobileSidebarOpen(false); // 👈 THIS closes the sidebar
-  }} 
-  className="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-lg text-xs"
->
-  Chat
-</button>
+                      onClick={() => { 
+                        p.handleStartDM({ id: friendId, name: friendName }); 
+                        p.setIsMobileSidebarOpen(false); // 👈 Auto-close on mobile
+                      }} 
+                      className="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-lg text-xs"
+                    >
+                      Chat
+                    </button>
                   </div>
                 );
               })}
@@ -236,14 +243,14 @@ export function Sidebars(p: SidebarsProps) {
                   </div>
                   <div className="flex gap-2">
                     <button 
-  onClick={() => { 
-    p.handleStartDM(u); 
-    p.setIsMobileSidebarOpen(false); // 👈 THIS closes the sidebar
-  }} 
-  className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-1.5 rounded-lg text-xs"
->
-  Message
-</button>
+                      onClick={() => { 
+                        p.handleStartDM(u); 
+                        p.setIsMobileSidebarOpen(false); // 👈 Auto-close on mobile
+                      }} 
+                      className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-1.5 rounded-lg text-xs"
+                    >
+                      Message
+                    </button>
                     <button onClick={() => p.handleSendFriendRequest(u)} className="flex-1 bg-teal-600 hover:bg-teal-500 text-white py-1.5 rounded-lg text-xs">Add Friend</button>
                   </div>
                 </div>
@@ -255,12 +262,14 @@ export function Sidebars(p: SidebarsProps) {
         {/* 👇 MONETIZATION, TIP JAR & AD SPACE SECTION 👇 */}
         <div className="mt-auto p-4 border-t border-slate-800 bg-[#0f172a]">
           
+          {/* AD SPACE (Only shows for Free users) */}
           {!p.userDoc?.isPremium && (
             <div className="w-full h-20 bg-slate-800 border border-slate-700 rounded-lg mb-3 flex items-center justify-center text-[10px] text-gray-500 text-center">
               [ Google AdSense Space ]<br/>Hide with Premium 💎
             </div>
           )}
 
+          {/* PREMIUM BUTTON */}
           {!p.userDoc?.isPremium ? (
             <button 
               onClick={() => handleCheckout('premium')}
@@ -274,7 +283,9 @@ export function Sidebars(p: SidebarsProps) {
             </div>
           )}
 
+          {/* TIP JAR */}
           <div className="bg-[#1e293b] p-3 rounded-lg border border-slate-700 mb-2">
+            {/* TEXT ON LEFT, IMAGE ON RIGHT */}
             <div className="flex items-center justify-between w-full mb-3 px-1">
               <p className="text-[11px] text-gray-400 leading-tight max-w-[150px]">
                 Support the Kabyle language ❤️
@@ -324,7 +335,6 @@ export function Sidebars(p: SidebarsProps) {
               </button>
             </div>
           </div>
-
         </div>
       </div>
     </>

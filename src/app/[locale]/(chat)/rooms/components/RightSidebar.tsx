@@ -178,53 +178,63 @@ export function RightSidebar({
   };
 
   return (
-    <div className={`fixed inset-y-0 right-0 z-[100] w-64 bg-[#0f172a] border-l border-slate-800 flex flex-col h-full transform transition-transform duration-300 md:relative md:translate-x-0 ${showRightSidebar ? 'translate-x-0' : 'translate-x-full md:hidden'}`}>
-      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
-        <h3 className="text-sm font-bold text-white">
-          Members <span className="text-gray-400 font-normal">({members.length})</span>
-        </h3>
-        {onClose && (
-          <button onClick={onClose} className="text-gray-400 hover:text-white text-lg leading-none" aria-label="Close members">×</button>
-        )}
-      </div>
-
-      <div className="flex-1 overflow-y-auto py-2">
-        {loading && members.length === 0 ? (
-          <div className="px-4 py-8 text-center text-gray-500 text-sm">Loading members...</div>
-        ) : members.length === 0 ? (
-          <div className="px-4 py-8 text-center text-gray-500 text-sm">No members yet</div>
-        ) : (
-          <>
-            {onlineMembers.length > 0 && (
-              <>
-                <div className="px-4 pt-2 pb-1 text-[10px] font-bold uppercase text-gray-500 tracking-wide">Online — {onlineMembers.length}</div>
-                {onlineMembers.map(renderMember)}
-              </>
-            )}
-            {offlineMembers.length > 0 && (
-              <>
-                <div className="px-4 pt-4 pb-1 text-[10px] font-bold uppercase text-gray-500 tracking-wide">Offline — {offlineMembers.length}</div>
-                {offlineMembers.map(renderMember)}
-              </>
-            )}
-          </>
-        )}
-      </div>
-
-      {isOwner && activeRoom.inviteCode && (
-        <div className="px-3 py-2 border-t border-slate-800">
-          <button
-            onClick={() => {
-              const url = `${window.location.origin}/en/join/${activeRoom.inviteCode}`;
-              navigator.clipboard.writeText(url);
-              alert(`Invite link copied:\n\n${url}`);
-            }}
-            className="w-full text-xs bg-slate-800 hover:bg-slate-700 text-teal-400 py-1.5 rounded-lg"
-          >
-            📎 Copy invite link
-          </button>
-        </div>
+    <>
+      {/* 👇 MOBILE BACKDROP - TAP ANYWHERE TO CLOSE */}
+      {showRightSidebar && (
+        <div
+          className="fixed inset-0 bg-black/60 z-[90] md:hidden"
+          onClick={onClose}
+        />
       )}
-    </div>
+
+      <div className={`fixed inset-y-0 right-0 z-[100] w-64 bg-[#0f172a] border-l border-slate-800 flex flex-col h-full transform transition-transform duration-300 md:relative md:translate-x-0 ${showRightSidebar ? 'translate-x-0' : 'translate-x-full md:hidden'}`}>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
+          <h3 className="text-sm font-bold text-white">
+            Members <span className="text-gray-400 font-normal">({members.length})</span>
+          </h3>
+          {onClose && (
+            <button onClick={onClose} className="text-gray-400 hover:text-white text-lg leading-none" aria-label="Close members">×</button>
+          )}
+        </div>
+
+        <div className="flex-1 overflow-y-auto py-2">
+          {loading && members.length === 0 ? (
+            <div className="px-4 py-8 text-center text-gray-500 text-sm">Loading members...</div>
+          ) : members.length === 0 ? (
+            <div className="px-4 py-8 text-center text-gray-500 text-sm">No members yet</div>
+          ) : (
+            <>
+              {onlineMembers.length > 0 && (
+                <>
+                  <div className="px-4 pt-2 pb-1 text-[10px] font-bold uppercase text-gray-500 tracking-wide">Online — {onlineMembers.length}</div>
+                  {onlineMembers.map(renderMember)}
+                </>
+              )}
+              {offlineMembers.length > 0 && (
+                <>
+                  <div className="px-4 pt-4 pb-1 text-[10px] font-bold uppercase text-gray-500 tracking-wide">Offline — {offlineMembers.length}</div>
+                  {offlineMembers.map(renderMember)}
+                </>
+              )}
+            </>
+          )}
+        </div>
+
+        {isOwner && activeRoom.inviteCode && (
+          <div className="px-3 py-2 border-t border-slate-800">
+            <button
+              onClick={() => {
+                const url = `${window.location.origin}/en/join/${activeRoom.inviteCode}`;
+                navigator.clipboard.writeText(url);
+                alert(`Invite link copied:\n\n${url}`);
+              }}
+              className="w-full text-xs bg-slate-800 hover:bg-slate-700 text-teal-400 py-1.5 rounded-lg"
+            >
+              📎 Copy invite link
+            </button>
+          </div>
+        )}
+      </div>
+    </>
   );
 }
