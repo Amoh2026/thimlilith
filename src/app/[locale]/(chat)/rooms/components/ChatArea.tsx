@@ -518,10 +518,16 @@ export function ChatArea(p: ChatAreaProps) {
           </div>
           
           <button type="submit" disabled={p.uploading || p.isRecording || p.isCheckingAI || !p.inputText.trim() || p.isDMPartnerBlocked} className="bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white p-2 rounded-lg">
-            {p.isCheckingAI ? '⏳' : '➤'}
-          </button>
-        </form>
-      </div>
+            {/* 👇 FLOATING MEMBERS BUTTON (MOBILE ONLY) */}
+      {p.activeRoom.type === "group" && !p.showRightSidebar && (
+        <button
+          onClick={() => p.setShowRightSidebar(true)}
+          className="fixed right-4 bottom-24 z-[90] md:hidden bg-teal-600 hover:bg-teal-500 text-white w-12 h-12 rounded-full shadow-2xl flex items-center justify-center text-2xl border-2 border-slate-700"
+          title="Show Members"
+        >
+          👥
+        </button>
+      )}
     </div>
   );
 }
