@@ -17,8 +17,6 @@ import {
 } from '@/lib/chat/auth-server';
 import { ALLOWED_MAX_MEMBERS } from '@/types/chat';
 
-export const runtime = 'nodejs';
-
 type Params = { params: Promise<{ roomId: string }> };
 
 export async function PATCH(req: NextRequest, { params }: Params) {

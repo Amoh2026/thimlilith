@@ -38,3 +38,21 @@ next-env.d.ts
 .env.local
 .env.local.backup
 .env*.local
+
+# ============================================
+# 🚨 THIMLILITH SECURITY ADDITIONS
+# ============================================
+
+# Local backup folder created before security patches
+src_backup/
+
+# PowerShell backup files (.bak-runtime, .bak-security, etc.)
+*.bak-*
+*.bak
+
+# Firebase admin secrets
+.secrets/
+*.serviceAccount.json
+firebase-admin*.json
+
+*.backup

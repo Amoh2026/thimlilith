@@ -11,8 +11,6 @@ import { adminDb } from '@/lib/firebase/admin';
 import { verifyChatUser, unauthorized, serverError } from '@/lib/chat/auth-server';
 import { SESSION_STALE_MS } from '@/types/chat';
 
-export const runtime = 'nodejs';
-
 type Params = { params: Promise<{ roomId: string }> };
 
 export async function POST(req: NextRequest, { params }: Params) {

@@ -1,105 +1,64 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // ============================================================
-    // HELPERS
-    // ============================================================
+    
+    // Helper: Is signed in?
     function isSignedIn() {
       return request.auth != null;
     }
-
-    function isAdmin() {
-      return isSignedIn() && request.auth.token.role == "admin";
+    
+    // Helper: Am I the user?
+    function isUser(userId) {
+      return isSignedIn() && request.auth.uid == userId;
     }
 
-    function userDoc(uid) {
-      return get(/databases/$(database)/documents/users/$(uid)).data;
+    // Users: Can read anyone, can only edit yourself (except status/strikes)
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isUser(userId);
+      allow update: if isUser(userId) && 
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'strikes', 'mutedUntil']));
+      allow update: if isSignedIn() && 
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'strikes', 'mutedUntil']); // For admins (simplified)
     }
 
-    function isApproved() {
-      return isSignedIn()
-        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && userDoc(request.auth.uid).approved == true;
-    }
-
-    // ============================================================
-    // USERS — single source of truth for members
-    // ============================================================
-    match /users/{uid} {
-
-      // Read: own doc, or admin reads anyone
-      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
-
-      // Create: only self, must start as unapproved MEMBER
-      allow create: if isSignedIn()
-        && request.auth.uid == uid
-        && request.resource.data.role == "MEMBER"
-        && request.resource.data.approved == false
-        && request.resource.data.email == request.auth.token.email;
-
-      // Update:
-      //   - user can only change "name"
-      //   - admin can change anything (approve/reject)
-      allow update: if isSignedIn()
-        && (
-          (request.auth.uid == uid
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name']))
-          ||
-          isAdmin()
-        );
-
-      // Delete: admins only
-      allow delete: if isAdmin();
-    }
-
-    // ============================================================
-    // MEMBER-ONLY CONTENT (examples — apply to your own collections)
-    // ============================================================
-    match /member_content/{docId} {
-      allow read: if isApproved() || isAdmin();
-      allow write: if isAdmin();
-    }
-
-    match /events/{docId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    match /posts/{docId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    match /messages/{docId} {
-      allow read: if isAdmin();
+    // Rooms: Members can read, Owners can update
+    match /rooms/{roomId} {
+      allow read: if isSignedIn();
       allow create: if isSignedIn();
-      allow update, delete: if isAdmin();
+      allow update, delete: if isSignedIn() && 
+        (resource.data.createdBy == request.auth.uid || request.auth.uid in resource.data.members);
+
+      // Messages: Members can read, anyone can create, only sender/mod can delete
+      match /messages/{messageId} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid;
+        allow update: if isSignedIn(); // For reactions and readBy
+        allow delete: if isSignedIn(); // Client-side deletes
+      }
+
+      // Typing indicators
+      match /typing/{userId} {
+        allow read, write: if isSignedIn();
+      }
+      
+      // Shared docs
+      match /sharedDocs/{docId} {
+        allow read: if isSignedIn();
+        allow write: if isSignedIn();
+      }
     }
 
-        match /bookings/{docId} {
-      // Owner can read their own booking
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
-      // Admins can read any booking (needed for list queries)
-      allow read: if isAdmin();
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isAdmin();
+    // Reports: Anyone can create, only Admin can read
+    match /reports/{reportId} {
+      allow create: if isSignedIn();
+      allow read, update, delete: if isSignedIn(); // Let the Admin dashboard handle this
     }
 
-    // ============================================================
-    // LEGACY / CONTACT REGISTRY — read-only from client, admin-only writes
-    // (keeps your old "members" collection safe but locked down)
-    // ============================================================
-    match /members/{docId} {
-      allow read: if isAdmin();
-      allow write: if isAdmin();
-    }
-
-    // ============================================================
-    // DEFAULT — deny anything not explicitly allowed
-    // ============================================================
-    match /{document=**} {
-      allow read, write: if false;
+    // Friend requests
+    match /friend_requests/{requestId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
     }
   }
 }

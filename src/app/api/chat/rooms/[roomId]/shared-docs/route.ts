@@ -19,8 +19,6 @@ import {
   type SharedDocSource,
 } from '@/types/chat';
 
-export const runtime = 'nodejs';
-
 type Params = { params: Promise<{ roomId: string }> };
 
 export async function GET(req: NextRequest, { params }: Params) {
@@ -30,7 +28,7 @@ export async function GET(req: NextRequest, { params }: Params) {
   try {
     const { roomId } = await params;
     const snap = await adminDb()
-      .collection('chatRooms')
+      .collection('rooms')
       .doc(roomId)
       .collection('sharedDocs')
       .where('isActive', '==', true)
@@ -77,12 +75,12 @@ export async function POST(req: NextRequest, { params }: Params) {
       );
     }
 
-    const roomSnap = await adminDb().collection('chatRooms').doc(roomId).get();
+    const roomSnap = await adminDb().collection('rooms').doc(roomId).get();
     if (!roomSnap.exists) {
       return new Response(JSON.stringify({ error: 'Room not found' }), { status: 404 });
     }
     const roomData = roomSnap.data()!;
-    const isMember = (roomData.members ?? []).some((m: any) => m.id === user.uid);
+    const isMember = (roomData.members ?? []).includes(user.uid);
     if (!isMember) {
       return new Response(JSON.stringify({ error: 'Not a member' }), { status: 403 });
     }
@@ -90,7 +88,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     const displayName = user.name || user.email?.split('@')[0] || 'Member';
 
     const docRef = await adminDb()
-      .collection('chatRooms')
+      .collection('rooms')
       .doc(roomId)
       .collection('sharedDocs')
       .add({

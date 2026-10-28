@@ -15,8 +15,6 @@ import {
 } from '@/lib/chat/auth-server';
 import { MAX_REQUEST_MESSAGE_LENGTH, MAX_ROOM_MEMBERS } from '@/types/chat';
 
-export const runtime = 'nodejs';
-
 type Params = { params: Promise<{ roomId: string }> };
 
 export async function POST(req: NextRequest, { params }: Params) {

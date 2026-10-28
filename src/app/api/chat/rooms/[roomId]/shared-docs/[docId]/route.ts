@@ -6,8 +6,6 @@ import { NextRequest } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
 import { verifyChatUser, unauthorized, serverError } from '@/lib/chat/auth-server';
 
-export const runtime = 'nodejs';
-
 type Params = { params: Promise<{ roomId: string; docId: string }> };
 
 export async function DELETE(req: NextRequest, { params }: Params) {
@@ -19,7 +17,7 @@ export async function DELETE(req: NextRequest, { params }: Params) {
 
     const db = adminDb();
     const docRef = db
-      .collection('chatRooms')
+      .collection('rooms')
       .doc(roomId)
       .collection('sharedDocs')
       .doc(docId);
@@ -30,7 +28,7 @@ export async function DELETE(req: NextRequest, { params }: Params) {
     }
     const data = snap.data()!;
 
-    const roomSnap = await db.collection('chatRooms').doc(roomId).get();
+    const roomSnap = await db.collection('rooms').doc(roomId).get();
     const roomData = roomSnap.data() || {};
     const isOwner = roomData.createdBy === user.uid;
     const isSharer = data.sharedBy === user.uid;
