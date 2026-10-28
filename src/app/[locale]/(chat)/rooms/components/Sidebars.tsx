@@ -64,7 +64,7 @@ export function Sidebars(p: SidebarsProps) {
   return (
     <>
       {/* Far Left Sidebar */}
-      <div className="w-16 flex flex-col items-center py-4 bg-[#0b1120] border-r border-slate-800">
+      <div className="hidden md:flex w-16 flex-col items-center py-4 bg-[#0b1120] border-r border-slate-800">
         <div className="w-10 h-10 bg-teal-500 rounded-xl mb-8 flex items-center justify-center text-white font-bold">T</div>
         <div className="flex flex-col gap-6 text-slate-500">
           <button className="text-teal-400 text-xl" title="Chat">💬</button>
