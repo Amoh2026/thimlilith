@@ -46,6 +46,9 @@ export default function ThimlilithChatUI() {
   const [messageSearchDate, setMessageSearchDate] = useState("");
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
 
+  // Mobile Navigation
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
   // Social
   const [friendRequests, setFriendRequests] = useState<any[]>([]);
   const [friendsList, setFriendsList] = useState<any[]>([]);
@@ -70,6 +73,9 @@ export default function ThimlilithChatUI() {
   // Theme State
   const [showThemeModal, setShowThemeModal] = useState(false);
   const [themeData, setThemeData] = useState<any>({ bgColor: "#0b1120", bgImage: "", poemText: "" });
+
+  // Premium Modal State
+  const [premiumModal, setPremiumModal] = useState<{ open: boolean; type: LimitType }>({ open: false, type: 'translate' });
 
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -133,11 +139,11 @@ export default function ThimlilithChatUI() {
     };
     fetchBlocked();
   }, [userDoc?.blockedUsers]);
-    // 🔄 Force refresh after successful payment
+
+  // Force refresh after successful payment
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('payment') === 'success') {
-      // Wait 2 seconds for the webhook to process, then refresh to get new data
       const timer = setTimeout(() => {
         window.location.href = '/en/rooms';
       }, 2000);
@@ -335,19 +341,17 @@ export default function ThimlilithChatUI() {
   const handlePromote = async (uid: string) => { if (activeRoom) await updateDoc(doc(db, "rooms", activeRoom.id), { moderators: arrayUnion(uid) }); };
   const handleDemote = async (uid: string) => { if (activeRoom) await updateDoc(doc(db, "rooms", activeRoom.id), { moderators: arrayRemove(uid) }); };
 
-    const handleSaveTheme = async () => {
+  const handleSaveTheme = async () => {
     if (!activeRoom || !user) return;
 
     try {
       if (activeRoom.type === "group") {
-        // GROUP: Only the creator can save
         if (activeRoom.createdBy !== user.uid) {
           alert("Only the room creator can change the group decoration.");
           return;
         }
         await updateDoc(doc(db, "rooms", activeRoom.id), { customization: themeData });
       } else {
-        // DM: Save personally to the user's profile
         await updateDoc(doc(db, "users", user.uid), { 
           [`dmThemes.${activeRoom.id}`]: themeData 
         });
@@ -457,7 +461,17 @@ export default function ThimlilithChatUI() {
   const sendMessageToFirestore = async (data: any) => {
     if (!user || !activeRoom) return;
     const reply = replyingTo ? { id: replyingTo.id, text: replyingTo.text || "📎", senderName: replyingTo.senderName } : null;
-    await addDoc(collection(db, "rooms", activeRoom.id, "messages"), { senderId: user.uid, senderName: user.displayName || user.email?.split('@')[0] || "Anon", createdAt: serverTimestamp(), replyTo: reply, readBy: [], ...data });
+    
+    await addDoc(collection(db, "rooms", activeRoom.id, "messages"), { 
+      senderId: user.uid, 
+      senderName: user.displayName || user.email?.split('@')[0] || "Anon", 
+      senderIsPremium: userDoc?.isPremium || false, // 👈 ADDED BADGE
+      senderIsDonator: userDoc?.isDonator || false, // 👈 ADDED BADGE
+      createdAt: serverTimestamp(), 
+      replyTo: reply, 
+      readBy: [], 
+      ...data 
+    });
     try { await updateDoc(doc(db, "rooms", activeRoom.id), { lastMessageAt: serverTimestamp(), lastMessageText: data.text || "📎", lastMessageSenderId: user.uid }); } catch {}
     setReplyingTo(null);
   };
@@ -520,12 +534,10 @@ export default function ThimlilithChatUI() {
         const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         setUploading(true);
         try {
-          // 1. Upload Audio to Firebase Storage
           const sref = ref(storage, `chat_uploads/audio_${Date.now()}.webm`);
           await uploadBytes(sref, blob);
           const url = await getDownloadURL(sref);
 
-          // 2. Send to Whisper for Transcription
           let transcript = "";
           try {
             const formData = new FormData();
@@ -547,14 +559,12 @@ export default function ThimlilithChatUI() {
             console.error("Transcription failed", err);
           }
 
-          // 3. Send message to Firestore (with Audio URL + Transcribed Text)
           await sendMessageToFirestore({ 
             type: 'audio', 
             fileUrl: url, 
             text: transcript || "" 
           });
 
-          // 4. Push the transcript to the ATK Pipeline automatically!
           if (transcript && transcript.trim().length > 3) {
             await saveToATK({
               text: transcript,
@@ -629,9 +639,6 @@ export default function ThimlilithChatUI() {
     });
   };
 
-  // ─── PREMIUM MODAL STATE ───
-  const [premiumModal, setPremiumModal] = useState<{ open: boolean; type: LimitType }>({ open: false, type: 'translate' });
-
   // ─── TRANSLATION ───
   const handleTranslate = async (msg: any, targetLang: string) => {
     if (!msg.text) return null;
@@ -674,6 +681,7 @@ export default function ThimlilithChatUI() {
   return (
     <div className="flex h-screen bg-[#0f172a] text-gray-300 font-sans">
       <PremiumModal open={premiumModal.open} type={premiumModal.type} onClose={() => setPremiumModal({ ...premiumModal, open: false })} />
+      
       <Sidebars
         user={user} userDoc={userDoc} rooms={rooms} activeRoom={activeRoom}
         sidebarTab={sidebarTab} setSidebarTab={setSidebarTab}
@@ -684,6 +692,8 @@ export default function ThimlilithChatUI() {
         handleSearchUsers={handleSearchUsers} handleSendFriendRequest={handleSendFriendRequest}
         handleAcceptRequest={handleAcceptRequest} handleRejectRequest={handleRejectRequest}
         handleStartDM={handleStartDM} handleBlockUser={handleBlockUser} handleLogout={handleLogout}
+        isMobileSidebarOpen={isMobileSidebarOpen}
+        setIsMobileSidebarOpen={setIsMobileSidebarOpen}
       />
       
       <ChatArea
@@ -707,6 +717,8 @@ export default function ThimlilithChatUI() {
         openMembersModal={openMembersModal}
         showRightSidebar={showRightSidebar}
         setShowRightSidebar={setShowRightSidebar}
+        isMobileSidebarOpen={isMobileSidebarOpen}
+        setIsMobileSidebarOpen={setIsMobileSidebarOpen}
         onVideo={async () => {
           try {
             if (!user) return;
@@ -719,13 +731,11 @@ export default function ThimlilithChatUI() {
         onSaveToATK={handleSaveToATK}
         handleSendSticker={handleSendSticker} 
         onTranslate={handleTranslate}
-                onOpenTheme={() => {
+        onOpenTheme={() => {
           if (activeRoom.type === "direct") {
-            // Load your personal DM theme (or default)
             const myDMTheme = userDoc?.dmThemes?.[activeRoom.id];
             setThemeData(myDMTheme || { bgColor: "#0b1120", bgImage: "", poemText: "" });
           } else {
-            // Load the group's shared theme
             setThemeData(activeRoom.customization || { bgColor: "#0b1120", bgImage: "", poemText: "" });
           }
           setShowThemeModal(true);
@@ -738,6 +748,7 @@ export default function ThimlilithChatUI() {
           activeRoom={activeRoom}
           user={user}
           userDoc={userDoc}
+          showRightSidebar={showRightSidebar}
           onKick={handleKickMember}
           onPromote={handlePromote}
           onDemote={handleDemote}

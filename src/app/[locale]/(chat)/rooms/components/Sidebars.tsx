@@ -33,6 +33,9 @@ interface SidebarsProps {
   handleStartDM: (u: any) => void;
   handleBlockUser: (uid: string, name: string) => void;
   handleLogout: () => void;
+  // 👇 NEW PROPS FOR MOBILE
+  isMobileSidebarOpen: boolean;
+  setIsMobileSidebarOpen: (v: boolean) => void;
 }
 
 export function Sidebars(p: SidebarsProps) {
@@ -82,7 +85,14 @@ export function Sidebars(p: SidebarsProps) {
       </div>
 
       {/* Chat List Sidebar */}
-      <div className="w-80 bg-[#0f172a] border-r border-slate-800 flex flex-col hidden md:flex">
+      <div className={`fixed inset-y-0 left-0 z-[100] w-80 bg-[#0f172a] border-r border-slate-800 flex flex-col transform transition-transform duration-300 md:relative md:translate-x-0 ${p.isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        
+        {/* Mobile close button */}
+        <div className="md:hidden flex items-center justify-between p-4 border-b border-slate-800">
+          <span className="text-white font-bold text-lg">Thajmaathin</span>
+          <button onClick={() => p.setIsMobileSidebarOpen(false)} className="text-gray-400 hover:text-white text-2xl">×</button>
+        </div>
+
         <div className="flex border-b border-slate-800">
           <button onClick={() => p.setSidebarTab('rooms')} className={`flex-1 py-3 px-2 text-sm font-medium ${p.sidebarTab === 'rooms' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500'}`}>Thajmaathin</button>
           <button onClick={() => p.setSidebarTab('friends')} className={`flex-1 py-3 px-2 text-sm font-medium relative ${p.sidebarTab === 'friends' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500'}`}>
@@ -128,7 +138,14 @@ export function Sidebars(p: SidebarsProps) {
                   const lastMessageTime = room.lastMessageAt?.toMillis() || 0;
                   const isUnread = room.lastMessageSenderId !== p.user.uid && lastMessageTime > lastReadTime;
                   return (
-                    <div key={room.id} onClick={() => p.handleSelectRoom(room)} className={`flex items-center gap-3 p-3 cursor-pointer ${p.activeRoom?.id === room.id ? 'bg-[#1e293b] border-l-4 border-teal-500' : 'hover:bg-[#1e293b]'}`}>
+                    <div 
+                      key={room.id} 
+                      onClick={() => {
+                        p.handleSelectRoom(room);
+                        p.setIsMobileSidebarOpen(false); // 👈 Closes sidebar on mobile when a room is clicked
+                      }} 
+                      className={`flex items-center gap-3 p-3 cursor-pointer ${p.activeRoom?.id === room.id ? 'bg-[#1e293b] border-l-4 border-teal-500' : 'hover:bg-[#1e293b]'}`}
+                    >
                       <div className="relative">
                         <div className="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center text-xl">{isDM ? '👤' : '👥'}</div>
                       </div>
@@ -175,7 +192,7 @@ export function Sidebars(p: SidebarsProps) {
                       <h4 className="text-white font-medium text-sm truncate">{friendName}</h4>
                       <p className="text-xs text-teal-400">Friend</p>
                     </div>
-                    <button onClick={() => p.handleStartDM({ id: friendId, name: friendName })} className="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-lg text-xs">Chat</button>
+                    <button onClick={() => { p.handleStartDM({ id: friendId, name: friendName }); p.setIsMobileSidebarOpen(false); }} className="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-lg text-xs">Chat</button>
                   </div>
                 );
               })}
@@ -210,7 +227,7 @@ export function Sidebars(p: SidebarsProps) {
                     <div className="flex-1 overflow-hidden"><h4 className="text-white font-medium text-sm truncate">{u.name}</h4></div>
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => p.handleStartDM(u)} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-1.5 rounded-lg text-xs">Message</button>
+                    <button onClick={() => { p.handleStartDM(u); p.setIsMobileSidebarOpen(false); }} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-1.5 rounded-lg text-xs">Message</button>
                     <button onClick={() => p.handleSendFriendRequest(u)} className="flex-1 bg-teal-600 hover:bg-teal-500 text-white py-1.5 rounded-lg text-xs">Add Friend</button>
                   </div>
                 </div>
@@ -222,14 +239,12 @@ export function Sidebars(p: SidebarsProps) {
         {/* 👇 MONETIZATION, TIP JAR & AD SPACE SECTION 👇 */}
         <div className="mt-auto p-4 border-t border-slate-800 bg-[#0f172a]">
           
-          {/* AD SPACE (Only shows for Free users) */}
           {!p.userDoc?.isPremium && (
             <div className="w-full h-20 bg-slate-800 border border-slate-700 rounded-lg mb-3 flex items-center justify-center text-[10px] text-gray-500 text-center">
               [ Google AdSense Space ]<br/>Hide with Premium 💎
             </div>
           )}
 
-          {/* PREMIUM BUTTON */}
           {!p.userDoc?.isPremium ? (
             <button 
               onClick={() => handleCheckout('premium')}
@@ -243,10 +258,7 @@ export function Sidebars(p: SidebarsProps) {
             </div>
           )}
 
-          {/* TIP JAR */}
-            <div className="bg-[#1e293b] p-3 rounded-lg border border-slate-700 mb-2">
-            
-            {/* 👇 TEXT ON LEFT, IMAGE ON RIGHT */}
+          <div className="bg-[#1e293b] p-3 rounded-lg border border-slate-700 mb-2">
             <div className="flex items-center justify-between w-full mb-3 px-1">
               <p className="text-[11px] text-gray-400 leading-tight max-w-[150px]">
                 Support the Kabyle language ❤️
@@ -298,8 +310,6 @@ export function Sidebars(p: SidebarsProps) {
           </div>
 
         </div>
-        {/* 👆 END OF MONETIZATION SECTION 👆 */}
-
       </div>
     </>
   );
