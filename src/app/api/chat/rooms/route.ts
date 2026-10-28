@@ -3,7 +3,7 @@
 //   GET  → list active rooms
 //   POST → create a new room (creator becomes first member)
 //
-// v2 — POST accepts: maxMembers, requiresApproval
+// B+ — collection: rooms, members: string[] + memberNames map
 // ============================================================
 
 import { NextRequest } from 'next/server';
@@ -17,8 +17,6 @@ import {
 } from '@/lib/chat/auth-server';
 import { ALLOWED_MAX_MEMBERS, MAX_ROOM_MEMBERS } from '@/types/chat';
 
-export const runtime = 'nodejs';
-
 // ------------------------------------------------------------
 // GET /api/chat/rooms
 // ------------------------------------------------------------
@@ -28,7 +26,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const snap = await adminDb()
-      .collection('chatRooms')
+      .collection('rooms')
       .where('isActive', '==', true)
       .orderBy('createdAt', 'desc')
       .limit(50)
@@ -64,7 +62,6 @@ export async function POST(req: NextRequest) {
     const name = String(body?.name ?? '').trim();
     const description = String(body?.description ?? '').trim();
 
-    // Validate maxMembers
     const rawMax = Number(body?.maxMembers ?? MAX_ROOM_MEMBERS);
     if (!ALLOWED_MAX_MEMBERS.includes(rawMax as any)) {
       return badRequest(
@@ -73,7 +70,6 @@ export async function POST(req: NextRequest) {
     }
     const maxMembers = rawMax;
 
-    // Privacy flag
     const requiresApproval = body?.requiresApproval === true;
 
     if (!name || name.length < 2 || name.length > 60) {
@@ -83,10 +79,9 @@ export async function POST(req: NextRequest) {
       return badRequest('Description max 200 characters');
     }
 
-    const now = new Date();
     const creatorName = user.name || user.email?.split('@')[0] || 'Member';
 
-    const docRef = await adminDb().collection('chatRooms').add({
+    const docRef = await adminDb().collection('rooms').add({
       name,
       description,
       createdBy: user.uid,
@@ -96,14 +91,9 @@ export async function POST(req: NextRequest) {
       memberCount: 1,
       lastMessageAt: null,
       lastMessagePreview: '',
-      members: [
-        {
-          id: user.uid,
-          name: creatorName,
-          email: user.email ?? '',
-          joinedAt: now.getTime(),
-        },
-      ],
+      // B+ shape: strings + name map (matches live UI)
+      members: [user.uid],
+      memberNames: { [user.uid]: creatorName },
       // v2 fields
       maxMembers,
       requiresApproval,

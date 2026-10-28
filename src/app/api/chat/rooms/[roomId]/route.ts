@@ -9,8 +9,6 @@ import { NextRequest } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
 import { verifyChatUser, unauthorized, serverError } from '@/lib/chat/auth-server';
 
-export const runtime = 'nodejs';
-
 type Params = { params: Promise<{ roomId: string }> };
 
 export async function GET(req: NextRequest, { params }: Params) {
@@ -20,12 +18,12 @@ export async function GET(req: NextRequest, { params }: Params) {
   try {
     const { roomId } = await params;
 
-    const snap = await adminDb().collection('chatRooms').doc(roomId).get();
+    const snap = await adminDb().collection('rooms').doc(roomId).get();
     if (!snap.exists) {
       return new Response(JSON.stringify({ error: 'Room not found' }), { status: 404 });
     }
     const data = snap.data()!;
-    const isMember = (data.members ?? []).some((m: any) => m.id === user.uid);
+    const isMember = (data.members ?? []).includes(user.uid);
     if (!isMember) {
       return new Response(JSON.stringify({ error: 'Not a member' }), { status: 403 });
     }
@@ -43,7 +41,7 @@ export async function DELETE(req: NextRequest, { params }: Params) {
   try {
     const { roomId } = await params;
 
-    const docRef = adminDb().collection('chatRooms').doc(roomId);
+    const docRef = adminDb().collection('rooms').doc(roomId);
     const snap = await docRef.get();
     if (!snap.exists) {
       return new Response(JSON.stringify({ error: 'Room not found' }), { status: 404 });

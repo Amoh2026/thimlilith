@@ -20,8 +20,6 @@ import {
   serverError,
 } from '@/lib/chat/auth-server';
 
-export const runtime = 'nodejs';
-
 export async function POST(req: NextRequest) {
   const user = await verifyChatUser(req);
   if (!user) return unauthorized();
@@ -45,13 +43,13 @@ export async function POST(req: NextRequest) {
     const roomId = String(body?.roomId ?? '').trim();
     if (!roomId) return badRequest('roomId required');
 
-    const snap = await adminDb().collection('chatRooms').doc(roomId).get();
+    const snap = await adminDb().collection('rooms').doc(roomId).get();
     if (!snap.exists) {
       return new Response(JSON.stringify({ error: 'Room not found' }), { status: 404 });
     }
     const data = snap.data()!;
-    const members: any[] = data.members ?? [];
-    if (!members.some((m) => m.id === user.uid)) {
+    const members: string[] = data.members ?? [];
+    if (!members.includes(user.uid)) {
       return new Response(JSON.stringify({ error: 'Not a member' }), { status: 403 });
     }
 

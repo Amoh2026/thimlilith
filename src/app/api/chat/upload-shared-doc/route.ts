@@ -13,8 +13,6 @@ import { put } from '@vercel/blob';
 import { verifyChatUser, unauthorized, badRequest, serverError } from '@/lib/chat/auth-server';
 import { MAX_SHARED_FILE_SIZE } from '@/types/chat';
 
-export const runtime = 'nodejs';
-
 export async function POST(req: NextRequest) {
   const user = await verifyChatUser(req);
   if (!user) return unauthorized();

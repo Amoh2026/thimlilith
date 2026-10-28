@@ -43,10 +43,10 @@ import {
 // ------------------------------------------------------------
 // Collection / doc references
 // ------------------------------------------------------------
-export const chatRoomsCol = () => collection(db, 'chatRooms');
-export const chatRoomDoc = (roomId: string) => doc(db, 'chatRooms', roomId);
+export const chatRoomsCol = () => collection(db, 'rooms');
+export const chatRoomDoc = (roomId: string) => doc(db, 'rooms', roomId);
 export const chatMessagesCol = (roomId: string) =>
-  collection(db, 'chatRooms', roomId, 'messages');
+  collection(db, 'rooms', roomId, 'messages');
 export const chatPresenceDoc = (roomId: string, userId: string) =>
   doc(db, 'chatPresence', presenceDocId(roomId, userId));
 
@@ -103,7 +103,7 @@ export function subscribeUserRooms(
     const rooms = snap.docs
       .map((d) => normalizeRoom({ id: d.id, ...d.data() }))
       .filter((r) => r.isActive !== false)
-      .filter((r) => (r.members ?? []).some((m) => m.id === userId));
+      .filter((r) => (r.members ?? []).includes(userId));
     cb(rooms);
   });
 }

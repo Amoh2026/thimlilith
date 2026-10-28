@@ -14,8 +14,6 @@ import {
   serverError,
 } from '@/lib/chat/auth-server';
 
-export const runtime = 'nodejs';
-
 type Params = { params: Promise<{ roomId: string }> };
 
 export async function POST(req: NextRequest, { params }: Params) {
