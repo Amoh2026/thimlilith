@@ -67,7 +67,7 @@ export function ChatArea(p: ChatAreaProps) {
   const [showStickerPicker, setShowStickerPicker] = useState(false);
   const [translations, setTranslations] = useState<Record<string, string>>({});
   const [translatingId, setTranslatingId] = useState<string | null>(null);
-
+  const [showPinnedBanner, setShowPinnedBanner] = useState(true);
   const pickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -76,7 +76,9 @@ export function ChatArea(p: ChatAreaProps) {
       .then(data => setStickers(data))
       .catch(err => console.error("Could not load stickers", err));
   }, []);
-
+    useEffect(() => {
+    setShowPinnedBanner(true);
+  }, [p.activeRoom?.id]);
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
@@ -188,13 +190,27 @@ export function ChatArea(p: ChatAreaProps) {
       )}
 
       {/* Pinned Banner */}
-      {p.activeRoom.pinnedMessages && p.activeRoom.pinnedMessages.length > 0 && (
-        <div className="bg-teal-900/30 border-b border-teal-500/50 p-2 px-6 flex justify-between items-center cursor-pointer hover:bg-teal-900/50 relative z-20" onClick={() => p.setShowPinnedModal(true)}>
-          <div className="flex items-center gap-2 text-teal-300 text-sm font-medium">
+      {p.activeRoom.pinnedMessages && p.activeRoom.pinnedMessages.length > 0 && showPinnedBanner && (
+        <div className="bg-teal-900/30 border-b border-teal-500/50 p-2 px-4 flex justify-between items-center relative z-20">
+          <div 
+            className="flex items-center gap-2 text-teal-300 text-sm font-medium cursor-pointer flex-1"
+            onClick={() => {
+              p.setShowPinnedModal(true);
+              setShowPinnedBanner(false); // 👈 Hides banner when opened
+            }}
+          >
             <span>📌</span>
             <span>{p.activeRoom.pinnedMessages.length} Pinned Message(s)</span>
+            <span className="text-xs text-teal-400 underline ml-2">Click to view</span>
           </div>
-          <span className="text-xs text-teal-400 underline">Click to view</span>
+          
+          <button 
+            onClick={() => setShowPinnedBanner(false)} // 👈 The new 'X' button
+            className="text-teal-400 hover:text-white px-2 font-bold text-lg"
+            title="Dismiss"
+          >
+            ×
+          </button>
         </div>
       )}
 

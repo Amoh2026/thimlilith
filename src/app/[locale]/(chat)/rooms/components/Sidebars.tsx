@@ -138,14 +138,14 @@ export function Sidebars(p: SidebarsProps) {
                   const lastMessageTime = room.lastMessageAt?.toMillis() || 0;
                   const isUnread = room.lastMessageSenderId !== p.user.uid && lastMessageTime > lastReadTime;
                   return (
-                    <div 
-                      key={room.id} 
-                      onClick={() => {
-                        p.handleSelectRoom(room);
-                        p.setIsMobileSidebarOpen(false); // 👈 Closes sidebar on mobile when a room is clicked
-                      }} 
-                      className={`flex items-center gap-3 p-3 cursor-pointer ${p.activeRoom?.id === room.id ? 'bg-[#1e293b] border-l-4 border-teal-500' : 'hover:bg-[#1e293b]'}`}
-                    >
+                   <div 
+  key={room.id} 
+  onClick={() => {
+    p.handleSelectRoom(room);
+    p.setIsMobileSidebarOpen(false); // 👈 THIS closes the sidebar
+  }} 
+  className={`flex items-center gap-3 p-3 cursor-pointer ${p.activeRoom?.id === room.id ? 'bg-[#1e293b] border-l-4 border-teal-500' : 'hover:bg-[#1e293b]'}`}
+>
                       <div className="relative">
                         <div className="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center text-xl">{isDM ? '👤' : '👥'}</div>
                       </div>
@@ -192,7 +192,15 @@ export function Sidebars(p: SidebarsProps) {
                       <h4 className="text-white font-medium text-sm truncate">{friendName}</h4>
                       <p className="text-xs text-teal-400">Friend</p>
                     </div>
-                    <button onClick={() => { p.handleStartDM({ id: friendId, name: friendName }); p.setIsMobileSidebarOpen(false); }} className="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-lg text-xs">Chat</button>
+                    <button 
+  onClick={() => { 
+    p.handleStartDM({ id: friendId, name: friendName }); 
+    p.setIsMobileSidebarOpen(false); // 👈 THIS closes the sidebar
+  }} 
+  className="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-lg text-xs"
+>
+  Chat
+</button>
                   </div>
                 );
               })}
@@ -227,7 +235,15 @@ export function Sidebars(p: SidebarsProps) {
                     <div className="flex-1 overflow-hidden"><h4 className="text-white font-medium text-sm truncate">{u.name}</h4></div>
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => { p.handleStartDM(u); p.setIsMobileSidebarOpen(false); }} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-1.5 rounded-lg text-xs">Message</button>
+                    <button 
+  onClick={() => { 
+    p.handleStartDM(u); 
+    p.setIsMobileSidebarOpen(false); // 👈 THIS closes the sidebar
+  }} 
+  className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-1.5 rounded-lg text-xs"
+>
+  Message
+</button>
                     <button onClick={() => p.handleSendFriendRequest(u)} className="flex-1 bg-teal-600 hover:bg-teal-500 text-white py-1.5 rounded-lg text-xs">Add Friend</button>
                   </div>
                 </div>
