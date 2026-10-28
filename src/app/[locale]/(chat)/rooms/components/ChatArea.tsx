@@ -54,6 +54,8 @@ interface ChatAreaProps {
   handleSendSticker: (url: string) => void;
   onTranslate: (msg: any, targetLang: string) => Promise<string | null>;
   onOpenTheme: () => void;
+  isMobileSidebarOpen: boolean;
+  setIsMobileSidebarOpen: (v: boolean) => void;
 }
 
 export function ChatArea(p: ChatAreaProps) {
@@ -106,8 +108,16 @@ export function ChatArea(p: ChatAreaProps) {
   return (
     <div className="w-full flex-1 flex flex-col bg-[#0b1120] overflow-hidden relative">
       {/* Header */}
-      <div className="h-16 border-b border-slate-800 flex items-center justify-between px-6 bg-[#0f172a] relative z-50">
+      <div className="h-16 border-b border-slate-800 flex items-center justify-between px-4 md:px-6 bg-[#0f172a] relative z-50">
         <div className="flex items-center gap-3">
+          {/* MOBILE HAMBURGER MENU */}
+          <button 
+            onClick={() => p.setIsMobileSidebarOpen(true)}
+            className="md:hidden text-gray-400 hover:text-white text-2xl p-1"
+          >
+            ☰
+          </button>
+          
           <div className="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center text-xl">{p.activeRoom.type === "direct" ? '👤' : '👥'}</div>
           <div>
             <div className="flex items-center gap-2">
@@ -122,6 +132,18 @@ export function ChatArea(p: ChatAreaProps) {
         </div>
 
         <div className="flex gap-2 items-center relative">
+          
+          {/* MEMBERS TOGGLE BUTTON */}
+          {p.activeRoom.type === "group" && (
+            <button 
+              onClick={() => p.setShowRightSidebar(!p.showRightSidebar)}
+              className={`border w-10 h-10 rounded-lg flex items-center justify-center text-xl transition ${p.showRightSidebar ? 'bg-teal-600 border-teal-500 text-white' : 'bg-[#1e293b] hover:bg-slate-700 border-slate-700 text-gray-300'}`}
+              title="Toggle Members List"
+            >
+              👥
+            </button>
+          )}
+
           <div className="relative header-menu-container">
             <button 
               onClick={() => setShowHeaderMenu(!showHeaderMenu)} 
@@ -136,13 +158,12 @@ export function ChatArea(p: ChatAreaProps) {
                 <button onClick={() => { p.onVideo(); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">📹 Video Call</button>
                 <div className="border-t border-slate-700 my-1"></div>
 
-                {p.activeRoom.type === "group" && p.activeRoom.createdBy === p.user.uid && (
+                {p.activeRoom.type === "group" && (
                   <>
                     <button onClick={() => { p.onOpenTheme(); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">🎨 Decorate Room</button>
                     <button onClick={() => { p.setShowAddMemberModal(true); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">➕ Add Member</button>
                     <button onClick={() => { p.handleCopyInviteLink(); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">🔗 Invite Link</button>
                     <button onClick={() => { p.openMembersModal(); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">👑 Manage Roles</button>
-                    <button onClick={() => { p.setShowRightSidebar(!p.showRightSidebar); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">👥 {p.showRightSidebar ? 'Hide' : 'Show'} Members</button>
                   </>
                 )}
                 {p.activeRoom.type === "direct" && p.dmPartnerUid && (
@@ -177,9 +198,9 @@ export function ChatArea(p: ChatAreaProps) {
         </div>
       )}
 
-      {/* Messages Container with Custom Theme Background */}
+      {/* Messages Container */}
       <div 
-        className="flex-1 p-6 overflow-y-auto overflow-x-hidden flex flex-col gap-4 relative"
+        className="flex-1 p-4 md:p-6 overflow-y-auto overflow-x-hidden flex flex-col gap-4 relative"
         style={{
           backgroundColor: (p.activeRoom.type === "direct" 
             ? p.userDoc?.dmThemes?.[p.activeRoom.id]?.bgColor 
@@ -195,13 +216,11 @@ export function ChatArea(p: ChatAreaProps) {
           backgroundPosition: 'center',
         }}
       >
-        {/* Dark overlay so text stays readable */}
         {((p.activeRoom.type === "direct" && p.userDoc?.dmThemes?.[p.activeRoom.id]?.bgImage) || 
           (p.activeRoom.type === "group" && p.activeRoom.customization?.bgImage)) && (
           <div className="absolute inset-0 bg-black/60 pointer-events-none"></div>
         )}
 
-        {/* Poem Background */}
         {((p.activeRoom.type === "direct" && p.userDoc?.dmThemes?.[p.activeRoom.id]?.poemText) || 
           (p.activeRoom.type === "group" && p.activeRoom.customization?.poemText)) && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10 select-none overflow-hidden">
@@ -242,12 +261,14 @@ export function ChatArea(p: ChatAreaProps) {
               <div key={msg.id || index} className={msgClass}>
                 <div className="flex items-center gap-2 mb-1 px-1">
                   <span className="text-xs text-gray-400 font-medium">{isMe ? "You" : msg.senderName}</span>
+                  {msg.senderIsPremium && <span title="Premium Member" className="text-[10px]">👑</span>}
+                  {msg.senderIsDonator && <span title="Supporter" className="text-[10px]">❤️</span>}
                 </div>
 
                 <div className="relative flex w-fit max-w-full items-center">
                   
-                  {/* Action Buttons - Absolutely positioned to float in the margin */}
-                  <div className={`absolute top-1/2 -translate-y-1/2 flex flex-col gap-1 transition-opacity duration-200 opacity-100 md:opacity-0 md:group-hover:opacity-100 z-30 ${isMe ? 'right-full mr-3' : 'left-full ml-3'}`}>
+                  {/* Action Buttons */}
+                  <div className={`absolute top-1/2 -translate-y-1/2 flex flex-col gap-1 transition-opacity duration-200 z-30 ${isMe ? 'right-full mr-3' : 'left-full ml-3'} ${isSelected ? 'opacity-100' : 'opacity-0 md:group-hover:opacity-100'}`}>
                     <button type="button" onClick={(e) => { e.stopPropagation(); p.setReplyingTo(msg); }} className="bg-[#1e293b] border border-slate-600 hover:bg-slate-700 text-gray-300 rounded-full w-8 h-8 flex-shrink-0 flex items-center justify-center text-sm shadow-lg" title="Reply">↩️</button>
                     <button type="button" onClick={(e) => { e.stopPropagation(); p.setActiveReactionMenu(isMenuOpen ? null : msg.id); }} className="bg-[#1e293b] border border-slate-600 hover:bg-slate-700 text-gray-300 rounded-full w-8 h-8 flex-shrink-0 flex items-center justify-center text-sm shadow-lg" title="React">😊</button>
                     
@@ -481,7 +502,6 @@ export function ChatArea(p: ChatAreaProps) {
             {showStickerPicker && (
               <div className="absolute bottom-12 right-10 bg-[#1e293b] border border-slate-600 p-3 rounded-xl shadow-2xl w-80 h-96 overflow-y-auto z-50">
                 
-                {/* DYNAMIC EMOTIONS */}
                 {stickers.emotions.length > 0 && (
                   <>
                     <h4 className="text-xs text-teal-400 font-bold uppercase mb-2">Émotions ({stickers.emotions.length})</h4>
@@ -495,7 +515,6 @@ export function ChatArea(p: ChatAreaProps) {
                   </>
                 )}
 
-                {/* DYNAMIC IDENTITY */}
                 {stickers.identity.length > 0 && (
                   <>
                     <h4 className="text-xs text-teal-400 font-bold uppercase mb-2">Identité & Fierté ({stickers.identity.length})</h4>
@@ -509,16 +528,20 @@ export function ChatArea(p: ChatAreaProps) {
                   </>
                 )}
 
-                {/* EMPTY STATE */}
                 {stickers.emotions.length === 0 && stickers.identity.length === 0 && (
                   <p className="text-center text-gray-500 text-sm mt-10">No stickers found. Drop images in the public folder!</p>
                 )}
               </div>
             )}
           </div>
-          
+
           <button type="submit" disabled={p.uploading || p.isRecording || p.isCheckingAI || !p.inputText.trim() || p.isDMPartnerBlocked} className="bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white p-2 rounded-lg">
-            {/* 👇 FLOATING MEMBERS BUTTON (MOBILE ONLY) */}
+            {p.isCheckingAI ? '⏳' : '➤'}
+          </button>
+        </form>
+      </div>
+
+      {/* FLOATING MEMBERS BUTTON (MOBILE ONLY) */}
       {p.activeRoom.type === "group" && !p.showRightSidebar && (
         <button
           onClick={() => p.setShowRightSidebar(true)}
