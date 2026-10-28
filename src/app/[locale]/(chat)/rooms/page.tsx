@@ -103,6 +103,53 @@ export default function ThimlilithChatUI() {
     return () => unsubscribe();
   }, []);
 
+  // 🔔 NOTIFICATION PERMISSION REQUEST
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+    }
+  }, []);
+
+  // 🔔 UNREAD MESSAGE & TITLE TRACKER
+  useEffect(() => {
+    if (!user || rooms.length === 0) return;
+    
+    let unreadCount = 0;
+    rooms.forEach(room => {
+      const lastRead = userDoc?.lastRead?.[room.id] || 0;
+      const lastMsgTime = room.lastMessageAt?.toMillis() || 0;
+      // Only count if the last sender isn't me, and it's after my last read time
+      if (room.lastMessageSenderId !== user.uid && lastMsgTime > lastRead) {
+        unreadCount++;
+      }
+    });
+
+    // Update Tab Title
+    if (unreadCount > 0) {
+      document.title = `(${unreadCount}) New Message${unreadCount > 1 ? 's' : ''} | Thimlilith`;
+    } else {
+      document.title = 'Thimlilith';
+    }
+
+    // Show Desktop Notification if tab is hidden
+    if (unreadCount > 0 && document.visibilityState === 'hidden') {
+      const lastNotified = sessionStorage.getItem('lastNotifiedCount');
+      if (lastNotified !== unreadCount.toString()) {
+        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+          new Notification('Thimlilith 💬', {
+            body: `You have ${unreadCount} unread message${unreadCount > 1 ? 's' : ''}!`,
+            icon: '/favicon.ico'
+          });
+          sessionStorage.setItem('lastNotifiedCount', unreadCount.toString());
+        }
+      }
+    } else {
+      sessionStorage.removeItem('lastNotifiedCount');
+    }
+  }, [rooms, userDoc?.lastRead, user]);
+
   useEffect(() => {
     if (!user) return;
     const userRef = doc(db, "users", user.uid);
@@ -465,8 +512,8 @@ export default function ThimlilithChatUI() {
     await addDoc(collection(db, "rooms", activeRoom.id, "messages"), { 
       senderId: user.uid, 
       senderName: user.displayName || user.email?.split('@')[0] || "Anon", 
-      senderIsPremium: userDoc?.isPremium || false, // 👈 ADDED BADGE
-      senderIsDonator: userDoc?.isDonator || false, // 👈 ADDED BADGE
+      senderIsPremium: userDoc?.isPremium || false,
+      senderIsDonator: userDoc?.isDonator || false,
       createdAt: serverTimestamp(), 
       replyTo: reply, 
       readBy: [], 
@@ -679,7 +726,7 @@ export default function ThimlilithChatUI() {
 
   // ─── RENDER: MAIN UI ───
   return (
-    <div className="flex h-screen bg-[#0f172a] text-gray-300 font-sans">
+    <div className="flex h-[100dvh] w-full bg-[#0f172a] text-gray-300 font-sans overflow-hidden">
       <PremiumModal open={premiumModal.open} type={premiumModal.type} onClose={() => setPremiumModal({ ...premiumModal, open: false })} />
       
       <Sidebars
