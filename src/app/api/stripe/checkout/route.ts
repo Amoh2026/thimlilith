@@ -3,14 +3,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { verifyChatUser, unauthorized } from '@/lib/chat/auth-server';
 
-// Use the latest API version that supports Managed Payments
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { 
-  apiVersion: '2026-09-30.endive' 
-});
-
 const DIGITAL_SERVICES_TAX_CODE = 'txcd_10000000';
 
 export async function POST(req: NextRequest) {
+  // 👇 Stripe initialization MUST be inside the handler
+  const stripeKey = process.env.STRIPE_SECRET_KEY;
+  if (!stripeKey) {
+    return NextResponse.json({ error: "Stripe key not configured on server" }, { status: 500 });
+  }
+  const stripe = new Stripe(stripeKey, { apiVersion: '2026-09-30.endive' });
+
   const user = await verifyChatUser(req);
   if (!user) return unauthorized();
 

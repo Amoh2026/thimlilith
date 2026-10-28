@@ -4,17 +4,23 @@ import Stripe from 'stripe';
 import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { 
-  apiVersion: '2026-09-30.endive' 
-});
-
 export async function POST(req: NextRequest) {
+  // 👇 Stripe init MUST be inside the handler
+  const stripeKey = process.env.STRIPE_SECRET_KEY;
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  
+  if (!stripeKey || !webhookSecret) {
+    return new NextResponse('Stripe keys not configured', { status: 500 });
+  }
+  
+  const stripe = new Stripe(stripeKey, { apiVersion: '2026-09-30.endive' });
+  
   const body = await req.text();
   const sig = req.headers.get('stripe-signature')!;
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
+    event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
   } catch (err: any) {
     return new NextResponse(`Webhook Error: ${err.message}`, { status: 400 });
   }
