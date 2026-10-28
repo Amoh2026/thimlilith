@@ -223,7 +223,7 @@ export function RightSidebar({
   };
 
   return (
-    <div className="w-64 bg-[#0f172a] border-l border-slate-800 flex flex-col h-full">
+    <div className="hidden md:flex w-64 bg-[#0f172a] border-l border-slate-800 flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
         <h3 className="text-sm font-bold text-white">
