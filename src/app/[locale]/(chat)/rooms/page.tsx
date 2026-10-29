@@ -852,7 +852,7 @@ export default function ThimlilithChatUI() {
   if (!userDoc?.charterAccepted) return <CharterScreen onAccept={handleAcceptCharter} onLogout={handleLogout} />;
 
   return (
-    <div className="flex h-[100dvh] w-full bg-[#0f172a] text-gray-300 font-sans overflow-hidden">
+   <div className="flex h-full w-full bg-[#0f172a] text-gray-300 font-sans overflow-hidden">
       <WelcomeModal open={showWelcome} onClose={handleWelcomeDismiss} />
       <PremiumModal open={premiumModal.open} type={premiumModal.type} onClose={() => setPremiumModal({ ...premiumModal, open: false })} />
       

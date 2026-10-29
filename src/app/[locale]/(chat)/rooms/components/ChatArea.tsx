@@ -424,8 +424,8 @@ export function ChatArea(p: ChatAreaProps) {
       </div>
 
            {/* Input */}
-      <div 
-        className="p-4 bg-[#0f172a] border-t border-slate-800 relative z-20" 
+           <div 
+        className="flex-shrink-0 p-4 bg-[#0f172a] border-t border-slate-800 relative z-20" 
         style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
       >
         {selectedMsg && (
