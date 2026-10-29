@@ -348,7 +348,7 @@ export function ChatArea(p: ChatAreaProps) {
     </button>
     <p className="text-gray-300 text-xs truncate max-w-[200px]">{msg.replyTo.text}</p>
   </div>
-)}}
+)}
                     {msg.type === 'text' && (
                       <div className="flex flex-col gap-2">
                         <p className="break-words whitespace-pre-wrap">{renderMessageText(msg.text)}</p>
