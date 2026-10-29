@@ -126,20 +126,17 @@ export default function ThimlilithChatUI() {
     rooms.forEach(room => {
       const lastRead = userDoc?.lastRead?.[room.id] || 0;
       const lastMsgTime = room.lastMessageAt?.toMillis() || 0;
-      // Only count if the last sender isn't me, and it's after my last read time
       if (room.lastMessageSenderId !== user.uid && lastMsgTime > lastRead) {
         unreadCount++;
       }
     });
 
-    // Update Tab Title
     if (unreadCount > 0) {
       document.title = `(${unreadCount}) New Message${unreadCount > 1 ? 's' : ''} | Thimlilith`;
     } else {
       document.title = 'Thimlilith';
     }
 
-    // Show Desktop Notification if tab is hidden
     if (unreadCount > 0 && document.visibilityState === 'hidden') {
       const lastNotified = sessionStorage.getItem('lastNotifiedCount');
       if (lastNotified !== unreadCount.toString()) {
@@ -193,7 +190,6 @@ export default function ThimlilithChatUI() {
     fetchBlocked();
   }, [userDoc?.blockedUsers]);
 
-  // Force refresh after successful payment
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('payment') === 'success') {
@@ -357,9 +353,10 @@ export default function ThimlilithChatUI() {
       const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
       const ref = await addDoc(collection(db, "rooms"), {
         name: newRoomName, createdBy: user.uid, createdAt: serverTimestamp(),
-        members: [user.uid], type: "group", admins: [user.uid], moderators: [], pinnedMessages: [], inviteCode
+        members: [user.uid], type: "group", admins: [user.uid], moderators: [], pinnedMessages: [], inviteCode,
+        permissions: { whoCanPost: "everyone" } // Default rule
       });
-      setActiveRoom({ id: ref.id, name: newRoomName, createdBy: user.uid, type: "group", admins: [user.uid], moderators: [], pinnedMessages: [], inviteCode });
+      setActiveRoom({ id: ref.id, name: newRoomName, createdBy: user.uid, type: "group", admins: [user.uid], moderators: [], pinnedMessages: [], inviteCode, permissions: { whoCanPost: "everyone" } });
       setNewRoomName(""); setIsCreatingRoom(false);
     } catch { alert("Failed to create room."); }
   };
@@ -404,7 +401,6 @@ export default function ThimlilithChatUI() {
 
   const handleSaveTheme = async () => {
     if (!activeRoom || !user) return;
-
     try {
       if (activeRoom.type === "group") {
         if (activeRoom.createdBy !== user.uid) {
@@ -559,6 +555,15 @@ export default function ThimlilithChatUI() {
   const handleSendText = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputText.trim() || !user || !activeRoom) return;
+    
+    // 🛡️ ROOM PERMISSIONS CHECK
+    const isRoomAdmin = activeRoom?.admins?.includes(user.uid) || activeRoom?.createdBy === user.uid;
+    const isRoomMod = activeRoom?.moderators?.includes(user.uid);
+    if (activeRoom?.permissions?.whoCanPost === "moderators" && !isRoomAdmin && !isRoomMod) {
+      alert("Only moderators can post in this room.");
+      return;
+    }
+
     if (containsBannedWords(inputText)) { addStrike("Use of prohibited language"); setInputText(""); return; }
     const now = Date.now();
     if (now - lastMessageTimeRef.current < 3000) { addStrike("Spamming"); return; }
@@ -708,8 +713,7 @@ export default function ThimlilithChatUI() {
   };
 
   // ─── TRANSLATION ───
-    useEffect(() => {
-    // Show welcome modal only if userDoc exists and hasSeenWelcome is falsy
+  useEffect(() => {
     if (userDoc && !userDoc.hasSeenWelcome) {
       setShowWelcome(true);
     }
@@ -745,7 +749,7 @@ export default function ThimlilithChatUI() {
 
       alert("Message forwarded successfully! ✨");
     } catch (err: any) {
-      alert("Failed to forward: ${err.message}");
+      alert(`Failed to forward: ${err.message}`);
     }
   };
 
@@ -753,6 +757,17 @@ export default function ThimlilithChatUI() {
     if (!user) return;
     try { await updateDoc(doc(db, "users", user.uid), data); }
     catch (err) { alert("Failed to save settings."); }
+  };
+
+  // 👇 ADDED THIS FUNCTION FOR ROOM SETTINGS 👇
+  const handleUpdateRoomSettings = async (data: any) => {
+    if (!activeRoom || !user) return;
+    try {
+      await updateDoc(doc(db, "rooms", activeRoom.id), data);
+      setActiveRoom({ ...activeRoom, ...data });
+    } catch (err) {
+      alert("Failed to update room settings.");
+    }
   };
 
   const handleWelcomeDismiss = async () => {
@@ -765,6 +780,7 @@ export default function ThimlilithChatUI() {
       }
     }
   };
+
   const handleTranslate = async (msg: any, targetLang: string) => {
     if (!msg.text) return null;
     try {
@@ -805,7 +821,7 @@ export default function ThimlilithChatUI() {
   // ─── RENDER: MAIN UI ───
   return (
     <div className="flex h-[100dvh] w-full bg-[#0f172a] text-gray-300 font-sans overflow-hidden">
-            <WelcomeModal open={showWelcome} onClose={handleWelcomeDismiss} />
+      <WelcomeModal open={showWelcome} onClose={handleWelcomeDismiss} />
       <PremiumModal open={premiumModal.open} type={premiumModal.type} onClose={() => setPremiumModal({ ...premiumModal, open: false })} />
       
       <Sidebars
@@ -857,6 +873,11 @@ export default function ThimlilithChatUI() {
         onSaveToATK={handleSaveToATK}
         onOpenSettings={() => setShowSettings(true)}
         onForward={(msgId) => setForwardMsgId(msgId)}
+        onUpdateRoomSettings={handleUpdateRoomSettings} // 👈 ADDED THIS PROP
+        onOpenUserAction={(uid, name) => {
+          // This is the action menu we built earlier
+          // It's handled by the Modal component at the bottom
+        }}
         handleSendSticker={handleSendSticker} 
         onTranslate={handleTranslate}
         onOpenTheme={() => {

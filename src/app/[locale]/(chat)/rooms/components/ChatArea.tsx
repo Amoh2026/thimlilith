@@ -57,6 +57,7 @@ interface ChatAreaProps {
   onOpenSettings: () => void;
   onForward: (msgId: string) => void;
   onOpenUserAction: (uid: string, name: string) => void;
+  onUpdateRoomSettings: (data: any) => void; // 👈 ADDED THIS
   isMobileSidebarOpen: boolean;
   setIsMobileSidebarOpen: (v: boolean) => void;
 }
@@ -172,14 +173,36 @@ export function ChatArea(p: ChatAreaProps) {
                 <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowHeaderMenu(false); setTimeout(() => p.onOpenSettings(), 50); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">⚙️ Privacy Settings</button>
                 <button onClick={() => { p.onVideo(); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">📹 Video Call</button>
                 <div className="border-t border-slate-700 my-1"></div>
+
                 {p.activeRoom.type === "group" && (
                   <>
                     <button onClick={() => { p.onOpenTheme(); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">🎨 Decorate Room</button>
                     <button onClick={() => { p.setShowAddMemberModal(true); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">➕ Add Member</button>
                     <button onClick={() => { p.handleCopyInviteLink(); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">🔗 Invite Link</button>
                     <button onClick={() => { p.openMembersModal(); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">👑 Manage Roles</button>
+                    
+                    {p.activeRoom.createdBy === p.user.uid && (
+                      <>
+                        <div className="border-t border-slate-700 my-1"></div>
+                        <button onClick={() => { 
+                          const newRule = p.activeRoom.permissions?.whoCanPost === "moderators" ? "everyone" : "moderators";
+                          p.onUpdateRoomSettings({ permissions: { ...p.activeRoom.permissions, whoCanPost: newRule } }); 
+                          setShowHeaderMenu(false); 
+                        }} className="text-left px-4 py-2 text-sm text-yellow-300 hover:bg-slate-700 hover:text-white">
+                          {p.activeRoom.permissions?.whoCanPost === "moderators" ? '🔓 Unlock Chat (Everyone)' : '🔒 Lock Chat (Mods Only)'}
+                        </button>
+                        <button onClick={() => { 
+                          const newTimer = p.activeRoom.disappearingTimer === 86400 ? 0 : 86400;
+                          p.onUpdateRoomSettings({ disappearingTimer: newTimer }); 
+                          setShowHeaderMenu(false); 
+                        }} className="text-left px-4 py-2 text-sm text-orange-300 hover:bg-slate-700 hover:text-white">
+                          {p.activeRoom.disappearingTimer ? '⏳ Disappearing: ON (24h)' : '⏳ Disappearing: OFF'}
+                        </button>
+                      </>
+                    )}
                   </>
                 )}
+
                 {p.activeRoom.type === "direct" && p.dmPartnerUid && (
                   <>
                     <button onClick={() => { p.handleBlockUser(p.dmPartnerUid!, p.getDMName(p.activeRoom)); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">{p.isDMPartnerBlocked ? '🚫 Unblock' : '🚫 Block'}</button>
