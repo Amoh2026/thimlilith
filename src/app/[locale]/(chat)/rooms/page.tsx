@@ -387,8 +387,16 @@ export default function ThimlilithChatUI() {
     setRoomMembersList(members);
   };
 
-  const handlePromote = async (uid: string) => { if (activeRoom) await updateDoc(doc(db, "rooms", activeRoom.id), { moderators: arrayUnion(uid) }); };
-  const handleDemote = async (uid: string) => { if (activeRoom) await updateDoc(doc(db, "rooms", activeRoom.id), { moderators: arrayRemove(uid) }); };
+  const handlePromote = async (uid: string, name?: string) => { 
+    if (!activeRoom) return;
+    if (!confirm(`Are you sure you want to promote ${name || 'this user'} to Moderator?`)) return;
+    await updateDoc(doc(db, "rooms", activeRoom.id), { moderators: arrayUnion(uid) }); 
+  };
+  const handleDemote = async (uid: string, name?: string) => { 
+    if (!activeRoom) return;
+    if (!confirm(`Are you sure you want to demote ${name || 'this user'}?`)) return;
+    await updateDoc(doc(db, "rooms", activeRoom.id), { moderators: arrayRemove(uid) }); 
+  };
 
   const handleSaveTheme = async () => {
     if (!activeRoom || !user) return;
