@@ -209,6 +209,7 @@ export function ChatArea(p: ChatAreaProps) {
                 )}
 
                 {/* ROOM SETTINGS SUBMENU */}
+                               {/* ROOM SETTINGS SUBMENU */}
                 {activeSubmenu === 'room' && (
                   <>
                     <button onClick={() => setActiveSubmenu('none')} className="text-left px-4 py-2 text-xs text-gray-400 hover:text-white font-bold flex items-center gap-2 border-b border-slate-700 mb-1">
@@ -218,15 +219,9 @@ export function ChatArea(p: ChatAreaProps) {
                     <button onClick={() => { p.setShowAddMemberModal(true); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">➕ Add Member</button>
                     <button onClick={() => { p.handleCopyInviteLink(); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">🔗 Invite Link</button>
                     <button onClick={() => { p.openMembersModal(); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">👑 Manage Roles</button>
-                  </>
-                )}
-
-                {/* CREATOR TOOLS SUBMENU */}
-                {activeSubmenu === 'creator' && (
-                  <>
-                    <button onClick={() => setActiveSubmenu('none')} className="text-left px-4 py-2 text-xs text-gray-400 hover:text-white font-bold flex items-center gap-2 border-b border-slate-700 mb-1">
-                      <span>◀</span> Back to Menu
-                    </button>
+                    
+                    {/* 👇 CREATOR TOOLS MERGED HERE (No more separate folder) 👇 */}
+                    <div className="border-t border-slate-700 my-1"></div>
                     <button onClick={() => { 
                       const newRule = p.activeRoom.permissions?.whoCanPost === "moderators" ? "everyone" : "moderators";
                       p.onUpdateRoomSettings({ permissions: { ...p.activeRoom.permissions, whoCanPost: newRule } }); 

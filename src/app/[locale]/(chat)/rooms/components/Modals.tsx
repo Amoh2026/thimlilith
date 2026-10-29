@@ -25,8 +25,8 @@ interface ModalsProps {
   showMembersModal: boolean;
   setShowMembersModal: (v: boolean) => void;
   roomMembersList: any[];
-  handlePromote: (uid: string) => void;
-  handleDemote: (uid: string) => void;
+  handlePromote: (uid: string, name?: string) => void;
+  handleDemote: (uid: string, name?: string) => void;
   showPinnedModal: boolean;
   setShowPinnedModal: (v: boolean) => void;
   handleUnpinMessage: (id: string) => void;
@@ -85,7 +85,7 @@ export function Modals(p: ModalsProps) {
             </form>
             <div className="space-y-2 max-h-60 overflow-y-auto mb-6">
               {p.memberSearchResults.length === 0 && p.memberSearchQuery && !p.isSearchingMembers && <p className="text-center text-gray-500 text-sm">No users found.</p>}
-              {p.memberSearchResults.map(m => (
+              {p.memberSearchResults.map((m: any) => (
                 <div key={m.id} className="flex items-center justify-between p-3 bg-[#0f172a] rounded-lg border border-slate-700">
                   <div className="flex items-center gap-3">
                     {m.photoURL ? <img src={m.photoURL} alt="" className="w-8 h-8 rounded-full" /> : <div className="w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center text-white font-bold text-xs">{m.name?.[0].toUpperCase()}</div>}
@@ -105,28 +105,58 @@ export function Modals(p: ModalsProps) {
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4">
           <div className="w-full max-w-md bg-[#1e293b] rounded-2xl p-6 border border-slate-700">
             <h2 className="text-xl font-bold text-white mb-4">Manage Members</h2>
-            <p className="text-xs text-gray-400 mb-4">Promote members to Moderators.</p>
-            <div className="space-y-2 max-h-60 overflow-y-auto mb-6">
-              {p.roomMembersList.map(m => {
-                const isAdmin = p.activeRoom.admins?.includes(m.id) || p.activeRoom.createdBy === m.id;
+            <p className="text-xs text-gray-400 mb-4">Promote trusted members to Moderators so they can help manage the room.</p>
+            
+            <div className="space-y-2 max-h-60 overflow-y-auto mb-6 pr-2">
+              {p.roomMembersList.map((m: any) => {
+                const isCreator = p.activeRoom.createdBy === m.id;
                 const isMod = p.activeRoom.moderators?.includes(m.id);
                 const isMe = m.id === p.user.uid;
+
                 return (
                   <div key={m.id} className="flex items-center justify-between p-3 bg-[#0f172a] rounded-lg border border-slate-700">
                     <div className="flex items-center gap-3">
-                      {m.photoURL ? <img src={m.photoURL} alt="" className="w-8 h-8 rounded-full" /> : <div className="w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center text-white font-bold text-xs">{m.name?.[0].toUpperCase()}</div>}
-                      <p className="text-sm font-bold text-white">{m.name} {isMe && "(You)"}</p>
+                      {m.photoURL ? (
+                        <img src={m.photoURL} alt="" className="w-8 h-8 rounded-full object-cover" />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center text-white font-bold text-xs">
+                          {m.name?.[0].toUpperCase()}
+                        </div>
+                      )}
+                      <p className="text-sm font-bold text-white">
+                        {m.name} {isMe && <span className="text-gray-500 text-xs font-normal">(You)</span>}
+                      </p>
                     </div>
+
                     <div>
-                      {isAdmin ? <span className="text-xs font-bold text-teal-400">Admin</span>
-                        : isMod ? <button onClick={() => p.handleDemote(m.id)} className="text-xs text-red-400">Remove Mod</button>
-                        : <button onClick={() => p.handlePromote(m.id)} className="bg-slate-700 hover:bg-slate-600 text-white text-xs px-3 py-1 rounded">Make Mod</button>}
+                      {isCreator ? (
+                        <span className="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-1 rounded font-bold uppercase tracking-wider">
+                          Owner
+                        </span>
+                      ) : isMod ? (
+                        <button 
+                          onClick={() => p.handleDemote(m.id, m.name)} 
+                          className="bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white text-xs px-3 py-1.5 rounded transition-colors font-medium border border-red-500/20"
+                        >
+                          Remove Mod
+                        </button>
+                      ) : (
+                        <button 
+                          onClick={() => p.handlePromote(m.id, m.name)} 
+                          className="bg-teal-500/10 hover:bg-teal-500 text-teal-400 hover:text-white text-xs px-3 py-1.5 rounded transition-colors font-medium border border-teal-500/20"
+                        >
+                          Make Mod
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
               })}
             </div>
-            <button onClick={() => p.setShowMembersModal(false)} className="w-full bg-teal-600 text-white font-bold py-2 rounded-lg">Close</button>
+
+            <button onClick={() => p.setShowMembersModal(false)} className="w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py-2.5 rounded-lg transition-colors">
+              Close
+            </button>
           </div>
         </div>
       )}
@@ -141,7 +171,7 @@ export function Modals(p: ModalsProps) {
                 <div key={msg.id} className="bg-[#0f172a] p-4 rounded-xl border border-slate-700">
                   <p className="text-xs text-teal-400 font-bold mb-1">{msg.senderName}</p>
                   <p className="text-sm text-gray-200 break-words">{msg.text || "📎 Media"}</p>
-                  {(p.activeRoom.admins?.includes(p.user.uid) || p.activeRoom.moderators?.includes(p.user.uid)) && (
+                  {(p.activeRoom.admins?.includes(p.user.uid) || p.activeRoom.moderators?.includes(p.user.uid) || p.activeRoom.createdBy === p.user.uid) && (
                     <button onClick={() => p.handleUnpinMessage(msg.id)} className="text-xs text-red-400 hover:underline mt-2">Unpin</button>
                   )}
                 </div>
@@ -183,7 +213,6 @@ export function Modals(p: ModalsProps) {
                 />
               </div>
 
-              {/* 👇 NEW: PICK A STICKER AS BACKGROUND 👇 */}
               <div className="bg-[#0f172a] border border-slate-700 rounded-lg p-3">
                 <label className="text-sm text-teal-400 font-bold mb-2 block">OR Pick a Sticker as Background</label>
                 <div className="grid grid-cols-6 gap-2 max-h-32 overflow-y-auto pr-1">
