@@ -54,6 +54,7 @@ interface ChatAreaProps {
   handleSendSticker: (url: string) => void;
   onTranslate: (msg: any, targetLang: string) => Promise<string | null>;
   onOpenTheme: () => void;
+  onOpenSettings: () => void;
   isMobileSidebarOpen: boolean;
   setIsMobileSidebarOpen: (v: boolean) => void;
 }

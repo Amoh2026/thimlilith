@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { db, auth, storage } from '@/lib/firebase/client';
 import PremiumModal, { type LimitType } from './components/PremiumModal';
+import SettingsModal from './components/SettingsModal';
 import WelcomeModal from './components/WelcomeModal';
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, setDoc, where, getDocs, getDoc, deleteDoc, updateDoc, or, and, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -77,6 +78,7 @@ export default function ThimlilithChatUI() {
 
   // Premium Modal State
   const [premiumModal, setPremiumModal] = useState<{ open: boolean; type: LimitType }>({ open: false, type: 'translate' });
+  const [showSettings, setShowSettings] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
 
   // Refs
@@ -704,6 +706,12 @@ export default function ThimlilithChatUI() {
     }
   }, [userDoc]);
 
+  const handleSaveSettings = async (data: any) => {
+    if (!user) return;
+    try { await updateDoc(doc(db, "users", user.uid), data); }
+    catch (err) { alert("Failed to save settings."); }
+  };
+
   const handleWelcomeDismiss = async () => {
     setShowWelcome(false);
     if (user) {
@@ -804,6 +812,7 @@ export default function ThimlilithChatUI() {
           } catch {}
         }}
         onSaveToATK={handleSaveToATK}
+        onOpenSettings={() => setShowSettings(true)}
         handleSendSticker={handleSendSticker} 
         onTranslate={handleTranslate}
         onOpenTheme={() => {
@@ -845,6 +854,7 @@ export default function ThimlilithChatUI() {
         showThemeModal={showThemeModal} setShowThemeModal={setShowThemeModal}
         themeData={themeData} setThemeData={setThemeData} handleSaveTheme={handleSaveTheme}
       />
+      <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} userDoc={userDoc} onSave={handleSaveSettings} />
     </div>
   );
 }
