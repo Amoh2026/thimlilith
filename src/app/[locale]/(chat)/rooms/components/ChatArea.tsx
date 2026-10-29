@@ -181,7 +181,6 @@ export function ChatArea(p: ChatAreaProps) {
                     <button onClick={() => { p.setIsSearchExpanded(!p.isSearchExpanded); if (p.isSearchExpanded) { p.setMessageSearchTerm(""); p.setMessageSearchDate(""); } setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white flex justify-between">🔍 Search Messages</button>
                     <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowHeaderMenu(false); setTimeout(() => p.onOpenSettings(), 50); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white flex justify-between">⚙️ Privacy Settings</button>
                     
-                    {/* ⭐ VAULT COUNTER ⭐ */}
                     <button onClick={() => { setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white flex justify-between items-center">
                       <span>⭐ My Vault</span>
                       <span className={`px-2 py-0.5 rounded text-xs font-bold ${p.savedCount >= p.maxSaved ? 'bg-red-500/20 text-red-400' : 'bg-slate-700 text-teal-400'}`}>
@@ -221,8 +220,7 @@ export function ChatArea(p: ChatAreaProps) {
                     <button onClick={() => { p.handleCopyInviteLink(); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">🔗 Invite Link</button>
                     <button onClick={() => { p.openMembersModal(); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">👑 Manage Roles</button>
                     
-                    {/* CREATOR TOOLS MERGED HERE */}
-                    {(p.activeRoom.createdBy === p.user.uid || p.user.email === 'aoudiamohand70@gmail.com') && (
+                    {p.activeRoom.createdBy === p.user.uid && (
                       <>
                         <div className="border-t border-slate-700 my-1"></div>
                         <button onClick={() => { 
@@ -325,7 +323,6 @@ export function ChatArea(p: ChatAreaProps) {
                         <button type="button" onClick={(e) => { e.stopPropagation(); p.handleDeleteMessage(msg.id); }} className="bg-[#1e293b] border border-slate-600 hover:bg-slate-700 text-red-400 rounded-full w-8 h-8 flex-shrink-0 flex items-center justify-center text-sm shadow-lg" title="Delete">🗑️</button>
                         {(isRoomAdmin || isRoomMod) && (<button type="button" onClick={(e) => { e.stopPropagation(); p.activeRoom.pinnedMessages?.includes(msg.id) ? p.handleUnpinMessage(msg.id) : p.handlePinMessage(msg.id); }} className={`bg-[#1e293b] border border-slate-600 rounded-full w-8 h-8 flex-shrink-0 flex items-center justify-center text-sm shadow-lg ${p.activeRoom.pinnedMessages?.includes(msg.id) ? 'text-yellow-400 border-yellow-500' : 'text-gray-300'}`} title="Pin">📌</button>)}
                         
-                        {/* SAVE TO VAULT BUTTON */}
                         <button type="button" onClick={(e) => { e.stopPropagation(); p.onSaveMessage(msg); }} className={`bg-[#1e293b] border border-slate-600 hover:bg-slate-700 rounded-full w-8 h-8 flex-shrink-0 flex items-center justify-center text-sm shadow-lg ${p.savedCount >= p.maxSaved ? 'text-red-400 border-red-500' : 'text-yellow-400'}`} title={p.savedCount >= p.maxSaved ? "Vault Full" : "Save to Vault"}>
                           {p.savedCount >= p.maxSaved ? '🔒' : '⭐'}
                         </button>
@@ -334,21 +331,21 @@ export function ChatArea(p: ChatAreaProps) {
                   </div>
                   <div className={bubbleClass} onClick={selectable ? () => setSelectedMsgId(isSelected ? null : msg.id) : undefined}>
                     {msg.replyTo && (
-  <div className="bg-black/20 border-l-4 border-teal-300 p-2 rounded mb-2 text-sm">
-    <button 
-      onClick={(e) => { 
-        e.stopPropagation(); 
-        if (msg.replyTo.senderId) {
-          p.onOpenUserAction(msg.replyTo.senderId, msg.replyTo.senderName); 
-        }
-      }}
-      className="font-semibold text-teal-200 text-xs hover:underline hover:text-teal-400 transition-colors text-left"
-    >
-      {msg.replyTo.senderName}
-    </button>
-    <p className="text-gray-300 text-xs truncate max-w-[200px]">{msg.replyTo.text}</p>
-  </div>
-)}
+                      <div className="bg-black/20 border-l-4 border-teal-300 p-2 rounded mb-2 text-sm">
+                        <button 
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            if (msg.replyTo.senderId) {
+                              p.onOpenUserAction(msg.replyTo.senderId, msg.replyTo.senderName); 
+                            }
+                          }}
+                          className="font-semibold text-teal-200 text-xs hover:underline hover:text-teal-400 transition-colors text-left"
+                        >
+                          {msg.replyTo.senderName}
+                        </button>
+                        <p className="text-gray-300 text-xs truncate max-w-[200px]">{msg.replyTo.text}</p>
+                      </div>
+                    )}
                     {msg.type === 'text' && (
                       <div className="flex flex-col gap-2">
                         <p className="break-words whitespace-pre-wrap">{renderMessageText(msg.text)}</p>
