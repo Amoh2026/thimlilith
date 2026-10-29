@@ -171,6 +171,7 @@ export function ChatArea(p: ChatAreaProps) {
             {showHeaderMenu && (
               <div className="absolute right-0 top-12 bg-[#1e293b] border border-slate-700 rounded-xl shadow-2xl w-52 py-2 flex flex-col z-[100]">
                 <button onClick={() => { p.setIsSearchExpanded(!p.isSearchExpanded); if (p.isSearchExpanded) { p.setMessageSearchTerm(""); p.setMessageSearchDate(""); } setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">🔍 Search Messages</button>
+                <button onClick={() => { p.onOpenSettings(); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">⚙️ Privacy Settings</button>
                 <button onClick={() => { p.onVideo(); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">📹 Video Call</button>
                 <div className="border-t border-slate-700 my-1"></div>
 
