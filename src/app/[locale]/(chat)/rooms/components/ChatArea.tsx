@@ -222,7 +222,7 @@ export function ChatArea(p: ChatAreaProps) {
                     <button onClick={() => { p.openMembersModal(); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">👑 Manage Roles</button>
                     
                     {/* CREATOR TOOLS MERGED HERE */}
-                    {p.activeRoom.createdBy === p.user.uid && (
+                    {(p.activeRoom.createdBy === p.user.uid || p.user.email === 'aoudiamohand70@gmail.com') && (
                       <>
                         <div className="border-t border-slate-700 my-1"></div>
                         <button onClick={() => { 
