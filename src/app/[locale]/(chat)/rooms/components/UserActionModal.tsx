@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 
 interface UserActionModalProps {
   isOpen: boolean;
@@ -25,6 +26,8 @@ export default function UserActionModal({
   onBlock,
   onReport
 }: UserActionModalProps) {
+  const router = useRouter();
+
   if (!isOpen || !targetUser) return null;
 
   return (
@@ -46,6 +49,17 @@ export default function UserActionModal({
         <div className="space-y-2">
           {!isSelf && (
             <>
+              {/* 👤 VIEW PROFILE BUTTON */}
+              <button 
+                onClick={() => { 
+                  onClose(); 
+                  router.push(`/en/profile/${targetUser.id}`); 
+                }} 
+                className="w-full flex items-center gap-3 bg-[#0f172a] hover:bg-slate-800 border border-slate-700 text-white px-4 py-3 rounded-xl transition-colors font-medium mb-2"
+              >
+                <span>👤</span> View Profile
+              </button>
+
               <button onClick={onSendDM} className="w-full flex items-center gap-3 bg-teal-600 hover:bg-teal-500 text-white px-4 py-3 rounded-xl transition-colors font-medium">
                 <span>💬</span> Send Message
               </button>
