@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { db, auth, storage } from '@/lib/firebase/client';
 import PremiumModal, { type LimitType } from './components/PremiumModal';
+import WelcomeModal from './components/WelcomeModal';
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, setDoc, where, getDocs, getDoc, deleteDoc, updateDoc, or, and, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { onAuthStateChanged, signOut, User, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
@@ -76,6 +77,7 @@ export default function ThimlilithChatUI() {
 
   // Premium Modal State
   const [premiumModal, setPremiumModal] = useState<{ open: boolean; type: LimitType }>({ open: false, type: 'translate' });
+  const [showWelcome, setShowWelcome] = useState(false);
 
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -687,6 +689,23 @@ export default function ThimlilithChatUI() {
   };
 
   // ─── TRANSLATION ───
+    useEffect(() => {
+    // Show welcome modal only if userDoc exists and hasSeenWelcome is falsy
+    if (userDoc && !userDoc.hasSeenWelcome) {
+      setShowWelcome(true);
+    }
+  }, [userDoc]);
+
+  const handleWelcomeDismiss = async () => {
+    setShowWelcome(false);
+    if (user) {
+      try {
+        await updateDoc(doc(db, 'users', user.uid), { hasSeenWelcome: true });
+      } catch (err) {
+        console.error('Failed to update welcome status', err);
+      }
+    }
+  };
   const handleTranslate = async (msg: any, targetLang: string) => {
     if (!msg.text) return null;
     try {
@@ -727,6 +746,7 @@ export default function ThimlilithChatUI() {
   // ─── RENDER: MAIN UI ───
   return (
     <div className="flex h-[100dvh] w-full bg-[#0f172a] text-gray-300 font-sans overflow-hidden">
+            <WelcomeModal open={showWelcome} onClose={handleWelcomeDismiss} />
       <PremiumModal open={premiumModal.open} type={premiumModal.type} onClose={() => setPremiumModal({ ...premiumModal, open: false })} />
       
       <Sidebars
