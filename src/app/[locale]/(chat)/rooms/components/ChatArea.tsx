@@ -149,7 +149,6 @@ export function ChatArea(p: ChatAreaProps) {
     });
   };
 
-  // 👇 SHARED ACTION BUTTONS RENDERER 👇
   const renderActionButtons = (msg: any, isMe: boolean, isMobile: boolean = false) => {
     const isRoomAdmin = p.activeRoom?.admins?.includes(p.user.uid) || p.activeRoom?.createdBy === p.user.uid;
     const isRoomMod = p.activeRoom?.moderators?.includes(p.user.uid);
@@ -157,7 +156,7 @@ export function ChatArea(p: ChatAreaProps) {
     const isMenuOpen = p.activeReactionMenu === msg.id;
 
     const baseClass = isMobile
-      ? "w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white flex items-center gap-2"
+      ? "w-full text-left px-4 py-2.5 text-sm text-gray-200 hover:bg-slate-700 active:bg-slate-600 flex items-center gap-3 transition-colors"
       : "bg-[#1e293b] border border-slate-600 hover:bg-slate-700 text-gray-300 rounded-full w-8 h-8 flex-shrink-0 flex items-center justify-center text-sm shadow-lg";
 
     const iconClass = isMobile ? "text-base" : "";
@@ -188,7 +187,7 @@ export function ChatArea(p: ChatAreaProps) {
   };
 
   return (
-   <div className="w-full flex-1 flex flex-col bg-[#0b1120] h-full overflow-hidden relative">
+    <div className="w-full flex-1 flex flex-col bg-[#0b1120] h-full overflow-hidden relative">
       {/* Header */}
       <div className="h-16 border-b border-slate-800 flex items-center justify-between px-4 md:px-6 bg-[#0f172a] sticky top-0 z-50">
         <div className="flex items-center gap-3">
@@ -217,7 +216,6 @@ export function ChatArea(p: ChatAreaProps) {
             {showHeaderMenu && (
               <div className="absolute right-0 top-12 bg-[#1e293b] border border-slate-700 rounded-xl shadow-2xl w-56 py-2 flex flex-col z-[100] max-h-[80vh] overflow-y-auto">
                 
-                {/* MAIN MENU */}
                 {activeSubmenu === 'none' && (
                   <>
                     <button onClick={() => { p.setIsSearchExpanded(!p.isSearchExpanded); if (p.isSearchExpanded) { p.setMessageSearchTerm(""); p.setMessageSearchDate(""); } setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white flex justify-between">🔍 Search Messages</button>
@@ -251,7 +249,6 @@ export function ChatArea(p: ChatAreaProps) {
                   </>
                 )}
 
-                {/* ROOM SETTINGS SUBMENU */}
                 {activeSubmenu === 'room' && (
                   <>
                     <button onClick={() => setActiveSubmenu('none')} className="text-left px-4 py-2 text-xs text-gray-400 hover:text-white font-bold flex items-center gap-2 border-b border-slate-700 mb-1">
@@ -312,7 +309,7 @@ export function ChatArea(p: ChatAreaProps) {
       )}
 
       {/* Messages Container */}
-      <div className="flex-1 min-h-0 p-4 md:p-6 overflow-y-auto overflow-x-hidden flex flex-col gap-4 relative"  style={{ backgroundColor: (p.activeRoom.type === "direct" ? p.userDoc?.dmThemes?.[p.activeRoom.id]?.bgColor : p.activeRoom.customization?.bgColor) || '#0b1120', backgroundImage: (p.activeRoom.type === "direct" ? p.userDoc?.dmThemes?.[p.activeRoom.id]?.bgImage : p.activeRoom.customization?.bgImage) ? `url(${p.activeRoom.type === "direct" ? p.userDoc?.dmThemes?.[p.activeRoom.id]?.bgImage : p.activeRoom.customization?.bgImage})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }}>
+      <div className="flex-1 min-h-0 p-4 md:p-6 overflow-y-auto overflow-x-hidden flex flex-col gap-4 relative" style={{ backgroundColor: (p.activeRoom.type === "direct" ? p.userDoc?.dmThemes?.[p.activeRoom.id]?.bgColor : p.activeRoom.customization?.bgColor) || '#0b1120', backgroundImage: (p.activeRoom.type === "direct" ? p.userDoc?.dmThemes?.[p.activeRoom.id]?.bgImage : p.activeRoom.customization?.bgImage) ? `url(${p.activeRoom.type === "direct" ? p.userDoc?.dmThemes?.[p.activeRoom.id]?.bgImage : p.activeRoom.customization?.bgImage})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }}>
         {((p.activeRoom.type === "direct" && p.userDoc?.dmThemes?.[p.activeRoom.id]?.bgImage) || (p.activeRoom.type === "group" && p.activeRoom.customization?.bgImage)) && (<div className="absolute inset-0 bg-black/60 pointer-events-none"></div>)}
         {((p.activeRoom.type === "direct" && p.userDoc?.dmThemes?.[p.activeRoom.id]?.poemText) || (p.activeRoom.type === "group" && p.activeRoom.customization?.poemText)) && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10 select-none overflow-hidden">
@@ -324,123 +321,116 @@ export function ChatArea(p: ChatAreaProps) {
           {p.filteredMessages.length === 0 && (<div className="text-center text-gray-500 mt-10">No messages yet. Say Azul to {p.activeRoom.type === "direct" ? p.getDMName(p.activeRoom) : `Thajmaath n ${p.activeRoom.name}`}!</div>)}
           
           {p.filteredMessages.map((msg, index) => {
-  if (p.userDoc?.blockedUsers?.includes(msg.senderId)) return <div key={msg.id || index} className="text-center text-xs text-gray-600 my-2">Message from a blocked user</div>;
-  const isMe = msg.senderId === p.user.uid;
-  const isRoomAdmin = p.activeRoom?.admins?.includes(p.user.uid) || p.activeRoom?.createdBy === p.user.uid;
-  const isRoomMod = p.activeRoom?.moderators?.includes(p.user.uid);
-  const canDelete = isMe || isRoomAdmin || isRoomMod;
-  const isSelected = selectedMsgId === msg.id;
-  const selectable = msg.type === 'text' && (msg.text || '').trim().length > 0;
-  const bubbleClass = "px-4 py-3 rounded-2xl max-w-[300px] md:max-w-md break-words transition-all relative " + (isMe ? 'bg-teal-600 text-white rounded-tr-sm' : 'bg-[#1e293b] text-gray-200 rounded-tl-sm') + (isSelected ? ' ring-2 ring-emerald-400' : '') + (selectable ? ' cursor-pointer' : '');
-  const ytId = msg.type === 'text' ? getYouTubeID(msg.text) : null;
-  const isMenuOpen = p.activeReactionMenu === msg.id;
+            if (p.userDoc?.blockedUsers?.includes(msg.senderId)) return <div key={msg.id || index} className="text-center text-xs text-gray-600 my-2">Message from a blocked user</div>;
+            const isMe = msg.senderId === p.user.uid;
+            const isSelected = selectedMsgId === msg.id;
+            const selectable = msg.type === 'text' && (msg.text || '').trim().length > 0;
+            const bubbleClass = "px-4 py-3 rounded-2xl max-w-[300px] md:max-w-md break-words transition-all relative " + (isMe ? 'bg-teal-600 text-white rounded-tr-sm' : 'bg-[#1e293b] text-gray-200 rounded-tl-sm') + (isSelected ? ' ring-2 ring-emerald-400' : '') + (selectable ? ' cursor-pointer' : '');
+            const ytId = msg.type === 'text' ? getYouTubeID(msg.text) : null;
+            const isMenuOpen = p.activeReactionMenu === msg.id;
 
-  return (
-    <div key={msg.id || index} className={`relative w-full flex flex-col group my-2 ${isMe ? 'items-end' : 'items-start'}`}>
-      
-      {/* SENDER NAME + MOBILE 3-DOTS */}
-      <div className="flex items-center gap-2 mb-1 px-1">
-        <span className="text-xs text-gray-400 font-medium">
-          {isMe ? "You" : (
-            <button onClick={() => p.onOpenUserAction(msg.senderId, msg.senderName)} className="hover:text-teal-400 hover:underline transition-colors" title="View Profile">
-              {msg.senderName}
-            </button>
-          )}
-        </span>
-        {msg.senderIsPremium && <span title="Premium Member" className="text-[10px]">👑</span>}
-        {msg.senderIsDonator && <span title="Supporter" className="text-[10px]">❤️</span>}
-        
-        {/* MOBILE 3-DOTS - moved up to name row, dropdown opens downward */}
-        <div className="md:hidden relative">
-          <button 
-            onClick={() => setMobileActionMenuId(mobileActionMenuId === msg.id ? null : msg.id)} 
-            className="text-gray-400 hover:text-white w-6 h-6 flex items-center justify-center text-base"
-            aria-label="Message actions"
-          >
-            ⋮
-          </button>
-          {mobileActionMenuId === msg.id && (
-            <div className={`absolute top-7 ${isMe ? 'right-0' : 'left-0'} z-[100] w-52 bg-[#1e293b] border border-slate-700 rounded-xl shadow-2xl py-1 flex flex-col max-h-[50vh] overflow-y-auto`}>
-              {renderActionButtons(msg, isMe, true)}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* MESSAGE BUBBLE ROW */}
-      <div className={`flex items-center w-full relative ${isMe ? 'justify-end' : 'justify-start'}`}>
-        
-        {/* DESKTOP ACTIONS (extreme sides on hover) */}
-        <div className={`hidden md:flex absolute top-1/2 -translate-y-1/2 flex-col gap-1 transition-opacity duration-200 z-30 ${isMe ? 'left-0' : 'right-0'} opacity-0 group-hover:opacity-100`}>
-          {renderActionButtons(msg, isMe, false)}
-        </div>
-
-        {/* BUBBLE */}
-        <div className={bubbleClass} onClick={selectable ? () => setSelectedMsgId(isSelected ? null : msg.id) : undefined}>
-          {msg.replyTo && (
-            <div className="bg-black/20 border-l-4 border-teal-300 p-2 rounded mb-2 text-sm">
-              <button onClick={(e) => { e.stopPropagation(); if (msg.replyTo.senderId) p.onOpenUserAction(msg.replyTo.senderId, msg.replyTo.senderName); }} className="font-semibold text-teal-200 text-xs hover:underline hover:text-teal-400 transition-colors text-left">
-                {msg.replyTo.senderName}
-              </button>
-              <p className="text-gray-300 text-xs truncate max-w-[200px]">{msg.replyTo.text}</p>
-            </div>
-          )}
-          {msg.type === 'text' && (
-            <div className="flex flex-col gap-2">
-              <p className="break-words whitespace-pre-wrap">{renderMessageText(msg.text)}</p>
-              {translations[msg.id] && (<div className="mt-2 pt-2 border-t border-black/20 text-sm italic opacity-90">🌍 {translations[msg.id]}</div>)}
-              {ytId && (<div onClick={(e) => e.stopPropagation()}><iframe width="100%" height="200" src={`https://www.youtube.com/embed/${ytId}`} title="YouTube" frameBorder="0" allowFullScreen className="rounded-lg mt-2 max-w-sm bg-black"></iframe></div>)}
-            </div>
-          )}
-          {msg.type === 'image' && <img src={msg.fileUrl} alt="" className="max-w-full rounded-lg cursor-pointer" onClick={() => window.open(msg.fileUrl, '_blank')} />}
-          {msg.type === 'video' && <video controls className="max-w-full rounded-lg bg-black"><source src={msg.fileUrl} type="video/mp4" /></video>}
-          {msg.type === 'audio' && (<div className="flex flex-col gap-2"><audio controls className="max-w-[250px] h-10"><source src={msg.fileUrl} type="audio/webm" /></audio>{msg.text && (<p className="text-sm text-gray-200 italic border-l-2 border-teal-400 pl-2">"{msg.text}"</p>)}</div>)}
-          {msg.type === 'file' && <a href={msg.fileUrl} target="_blank" rel="noreferrer" className="flex items-center gap-3 bg-black/20 p-3 rounded-lg"><span className="text-2xl">📄</span><span className="text-sm font-semibold truncate max-w-[150px]">{msg.fileName}</span></a>}
-        </div>
-      </div>
-
-      {/* REACTIONS MENU */}
-      {isMenuOpen && (
-        <div className={`absolute top-full mt-2 z-50 bg-[#1e293b] border border-teal-500 rounded-full px-2 py-1.5 flex gap-1 shadow-2xl ${isMe ? 'right-12' : 'left-12'}`}>
-          {REACTIONS.map(emoji => (
-            <button type="button" key={emoji} onClick={(e) => { e.stopPropagation(); p.handleReaction(msg.id, emoji, msg.reactions); }} className="hover:scale-125 text-2xl p-1">{emoji}</button>
-          ))}
-        </div>
-      )}
-
-      {/* REACTIONS DISPLAY */}
-      {msg.reactions && Object.keys(msg.reactions).length > 0 && (
-        <div className={`flex flex-wrap gap-1 mt-1 ${isMe ? 'justify-end pr-2' : 'justify-start pl-2'}`}>
-          {Object.entries(msg.reactions).map(([emoji, users]: [string, any]) => { 
-            if (!users || users.length === 0) return null; 
-            const hasReacted = users.includes(p.user.uid); 
             return (
-              <button type="button" key={emoji} onClick={() => p.handleReaction(msg.id, emoji, msg.reactions)} className={`text-xs px-2 py-0.5 rounded-full border flex items-center gap-1 ${hasReacted ? 'bg-teal-900/50 border-teal-500 text-teal-300' : 'bg-[#1e293b] border-slate-600 text-gray-400'}`}>
-                <span>{emoji}</span><span>{users.length}</span>
-              </button>
-            ); 
-          })}
-        </div>
-      )}
+              <div key={msg.id || index} className={`relative w-full flex flex-col group my-2 ${isMe ? 'items-end' : 'items-start'}`}>
+                
+                {/* SENDER NAME + MOBILE 3-DOTS */}
+                <div className="flex items-center gap-2 mb-1 px-1">
+                  <span className="text-xs text-gray-400 font-medium">
+                    {isMe ? "You" : (
+                      <button onClick={() => p.onOpenUserAction(msg.senderId, msg.senderName)} className="hover:text-teal-400 hover:underline transition-colors" title="View Profile">
+                        {msg.senderName}
+                      </button>
+                    )}
+                  </span>
+                  {msg.senderIsPremium && <span title="Premium Member" className="text-[10px]">👑</span>}
+                  {msg.senderIsDonator && <span title="Supporter" className="text-[10px]">❤️</span>}
+                  
+                  <div className="md:hidden relative mobile-action-menu">
+                    <button 
+                      onClick={() => setMobileActionMenuId(mobileActionMenuId === msg.id ? null : msg.id)} 
+                      className="text-gray-400 hover:text-white w-6 h-6 flex items-center justify-center text-base"
+                      aria-label="Message actions"
+                    >
+                      ⋮
+                    </button>
+                    {mobileActionMenuId === msg.id && (
+                      <div className={`absolute top-7 ${isMe ? 'right-0' : 'left-0'} z-[100] w-52 bg-[#1e293b]/80 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl py-1 flex flex-col max-h-[50vh] overflow-y-auto`}>
+                        {renderActionButtons(msg, isMe, true)}
+                      </div>
+                    )}
+                  </div>
+                </div>
 
-      {/* TIMESTAMP */}
-      <span className={`text-[10px] text-gray-500 mt-1 px-1 flex items-center gap-1 ${isMe ? 'justify-end' : 'justify-start'}`}>
-        {msg.createdAt ? new Date(msg.createdAt.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Sending...'}
-        {msg.editedAt && <span className="italic">(edited)</span>}
-        {isMe && <span className="ml-1">{msg.readBy && msg.readBy.length > 0 ? <span className="text-teal-400 text-xs">✓✓</span> : <span className="text-gray-500 text-xs">✓</span>}</span>}
-      </span>
-    </div>
-  );
-})}
+                {/* MESSAGE BUBBLE ROW */}
+                <div className={`flex items-center w-full relative ${isMe ? 'justify-end' : 'justify-start'}`}>
+                  
+                  {/* DESKTOP ACTIONS */}
+                  <div className={`hidden md:flex absolute top-1/2 -translate-y-1/2 flex-col gap-1 transition-opacity duration-200 z-30 ${isMe ? 'left-0' : 'right-0'} opacity-0 group-hover:opacity-100`}>
+                    {renderActionButtons(msg, isMe, false)}
+                  </div>
+
+                  {/* BUBBLE */}
+                  <div className={bubbleClass} onClick={selectable ? () => setSelectedMsgId(isSelected ? null : msg.id) : undefined}>
+                    {msg.replyTo && (
+                      <div className="bg-black/20 border-l-4 border-teal-300 p-2 rounded mb-2 text-sm">
+                        <button onClick={(e) => { e.stopPropagation(); if (msg.replyTo.senderId) p.onOpenUserAction(msg.replyTo.senderId, msg.replyTo.senderName); }} className="font-semibold text-teal-200 text-xs hover:underline hover:text-teal-400 transition-colors text-left">
+                          {msg.replyTo.senderName}
+                        </button>
+                        <p className="text-gray-300 text-xs truncate max-w-[200px]">{msg.replyTo.text}</p>
+                      </div>
+                    )}
+                    {msg.type === 'text' && (
+                      <div className="flex flex-col gap-2">
+                        <p className="break-words whitespace-pre-wrap">{renderMessageText(msg.text)}</p>
+                        {translations[msg.id] && (<div className="mt-2 pt-2 border-t border-black/20 text-sm italic opacity-90">🌍 {translations[msg.id]}</div>)}
+                        {ytId && (<div onClick={(e) => e.stopPropagation()}><iframe width="100%" height="200" src={`https://www.youtube.com/embed/${ytId}`} title="YouTube" frameBorder="0" allowFullScreen className="rounded-lg mt-2 max-w-sm bg-black"></iframe></div>)}
+                      </div>
+                    )}
+                    {msg.type === 'image' && <img src={msg.fileUrl} alt="" className="max-w-full rounded-lg cursor-pointer" onClick={() => window.open(msg.fileUrl, '_blank')} />}
+                    {msg.type === 'video' && <video controls className="max-w-full rounded-lg bg-black"><source src={msg.fileUrl} type="video/mp4" /></video>}
+                    {msg.type === 'audio' && (<div className="flex flex-col gap-2"><audio controls className="max-w-[250px] h-10"><source src={msg.fileUrl} type="audio/webm" /></audio>{msg.text && (<p className="text-sm text-gray-200 italic border-l-2 border-teal-400 pl-2">"{msg.text}"</p>)}</div>)}
+                    {msg.type === 'file' && <a href={msg.fileUrl} target="_blank" rel="noreferrer" className="flex items-center gap-3 bg-black/20 p-3 rounded-lg"><span className="text-2xl">📄</span><span className="text-sm font-semibold truncate max-w-[150px]">{msg.fileName}</span></a>}
+                  </div>
+                </div>
+
+                {/* REACTIONS MENU */}
+                {isMenuOpen && (
+                  <div className={`absolute top-full mt-2 z-50 bg-[#1e293b] border border-teal-500 rounded-full px-2 py-1.5 flex gap-1 shadow-2xl ${isMe ? 'right-12' : 'left-12'}`}>
+                    {REACTIONS.map(emoji => (
+                      <button type="button" key={emoji} onClick={(e) => { e.stopPropagation(); p.handleReaction(msg.id, emoji, msg.reactions); }} className="hover:scale-125 text-2xl p-1">{emoji}</button>
+                    ))}
+                  </div>
+                )}
+
+                {/* REACTIONS DISPLAY */}
+                {msg.reactions && Object.keys(msg.reactions).length > 0 && (
+                  <div className={`flex flex-wrap gap-1 mt-1 ${isMe ? 'justify-end pr-2' : 'justify-start pl-2'}`}>
+                    {Object.entries(msg.reactions).map(([emoji, users]: [string, any]) => { 
+                      if (!users || users.length === 0) return null; 
+                      const hasReacted = users.includes(p.user.uid); 
+                      return (
+                        <button type="button" key={emoji} onClick={() => p.handleReaction(msg.id, emoji, msg.reactions)} className={`text-xs px-2 py-0.5 rounded-full border flex items-center gap-1 ${hasReacted ? 'bg-teal-900/50 border-teal-500 text-teal-300' : 'bg-[#1e293b] border-slate-600 text-gray-400'}`}>
+                          <span>{emoji}</span><span>{users.length}</span>
+                        </button>
+                      ); 
+                    })}
+                  </div>
+                )}
+
+                {/* TIMESTAMP */}
+                <span className={`text-[10px] text-gray-500 mt-1 px-1 flex items-center gap-1 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                  {msg.createdAt ? new Date(msg.createdAt.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Sending...'}
+                  {msg.editedAt && <span className="italic">(edited)</span>}
+                  {isMe && <span className="ml-1">{msg.readBy && msg.readBy.length > 0 ? <span className="text-teal-400 text-xs">✓✓</span> : <span className="text-gray-500 text-xs">✓</span>}</span>}
+                </span>
+              </div>
+            );
+          })}
           <div ref={p.messagesEndRef} />
         </div>
       </div>
 
-           {/* Input */}
-           <div 
-        className="flex-shrink-0 p-4 bg-[#0f172a] border-t border-slate-800 relative z-20" 
-           style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
-      >
+      {/* Input */}
+      <div className="flex-shrink-0 p-4 bg-[#0f172a] border-t border-slate-800 relative z-20" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
         {selectedMsg && (
           <div className="bg-emerald-900/30 border border-emerald-500/50 rounded-lg p-2 mb-2 flex items-center gap-2">
             <span className="text-xs text-emerald-300 truncate flex-1">💾 Saving: “{(selectedMsg.text || '').slice(0, 60)}{(selectedMsg.text || '').length > 60 ? '…' : ''}”</span>
