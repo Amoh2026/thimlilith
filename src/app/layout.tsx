@@ -18,9 +18,9 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" dir="ltr">
-      <body className="h-[100dvh] w-full overflow-hidden flex flex-col bg-[#0f172a]">
-        {children}
-      </body>
+      <body className="h-[100dvh] w-full overflow-hidden bg-[#0f172a]">
+  {children}
+</body>
     </html>
   );
 }

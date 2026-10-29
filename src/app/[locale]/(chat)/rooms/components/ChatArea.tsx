@@ -188,7 +188,7 @@ export function ChatArea(p: ChatAreaProps) {
   };
 
   return (
-    <div className="w-full flex-1 flex flex-col bg-[#0b1120] h-full overflow-hidden relative">
+   <div className="w-full flex-1 flex flex-col bg-[#0b1120] h-full overflow-hidden relative">
       {/* Header */}
       <div className="h-16 border-b border-slate-800 flex items-center justify-between px-4 md:px-6 bg-[#0f172a] sticky top-0 z-50">
         <div className="flex items-center gap-3">
@@ -312,7 +312,7 @@ export function ChatArea(p: ChatAreaProps) {
       )}
 
       {/* Messages Container */}
-      <div className="flex-1 p-4 md:p-6 overflow-y-auto overflow-x-hidden flex flex-col gap-4 relative" style={{ backgroundColor: (p.activeRoom.type === "direct" ? p.userDoc?.dmThemes?.[p.activeRoom.id]?.bgColor : p.activeRoom.customization?.bgColor) || '#0b1120', backgroundImage: (p.activeRoom.type === "direct" ? p.userDoc?.dmThemes?.[p.activeRoom.id]?.bgImage : p.activeRoom.customization?.bgImage) ? `url(${p.activeRoom.type === "direct" ? p.userDoc?.dmThemes?.[p.activeRoom.id]?.bgImage : p.activeRoom.customization?.bgImage})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }}>
+      <div className="flex-1 min-h-0 p-4 md:p-6 overflow-y-auto overflow-x-hidden flex flex-col gap-4 relative"  style={{ backgroundColor: (p.activeRoom.type === "direct" ? p.userDoc?.dmThemes?.[p.activeRoom.id]?.bgColor : p.activeRoom.customization?.bgColor) || '#0b1120', backgroundImage: (p.activeRoom.type === "direct" ? p.userDoc?.dmThemes?.[p.activeRoom.id]?.bgImage : p.activeRoom.customization?.bgImage) ? `url(${p.activeRoom.type === "direct" ? p.userDoc?.dmThemes?.[p.activeRoom.id]?.bgImage : p.activeRoom.customization?.bgImage})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }}>
         {((p.activeRoom.type === "direct" && p.userDoc?.dmThemes?.[p.activeRoom.id]?.bgImage) || (p.activeRoom.type === "group" && p.activeRoom.customization?.bgImage)) && (<div className="absolute inset-0 bg-black/60 pointer-events-none"></div>)}
         {((p.activeRoom.type === "direct" && p.userDoc?.dmThemes?.[p.activeRoom.id]?.poemText) || (p.activeRoom.type === "group" && p.activeRoom.customization?.poemText)) && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10 select-none overflow-hidden">
@@ -426,7 +426,7 @@ export function ChatArea(p: ChatAreaProps) {
            {/* Input */}
            <div 
         className="flex-shrink-0 p-4 bg-[#0f172a] border-t border-slate-800 relative z-20" 
-        style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
+          style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
       >
         {selectedMsg && (
           <div className="bg-emerald-900/30 border border-emerald-500/50 rounded-lg p-2 mb-2 flex items-center gap-2">
