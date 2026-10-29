@@ -5,6 +5,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { db, auth, storage } from '@/lib/firebase/client';
 import PremiumModal, { type LimitType } from './components/PremiumModal';
 import SettingsModal from './components/SettingsModal';
+import ForwardModal from './components/ForwardModal';
 import WelcomeModal from './components/WelcomeModal';
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, setDoc, where, getDocs, getDoc, deleteDoc, updateDoc, or, and, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -79,6 +80,7 @@ export default function ThimlilithChatUI() {
   // Premium Modal State
   const [premiumModal, setPremiumModal] = useState<{ open: boolean; type: LimitType }>({ open: false, type: 'translate' });
   const [showSettings, setShowSettings] = useState(false);
+  const [forwardMsgId, setForwardMsgId] = useState<string | null>(null);
   const [showWelcome, setShowWelcome] = useState(false);
 
   // Refs
@@ -706,6 +708,40 @@ export default function ThimlilithChatUI() {
     }
   }, [userDoc]);
 
+  const handleExecuteForward = async (targetRoomId: string) => {
+    if (!forwardMsgId || !activeRoom || !user) return;
+    const msgToForward = messages.find(m => m.id === forwardMsgId);
+    setForwardMsgId(null);
+    if (!msgToForward) return;
+
+    try {
+      const newMsgRef = collection(db, "rooms", targetRoomId, "messages");
+      await addDoc(newMsgRef, {
+        senderId: user.uid,
+        senderName: user.displayName || user.email?.split('@')[0] || "Anon",
+        senderIsPremium: userDoc?.isPremium || false,
+        senderIsDonator: userDoc?.isDonator || false,
+        text: msgToForward.text || "",
+        type: msgToForward.type || "text",
+        fileUrl: msgToForward.fileUrl || null,
+        fileName: msgToForward.fileName || null,
+        createdAt: serverTimestamp(),
+        readBy: [],
+        isForwarded: true
+      });
+
+      await updateDoc(doc(db, "rooms", targetRoomId), {
+        lastMessageAt: serverTimestamp(),
+        lastMessageText: msgToForward.text || "📎 Media",
+        lastMessageSenderId: user.uid
+      });
+
+      alert("Message forwarded successfully! ✨");
+    } catch (err: any) {
+      alert("Failed to forward: ${err.message}");
+    }
+  };
+
   const handleSaveSettings = async (data: any) => {
     if (!user) return;
     try { await updateDoc(doc(db, "users", user.uid), data); }
@@ -813,6 +849,7 @@ export default function ThimlilithChatUI() {
         }}
         onSaveToATK={handleSaveToATK}
         onOpenSettings={() => setShowSettings(true)}
+        onForward={(msgId) => setForwardMsgId(msgId)}
         handleSendSticker={handleSendSticker} 
         onTranslate={handleTranslate}
         onOpenTheme={() => {
@@ -854,6 +891,7 @@ export default function ThimlilithChatUI() {
         showThemeModal={showThemeModal} setShowThemeModal={setShowThemeModal}
         themeData={themeData} setThemeData={setThemeData} handleSaveTheme={handleSaveTheme}
       />
+      <ForwardModal isOpen={!!forwardMsgId} onClose={() => setForwardMsgId(null)} rooms={rooms} getDMName={getDMName} onForward={handleExecuteForward} />
       <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} userDoc={userDoc} onSave={handleSaveSettings} />
     </div>
   );

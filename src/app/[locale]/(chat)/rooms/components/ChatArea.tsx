@@ -55,6 +55,7 @@ interface ChatAreaProps {
   onTranslate: (msg: any, targetLang: string) => Promise<string | null>;
   onOpenTheme: () => void;
   onOpenSettings: () => void;
+  onForward: (msgId: string) => void;
   isMobileSidebarOpen: boolean;
   setIsMobileSidebarOpen: (v: boolean) => void;
 }
@@ -306,6 +307,7 @@ export function ChatArea(p: ChatAreaProps) {
                   {/* Action Buttons */}
                   <div className={`absolute top-1/2 -translate-y-1/2 flex flex-col gap-1 transition-opacity duration-200 z-30 ${isMe ? 'right-full mr-3' : 'left-full ml-3'} ${isSelected ? 'opacity-100' : 'opacity-0 md:group-hover:opacity-100'}`}>
                     <button type="button" onClick={(e) => { e.stopPropagation(); p.setReplyingTo(msg); }} className="bg-[#1e293b] border border-slate-600 hover:bg-slate-700 text-gray-300 rounded-full w-8 h-8 flex-shrink-0 flex items-center justify-center text-sm shadow-lg" title="Reply">↩️</button>
+                    <button type="button" onClick={(e) => { e.stopPropagation(); p.onForward(msg.id); }} className="bg-[#1e293b] border border-slate-600 hover:bg-slate-700 text-gray-300 rounded-full w-8 h-8 flex-shrink-0 flex items-center justify-center text-sm shadow-lg" title="Forward">↪️</button>
                     <button type="button" onClick={(e) => { e.stopPropagation(); p.setActiveReactionMenu(isMenuOpen ? null : msg.id); }} className="bg-[#1e293b] border border-slate-600 hover:bg-slate-700 text-gray-300 rounded-full w-8 h-8 flex-shrink-0 flex items-center justify-center text-sm shadow-lg" title="React">😊</button>
                     
                     {msg.type === 'text' && (
