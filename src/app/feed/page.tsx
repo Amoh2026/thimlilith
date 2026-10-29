@@ -1,220 +1,295 @@
+// src/app/[locale]/feed/page.tsx
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { db, auth, storage } from '@/lib/firebase/client';
-import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, updateDoc, doc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, updateDoc, doc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import Link from 'next/link';
+import SharePostModal from '@/app/[locale]/(chat)/rooms/components/SharePostModal';
 
-export default function FacebookFeed() {
+interface Post {
+  id: string;
+  authorId: string;
+  authorName: string;
+  authorPhotoURL?: string;
+  text: string;
+  imageUrl?: string;
+  createdAt: any;
+  likes: string[];
+}
+
+export default function FeedPage() {
+  const params = useParams();
+  const router = useRouter();
+  const locale = params?.locale || 'en';
+
   const [user, setUser] = useState<User | null>(null);
-  const [posts, setPosts] = useState<any[]>([]);
-  const [postText, setPostText] = useState("");
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [loading, setLoading] = useState(true);
+  
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [newPostText, setNewPostText] = useState("");
+  const [newPostImage, setNewPostImage] = useState<File | null>(null);
+  const [isPosting, setIsPosting] = useState(false);
 
+  // Share State
+  const [sharePost, setSharePost] = useState<any>(null);
+  const [isSharing, setIsSharing] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Auth Check
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => setUser(currentUser));
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setLoading(false);
+      if (!currentUser) {
+        router.push(`/${locale}/rooms`);
+      }
+    });
     return () => unsubscribe();
-  }, []);
+  }, [router, locale]);
 
   // Fetch Posts
   useEffect(() => {
+    if (!user) return;
     const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setPosts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    const unsub = onSnapshot(q, (snap) => {
+      setPosts(snap.docs.map(d => ({ id: d.id, ...d.data() } as Post)));
     });
-    return () => unsubscribe();
-  }, []);
+    return () => unsub();
+  }, [user]);
 
-  const handleCreatePost = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user || (!postText.trim() && !imageFile)) return;
-
-    setUploading(true);
-    let imageUrl = "";
+  const handleCreatePost = async () => {
+    if ((!newPostText.trim() && !newPostImage) || !user) return;
+    setIsPosting(true);
 
     try {
-      if (imageFile) {
-        const storageRef = ref(storage, `post_images/${Date.now()}_${imageFile.name}`);
-        await uploadBytes(storageRef, imageFile);
-        imageUrl = await getDownloadURL(storageRef);
+      let imageUrl = "";
+      if (newPostImage) {
+        // NOTE: Ensure your Storage rules allow 'feed_images' or 'post_images'
+        const sref = ref(storage, `feed_images/${Date.now()}_${newPostImage.name}`);
+        await uploadBytes(sref, newPostImage);
+        imageUrl = await getDownloadURL(sref);
       }
 
       await addDoc(collection(db, "posts"), {
         authorId: user.uid,
-        authorName: user.displayName || user.email?.split('@')[0] || "Anonymous",
-        authorPhoto: user.photoURL || null,
-        text: postText,
+        authorName: user.displayName || user.email?.split('@')[0] || "Anon",
+        authorPhotoURL: user.photoURL || null,
+        text: newPostText.trim(),
         imageUrl: imageUrl || null,
-        likes: [],
         createdAt: serverTimestamp(),
+        likes: []
       });
 
-      setPostText("");
-      setImageFile(null);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    } catch (error) {
-      console.error("Error creating post:", error);
-      alert("Failed to create post.");
+      handleCancelPost();
+    } catch (err: any) {
+      alert("Failed to create post: " + err.message);
+      console.error(err);
     }
-    setUploading(false);
+    setIsPosting(false);
   };
 
-  const handleLike = async (postId: string, likes: string[]) => {
-    if (!user) return;
-    const postRef = doc(db, "posts", postId);
-    const hasLiked = likes?.includes(user.uid);
+  const handleCancelPost = () => {
+    setNewPostText("");
+    setNewPostImage(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
+  const handleLike = async (postId: string, currentLikes: string[]) => {
+    if (!user) return;
+    const hasLiked = currentLikes?.includes(user.uid);
+    const postRef = doc(db, "posts", postId);
+    
     try {
       await updateDoc(postRef, {
         likes: hasLiked ? arrayRemove(user.uid) : arrayUnion(user.uid)
       });
-    } catch (error) {
-      console.error("Error liking post:", error);
+    } catch (err) {
+      console.error("Like failed", err);
     }
   };
 
-  if (!user) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-[#0f172a] text-white flex-col gap-4">
-        <p>Please log in on the Chat page first.</p>
-        <Link href="/" className="bg-teal-600 px-4 py-2 rounded-lg">Go to Login</Link>
-      </div>
-    );
-  }
+  // SHARE LOGIC
+  const handleExecuteShare = async (targetRoomId: string) => {
+    if (!sharePost || !user) return;
+    setIsSharing(true);
+    try {
+      await addDoc(collection(db, "rooms", targetRoomId, "messages"), {
+        senderId: user.uid,
+        senderName: user.displayName || user.email?.split('@')[0] || "User",
+        text: `📢 Shared a post from ${sharePost.authorName}:\n"${sharePost.text}"`,
+        type: sharePost.imageUrl ? 'image' : 'text',
+        fileUrl: sharePost.imageUrl || null,
+        createdAt: serverTimestamp(),
+        readBy: [],
+        isForwarded: true
+      });
+
+      await updateDoc(doc(db, "rooms", targetRoomId), {
+        lastMessageAt: serverTimestamp(),
+        lastMessageText: `Shared a post from ${sharePost.authorName}`,
+        lastMessageSenderId: user.uid
+      });
+
+      alert("Post shared to chat! ✨");
+      setSharePost(null);
+    } catch (err: any) {
+      alert("Failed to share: " + err.message);
+    }
+    setIsSharing(false);
+  };
+
+  if (loading) return <div className="min-h-screen bg-[#0f172a] text-white flex items-center justify-center">Loading Feed...</div>;
+  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-300">
       
-      {/* Facebook Top Navbar */}
-      <div className="bg-[#1e293b] border-b border-slate-700 sticky top-0 z-50 px-4 py-2 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold text-teal-400">Thimlilith</h1>
-          <input type="text" placeholder="Search Thimlilith..." className="bg-[#0f172a] px-4 py-2 rounded-full text-sm w-64 focus:outline-none border border-slate-700" />
-        </div>
-        
-        <div className="flex items-center gap-6">
-          <Link href="/" className="p-2 hover:bg-slate-700 rounded-lg text-xl" title="Chat">💬</Link>
-          <button className="p-2 hover:bg-slate-700 rounded-lg text-xl" title="Home">🏠</button>
-          <button className="p-2 hover:bg-slate-700 rounded-lg text-xl" title="Notifications">🔔</button>
-          <img src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName || 'U'}&background=0D8ABC&color=fff`} alt="Profile" className="w-8 h-8 rounded-full" />
-        </div>
+      {/* Header */}
+      <div className="sticky top-0 z-50 bg-[#0f172a]/90 backdrop-blur border-b border-slate-800 px-4 py-3 flex items-center justify-between">
+        <Link href={`/${locale}/rooms`} className="text-teal-400 hover:text-teal-300 font-medium text-sm flex items-center gap-2">
+          ← Back to Chat
+        </Link>
+        <h1 className="text-white font-bold text-lg">🏠 Home Feed</h1>
+        <div className="w-20"></div>
       </div>
 
-      {/* Main Content Area */}
-      <div className="max-w-2xl mx-auto py-6 px-4">
+      <div className="max-w-2xl mx-auto p-4 space-y-6 pb-20">
         
-        {/* Create Post Box */}
-        <div className="bg-[#1e293b] rounded-xl p-4 mb-6 shadow-lg border border-slate-700">
-          <form onSubmit={handleCreatePost}>
-            <div className="flex items-center gap-3 mb-3">
-              <img src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName || 'U'}&background=0D8ABC&color=fff`} alt="Profile" className="w-10 h-10 rounded-full" />
-              <input 
-                type="text" 
-                value={postText}
-                onChange={(e) => setPostText(e.target.value)}
-                placeholder={`What's on your mind, ${user.displayName?.split(' ')[0] || 'User'}?`}
-                className="flex-1 bg-[#0f172a] px-4 py-2 rounded-full text-sm focus:outline-none border border-slate-700"
+        {/* CREATE POST BOX */}
+        <div className="bg-[#1e293b] border border-slate-700 rounded-2xl p-4 shadow-lg">
+          <div className="flex gap-3">
+            <div className="w-10 h-10 rounded-full bg-teal-600 flex items-center justify-center text-white font-bold flex-shrink-0">
+              {user.displayName?.[0].toUpperCase() || "U"}
+            </div>
+            <div className="flex-1">
+              <textarea
+                value={newPostText}
+                onChange={(e) => setNewPostText(e.target.value)}
+                placeholder="What's on your mind? Share with the community..."
+                className="w-full bg-transparent text-white resize-none outline-none placeholder-gray-500 min-h-[60px]"
+                rows={2}
               />
-            </div>
-            
-            {imageFile && (
-              <div className="mb-3 relative">
-                <img src={URL.createObjectURL(imageFile)} alt="Preview" className="w-full max-h-64 object-cover rounded-lg" />
-                <button type="button" onClick={() => setImageFile(null)} className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">✕</button>
-              </div>
-            )}
-
-            <div className="flex items-center justify-between border-t border-slate-700 pt-3">
-              <div className="flex gap-4">
-                <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => setImageFile(e.target.files?.[0] || null)} />
-                <button type="button" onClick={() => fileInputRef.current?.click()} className="text-green-400 hover:bg-slate-700 px-3 py-1 rounded-lg text-sm font-medium flex items-center gap-1">
-                  🖼️ Photo
-                </button>
-                <button type="button" className="text-blue-400 hover:bg-slate-700 px-3 py-1 rounded-lg text-sm font-medium flex items-center gap-1">
-                  📍 Check in
-                </button>
-              </div>
-              <button type="submit" disabled={uploading || (!postText.trim() && !imageFile)} className="bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white px-6 py-1.5 rounded-lg font-medium">
-                {uploading ? "Posting..." : "Post"}
-              </button>
-            </div>
-          </form>
-        </div>
-
-        {/* Stories Section (Horizontal Scroll) */}
-        <div className="flex gap-2 overflow-x-auto mb-6 pb-2 custom-scrollbar">
-          <div className="min-w-[110px] h-[190px] bg-[#1e293b] rounded-xl relative overflow-hidden cursor-pointer group border border-slate-700">
-            <img src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName || 'U'}&background=0D8ABC&color=fff`} alt="User" className="w-full h-3/4 object-cover group-hover:opacity-80" />
-            <div className="absolute bottom-0 w-full bg-[#1e293b] text-center py-2 text-xs font-medium">Create Story</div>
-            <div className="absolute bottom-9 left-1/2 -translate-x-1/2 bg-teal-600 border-2 border-[#1e293b] rounded-full w-8 h-8 flex items-center justify-center text-white font-bold text-xl">+</div>
-          </div>
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="min-w-[110px] h-[190px] bg-slate-700 rounded-xl relative overflow-hidden cursor-pointer border border-slate-700">
-              <img src={`https://picsum.photos/seed/${i}/200/300`} alt="Story" className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
-              <div className="absolute top-2 left-2 w-8 h-8 rounded-full border-2 border-teal-500 bg-slate-800"></div>
-              <div className="absolute bottom-2 left-2 text-xs font-medium text-white drop-shadow-md">User {i}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Feed Posts */}
-        <div className="flex flex-col gap-4">
-          {posts.map((post) => {
-            const hasLiked = post.likes?.includes(user.uid);
-            return (
-              <div key={post.id} className="bg-[#1e293b] rounded-xl shadow-lg border border-slate-700 overflow-hidden">
-                {/* Post Header */}
-                <div className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <img src={post.authorPhoto || `https://ui-avatars.com/api/?name=${post.authorName}&background=0D8ABC&color=fff`} alt="Author" className="w-10 h-10 rounded-full" />
-                    <div>
-                      <h4 className="font-semibold text-white">{post.authorName}</h4>
-                      <p className="text-xs text-gray-400">{post.createdAt ? new Date(post.createdAt.toDate()).toLocaleString() : 'Just now'}</p>
-                    </div>
-                  </div>
-                  <button className="text-gray-400 hover:text-white">⋯</button>
+              
+              {newPostImage && (
+                <div className="mt-2 relative inline-block">
+                  <img src={URL.createObjectURL(newPostImage)} alt="Preview" className="h-32 rounded-lg object-cover" />
+                  <button onClick={() => setNewPostImage(null)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">✕</button>
                 </div>
+              )}
 
-                {/* Post Content */}
-                {post.text && <p className="px-4 pb-3 text-gray-200">{post.text}</p>}
-                {post.imageUrl && (
-                  <img src={post.imageUrl} alt="Post content" className="w-full max-h-[500px] object-cover bg-black" />
-                )}
+              <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-700">
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  className="hidden" 
+                  accept="image/*" 
+                  onChange={(e) => setNewPostImage(e.target.files?.[0] || null)} 
+                />
+                <button 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="text-teal-400 hover:text-teal-300 text-sm font-medium flex items-center gap-1"
+                >
+                  🖼️ Add Image
+                </button>
+                
+                <div className="flex items-center gap-2">
+                  {(newPostText.trim() || newPostImage) && (
+                    <button 
+                      onClick={handleCancelPost}
+                      className="text-gray-400 hover:text-white px-3 py-1.5 text-sm transition"
+                    >
+                      Cancel
+                    </button>
+                  )}
 
-                {/* Post Stats */}
-                <div className="px-4 py-2 flex items-center justify-between text-sm text-gray-400 border-b border-slate-700 mx-4">
-                  <div className="flex items-center gap-1">
-                    <span className="bg-teal-600 text-white rounded-full p-1 text-[10px]">👍</span>
-                    {post.likes?.length || 0}
-                  </div>
-                  <div>{post.comments?.length || 0} comments</div>
-                </div>
-
-                {/* Post Actions */}
-                <div className="p-2 flex justify-around border-t border-slate-700">
-                  <button 
-                    onClick={() => handleLike(post.id, post.likes || [])}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium hover:bg-slate-700 transition flex-1 justify-center ${hasLiked ? 'text-teal-400' : 'text-gray-400'}`}
+                  <button
+                    onClick={handleCreatePost}
+                    disabled={isPosting || (!newPostText.trim() && !newPostImage)}
+                    className="bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white px-5 py-1.5 rounded-full text-sm font-bold transition"
                   >
-                    👍 Like
-                  </button>
-                  <button className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-gray-400 hover:bg-slate-700 transition flex-1 justify-center">
-                    💬 Comment
-                  </button>
-                  <button className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-gray-400 hover:bg-slate-700 transition flex-1 justify-center">
-                    ↗️ Share
+                    {isPosting ? 'Posting...' : 'Post'}
                   </button>
                 </div>
               </div>
-            );
-          })}
-          {posts.length === 0 && <div className="text-center text-gray-500 mt-10">No posts yet. Be the first to share something!</div>}
+            </div>
+          </div>
         </div>
+
+        {/* POSTS TIMELINE */}
+        {posts.length === 0 && (
+          <div className="text-center text-gray-500 py-10">
+            <p className="text-4xl mb-2">🌱</p>
+            <p>No posts yet. Be the first to share something!</p>
+          </div>
+        )}
+
+        {posts.map(post => {
+          const hasLiked = post.likes?.includes(user.uid);
+          const postDate = post.createdAt ? new Date(post.createdAt.toMillis()) : new Date();
+          
+          return (
+            <div key={post.id} className="bg-[#1e293b] border border-slate-700 rounded-2xl p-4 shadow-lg">
+              <div className="flex items-center gap-3 mb-3">
+                <Link href={`/${locale}/profile/${post.authorId}`} className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center overflow-hidden flex-shrink-0 hover:ring-2 ring-teal-500 transition">
+                  {post.authorPhotoURL ? <img src={post.authorPhotoURL} alt="" className="w-full h-full object-cover" /> : <span className="text-white font-bold">{post.authorName[0].toUpperCase()}</span>}
+                </Link>
+                <div className="flex-1">
+                  <Link href={`/${locale}/profile/${post.authorId}`} className="text-white font-bold hover:underline">
+                    {post.authorName}
+                  </Link>
+                  <p className="text-xs text-gray-500">
+                    {postDate.toLocaleDateString()} at {postDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                  </p>
+                </div>
+              </div>
+
+              {post.text && <p className="text-gray-200 text-sm whitespace-pre-wrap mb-3">{post.text}</p>}
+              
+              {post.imageUrl && (
+                <img src={post.imageUrl} alt="Post" className="w-full rounded-xl mb-3 border border-slate-700" />
+              )}
+
+              <div className="flex items-center gap-4 pt-3 border-t border-slate-700">
+                <button 
+                  onClick={() => handleLike(post.id, post.likes || [])}
+                  className={`flex items-center gap-1.5 text-sm transition-colors ${hasLiked ? 'text-red-500' : 'text-gray-400 hover:text-red-400'}`}
+                >
+                  {hasLiked ? '❤️' : '🤍'} {post.likes?.length || 0}
+                </button>
+                
+                <button className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-teal-400 transition-colors">
+                  💬 Comment
+                </button>
+
+                {/* 🔗 SHARE BUTTON */}
+                <button 
+                  onClick={() => setSharePost(post)}
+                  className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-teal-400 transition-colors"
+                >
+                  🔗 Share
+                </button>
+              </div>
+            </div>
+          );
+        })}
       </div>
+
+      {/* SHARE MODAL */}
+      {sharePost && (
+        <SharePostModal 
+          isOpen={!!sharePost} 
+          onClose={() => setSharePost(null)} 
+          post={sharePost} 
+          user={user} 
+          onShare={handleExecuteShare} 
+        />
+      )}
+
     </div>
   );
 }
