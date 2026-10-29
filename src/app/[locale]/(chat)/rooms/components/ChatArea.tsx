@@ -66,6 +66,7 @@ export function ChatArea(p: ChatAreaProps) {
   const [showHeaderMenu, setShowHeaderMenu] = useState(false);
   const [selectedMsgId, setSelectedMsgId] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showMentionMenu, setShowMentionMenu] = useState(false);
   const [showStickerPicker, setShowStickerPicker] = useState(false);
   const [translations, setTranslations] = useState<Record<string, string>>({});
   const [translatingId, setTranslatingId] = useState<string | null>(null);
@@ -121,7 +122,19 @@ export function ChatArea(p: ChatAreaProps) {
     );
   }
 
-  const selectedMsg = selectedMsgId ? p.filteredMessages.find((m: any) => m.id === selectedMsgId) : null;
+    const renderMessageText = (text: string) => {
+    if (!text) return null;
+    // Split by @mentions and highlight them
+    const parts = text.split(/(@[a-zA-Z0-9_\u0600-\u06FF]+)/g);
+    return parts.map((part, i) => 
+      part.startsWith('@') ? (
+        <span key={i} className="text-blue-400 font-bold bg-blue-400/10 px-1 rounded">{part}</span>
+      ) : (
+        <span key={i}>{part}</span>
+      )
+    );
+  };
+const selectedMsg = selectedMsgId ? p.filteredMessages.find((m: any) => m.id === selectedMsgId) : null;
 
   return (
     <div className="w-full flex-1 flex flex-col bg-[#0b1120] h-full overflow-hidden relative">
@@ -372,11 +385,7 @@ export function ChatArea(p: ChatAreaProps) {
                     {msg.type === 'text' && (
                       <div className="flex flex-col gap-2">
                         <p className="break-words whitespace-pre-wrap">
-                          {parts.map((part: any) =>
-                            part.type === 'link'
-                              ? <a key={part.key} href={part.content} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-blue-300 underline break-all">{part.content}</a>
-                              : <span key={part.key}>{part.content}</span>
-                          )}
+                          {renderMessageText(msg.text)}
                         </p>
 
                         {translations[msg.id] && (
@@ -512,12 +521,26 @@ export function ChatArea(p: ChatAreaProps) {
           <div className="flex items-center relative" ref={pickerRef}>
             <button 
               type="button" 
+            <button type="button" onClick={() => { setShowMentionMenu(!showMentionMenu); setShowEmojiPicker(false); setShowStickerPicker(false); }} className="text-gray-400 hover:text-white p-2 text-xl font-bold" title="Mention">@</button>
               onClick={() => { setShowEmojiPicker(!showEmojiPicker); setShowStickerPicker(false); }} 
               className="text-gray-400 hover:text-white p-2 text-xl"
             >
               😊
             </button>
             
+            )}
+              </div>
+                })}
+                  );
+                    </button>
+                      @{name}
+                    <button key={uid} type="button" onClick={() => { p.setInputText(p.inputText + `@${name.split(' ')[0]} `); setShowMentionMenu(false); }} className="w-full text-left px-2 py-1.5 text-sm text-gray-200 hover:bg-teal-600 rounded">
+                  return (
+                  const name = p.activeRoom.memberNames?.[uid] || "User";
+                {(p.activeRoom.members || []).map((uid: string) => {
+                <p className="text-xs text-gray-400 px-2 mb-2 uppercase font-bold">Mention Member</p>
+              <div className="absolute bottom-12 right-20 bg-[#1e293b] border border-slate-600 p-2 rounded-xl shadow-2xl w-48 max-h-60 overflow-y-auto z-50">
+            {showMentionMenu && p.activeRoom && (
             {showEmojiPicker && (
               <div className="absolute bottom-12 right-0 bg-[#1e293b] border border-slate-600 p-2 rounded-xl shadow-2xl grid grid-cols-6 gap-1 w-52 z-50">
                 {["😀","😂","❤️","👍","🔥","😮","😢","🙏","🎉","💯","😍","😎","🥰","😡","🤔","👋","💪","✨","🥳","👏","🤣","😭","💔","🍀"].map(emoji => (
