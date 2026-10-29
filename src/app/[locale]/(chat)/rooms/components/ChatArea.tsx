@@ -56,6 +56,7 @@ interface ChatAreaProps {
   onOpenTheme: () => void;
   onOpenSettings: () => void;
   onForward: (msgId: string) => void;
+  onOpenUserAction: (uid: string, name: string) => void;
   isMobileSidebarOpen: boolean;
   setIsMobileSidebarOpen: (v: boolean) => void;
 }
@@ -66,13 +67,12 @@ export function ChatArea(p: ChatAreaProps) {
   const [showHeaderMenu, setShowHeaderMenu] = useState(false);
   const [selectedMsgId, setSelectedMsgId] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [showMentionMenu, setShowMentionMenu] = useState(false);
   const [showStickerPicker, setShowStickerPicker] = useState(false);
+  const [showMentionMenu, setShowMentionMenu] = useState(false);
   const [translations, setTranslations] = useState<Record<string, string>>({});
   const [translatingId, setTranslatingId] = useState<string | null>(null);
-  
-  // 🔥 FIX: Default to false. We only show it if it's a new room and hasn't been dismissed.
   const [showPinnedBanner, setShowPinnedBanner] = useState(false);
+  
   const pickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -82,7 +82,6 @@ export function ChatArea(p: ChatAreaProps) {
       .catch(err => console.error("Could not load stickers", err));
   }, []);
 
-  // 🔥 FIX: Check sessionStorage to see if the user already dismissed the banner for this room
   useEffect(() => {
     if (p.activeRoom?.pinnedMessages?.length > 0) {
       const dismissed = sessionStorage.getItem(`dismissed_pin_${p.activeRoom?.id}`);
@@ -101,6 +100,7 @@ export function ChatArea(p: ChatAreaProps) {
       if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
         setShowEmojiPicker(false);
         setShowStickerPicker(false);
+        setShowMentionMenu(false);
       }
       const target = event.target as HTMLElement;
       if (!target.closest('.lang-menu-container')) {
@@ -122,33 +122,30 @@ export function ChatArea(p: ChatAreaProps) {
     );
   }
 
-    const renderMessageText = (text: string) => {
+  const selectedMsg = selectedMsgId ? p.filteredMessages.find((m: any) => m.id === selectedMsgId) : null;
+
+  const renderMessageText = (text: string) => {
     if (!text) return null;
-    // Split by @mentions and highlight them
     const parts = text.split(/(@[a-zA-Z0-9_\u0600-\u06FF]+)/g);
-    return parts.map((part, i) => 
-      part.startsWith('@') ? (
-        <span key={i} className="text-blue-400 font-bold bg-blue-400/10 px-1 rounded">{part}</span>
-      ) : (
-        <span key={i}>{part}</span>
-      )
-    );
+    return parts.map((part, i) => {
+      if (part.startsWith('@')) {
+        return <span key={i} className="text-blue-400 font-bold bg-blue-400/10 px-1 rounded">{part}</span>;
+      }
+      const linkParts = renderTextWithLinks(part);
+      return linkParts.map((p: any, j: number) => 
+        p.type === 'link' 
+          ? <a key={`${i}-${j}`} href={p.content} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-blue-300 underline break-all">{p.content}</a>
+          : <span key={`${i}-${j}`}>{p.content}</span>
+      );
+    });
   };
-const selectedMsg = selectedMsgId ? p.filteredMessages.find((m: any) => m.id === selectedMsgId) : null;
 
   return (
     <div className="w-full flex-1 flex flex-col bg-[#0b1120] h-full overflow-hidden relative">
       {/* Header */}
       <div className="h-16 border-b border-slate-800 flex items-center justify-between px-4 md:px-6 bg-[#0f172a] sticky top-0 z-50">
         <div className="flex items-center gap-3">
-          {/* MOBILE HAMBURGER MENU */}
-          <button 
-            onClick={() => p.setIsMobileSidebarOpen(true)}
-            className="md:hidden text-gray-400 hover:text-white text-2xl p-1"
-          >
-            ☰
-          </button>
-          
+          <button onClick={() => p.setIsMobileSidebarOpen(true)} className="md:hidden text-gray-400 hover:text-white text-2xl p-1">☰</button>
           <div className="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center text-xl">{p.activeRoom.type === "direct" ? '👤' : '👥'}</div>
           <div>
             <div className="flex items-center gap-2">
@@ -163,33 +160,18 @@ const selectedMsg = selectedMsgId ? p.filteredMessages.find((m: any) => m.id ===
         </div>
 
         <div className="flex gap-2 items-center relative">
-          
-          {/* MEMBERS TOGGLE BUTTON */}
           {p.activeRoom.type === "group" && (
-            <button 
-              onClick={() => p.setShowRightSidebar(!p.showRightSidebar)}
-              className={`border w-10 h-10 rounded-lg flex items-center justify-center text-xl transition ${p.showRightSidebar ? 'bg-teal-600 border-teal-500 text-white' : 'bg-[#1e293b] hover:bg-slate-700 border-slate-700 text-gray-300'}`}
-              title="Toggle Members List"
-            >
-              👥
-            </button>
+            <button onClick={() => p.setShowRightSidebar(!p.showRightSidebar)} className={`border w-10 h-10 rounded-lg flex items-center justify-center text-xl transition ${p.showRightSidebar ? 'bg-teal-600 border-teal-500 text-white' : 'bg-[#1e293b] hover:bg-slate-700 border-slate-700 text-gray-300'}`} title="Toggle Members List">👥</button>
           )}
 
           <div className="relative header-menu-container">
-            <button 
-              onClick={() => setShowHeaderMenu(!showHeaderMenu)} 
-              className="bg-[#1e293b] hover:bg-slate-700 border border-slate-700 text-white w-10 h-10 rounded-lg flex items-center justify-center text-xl"
-            >
-              ⋮
-            </button>
-
+            <button onClick={() => setShowHeaderMenu(!showHeaderMenu)} className="bg-[#1e293b] hover:bg-slate-700 border border-slate-700 text-white w-10 h-10 rounded-lg flex items-center justify-center text-xl">⋮</button>
             {showHeaderMenu && (
               <div className="absolute right-0 top-12 bg-[#1e293b] border border-slate-700 rounded-xl shadow-2xl w-52 py-2 flex flex-col z-[100]">
                 <button onClick={() => { p.setIsSearchExpanded(!p.isSearchExpanded); if (p.isSearchExpanded) { p.setMessageSearchTerm(""); p.setMessageSearchDate(""); } setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">🔍 Search Messages</button>
-                <button onClick={(e) => { e.stopPropagation(); e.preventDefault(); setShowHeaderMenu(false); setTimeout(() => p.onOpenSettings(), 50); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">⚙️ Privacy Settings</button>
+                <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowHeaderMenu(false); setTimeout(() => p.onOpenSettings(), 50); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">⚙️ Privacy Settings</button>
                 <button onClick={() => { p.onVideo(); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">📹 Video Call</button>
                 <div className="border-t border-slate-700 my-1"></div>
-
                 {p.activeRoom.type === "group" && (
                   <>
                     <button onClick={() => { p.onOpenTheme(); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">🎨 Decorate Room</button>
@@ -222,227 +204,88 @@ const selectedMsg = selectedMsgId ? p.filteredMessages.find((m: any) => m.id ===
       {/* Pinned Banner */}
       {p.activeRoom.pinnedMessages && p.activeRoom.pinnedMessages.length > 0 && showPinnedBanner && (
         <div className="bg-teal-900/30 border-b border-teal-500/50 p-2 px-4 flex justify-between items-center relative z-20">
-          <div 
-            className="flex items-center gap-2 text-teal-300 text-sm font-medium cursor-pointer flex-1"
-            onClick={() => {
-              p.setShowPinnedModal(true);
-              setShowPinnedBanner(false);
-              if (p.activeRoom?.id) sessionStorage.setItem(`dismissed_pin_${p.activeRoom.id}`, 'true');
-            }}
-          >
+          <div className="flex items-center gap-2 text-teal-300 text-sm font-medium cursor-pointer flex-1" onClick={() => { p.setShowPinnedModal(true); setShowPinnedBanner(false); if (p.activeRoom?.id) sessionStorage.setItem(`dismissed_pin_${p.activeRoom.id}`, 'true'); }}>
             <span>📌</span>
             <span>{p.activeRoom.pinnedMessages.length} Pinned Message(s)</span>
             <span className="text-xs text-teal-400 underline ml-2">Click to view</span>
           </div>
-          
-          <button 
-            onClick={() => {
-              setShowPinnedBanner(false);
-              if (p.activeRoom?.id) sessionStorage.setItem(`dismissed_pin_${p.activeRoom.id}`, 'true');
-            }}
-            className="text-teal-400 hover:text-white px-2 font-bold text-lg"
-            title="Dismiss"
-          >
-            ×
-          </button>
+          <button onClick={() => { setShowPinnedBanner(false); if (p.activeRoom?.id) sessionStorage.setItem(`dismissed_pin_${p.activeRoom.id}`, 'true'); }} className="text-teal-400 hover:text-white px-2 font-bold text-lg" title="Dismiss">×</button>
         </div>
       )}
 
       {/* Messages Container */}
-      <div 
-        className="flex-1 p-4 md:p-6 overflow-y-auto overflow-x-hidden flex flex-col gap-4 relative"
-        style={{
-          backgroundColor: (p.activeRoom.type === "direct" 
-            ? p.userDoc?.dmThemes?.[p.activeRoom.id]?.bgColor 
-            : p.activeRoom.customization?.bgColor) || '#0b1120',
-            
-          backgroundImage: (p.activeRoom.type === "direct"
-            ? p.userDoc?.dmThemes?.[p.activeRoom.id]?.bgImage
-            : p.activeRoom.customization?.bgImage) 
-            ? `url(${p.activeRoom.type === "direct" ? p.userDoc?.dmThemes?.[p.activeRoom.id]?.bgImage : p.activeRoom.customization?.bgImage})` 
-            : 'none',
-            
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }}
-      >
-        {((p.activeRoom.type === "direct" && p.userDoc?.dmThemes?.[p.activeRoom.id]?.bgImage) || 
-          (p.activeRoom.type === "group" && p.activeRoom.customization?.bgImage)) && (
-          <div className="absolute inset-0 bg-black/60 pointer-events-none"></div>
-        )}
-
-        {((p.activeRoom.type === "direct" && p.userDoc?.dmThemes?.[p.activeRoom.id]?.poemText) || 
-          (p.activeRoom.type === "group" && p.activeRoom.customization?.poemText)) && (
+      <div className="flex-1 p-4 md:p-6 overflow-y-auto overflow-x-hidden flex flex-col gap-4 relative" style={{ backgroundColor: (p.activeRoom.type === "direct" ? p.userDoc?.dmThemes?.[p.activeRoom.id]?.bgColor : p.activeRoom.customization?.bgColor) || '#0b1120', backgroundImage: (p.activeRoom.type === "direct" ? p.userDoc?.dmThemes?.[p.activeRoom.id]?.bgImage : p.activeRoom.customization?.bgImage) ? `url(${p.activeRoom.type === "direct" ? p.userDoc?.dmThemes?.[p.activeRoom.id]?.bgImage : p.activeRoom.customization?.bgImage})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }}>
+        {((p.activeRoom.type === "direct" && p.userDoc?.dmThemes?.[p.activeRoom.id]?.bgImage) || (p.activeRoom.type === "group" && p.activeRoom.customization?.bgImage)) && (<div className="absolute inset-0 bg-black/60 pointer-events-none"></div>)}
+        {((p.activeRoom.type === "direct" && p.userDoc?.dmThemes?.[p.activeRoom.id]?.poemText) || (p.activeRoom.type === "group" && p.activeRoom.customization?.poemText)) && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10 select-none overflow-hidden">
-            <p className="text-4xl md:text-6xl font-serif text-white text-center max-w-2xl leading-relaxed" style={{ transform: 'rotate(-15deg)' }}>
-              {p.activeRoom.type === "direct" 
-                ? p.userDoc?.dmThemes?.[p.activeRoom.id]?.poemText 
-                : p.activeRoom.customization?.poemText}
-            </p>
+            <p className="text-4xl md:text-6xl font-serif text-white text-center max-w-2xl leading-relaxed" style={{ transform: 'rotate(-15deg)' }}>{p.activeRoom.type === "direct" ? p.userDoc?.dmThemes?.[p.activeRoom.id]?.poemText : p.activeRoom.customization?.poemText}</p>
           </div>
         )}
 
         <div className="relative z-10 flex flex-col gap-4 w-full h-full pb-4">
-          {p.filteredMessages.length === 0 && (
-            <div className="text-center text-gray-500 mt-10">No messages yet. Say Azul to {p.activeRoom.type === "direct" ? p.getDMName(p.activeRoom) : `Thajmaath n ${p.activeRoom.name}`}!</div>
-          )}
-
+          {p.filteredMessages.length === 0 && (<div className="text-center text-gray-500 mt-10">No messages yet. Say Azul to {p.activeRoom.type === "direct" ? p.getDMName(p.activeRoom) : `Thajmaath n ${p.activeRoom.name}`}!</div>)}
           {p.filteredMessages.map((msg, index) => {
             if (p.userDoc?.blockedUsers?.includes(msg.senderId)) return <div key={msg.id || index} className="text-center text-xs text-gray-600 my-2">Message from a blocked user</div>;
-
             const isMe = msg.senderId === p.user.uid;
             const isRoomAdmin = p.activeRoom?.admins?.includes(p.user.uid) || p.activeRoom?.createdBy === p.user.uid;
             const isRoomMod = p.activeRoom?.moderators?.includes(p.user.uid);
             const canDelete = isMe || isRoomAdmin || isRoomMod;
-            
             const msgClass = "flex flex-col relative mb-2 group " + (isMe ? 'self-end items-end' : 'items-start');
-            
             const isSelected = selectedMsgId === msg.id;
             const selectable = msg.type === 'text' && (msg.text || '').trim().length > 0;
-            const bubbleClass = "px-4 py-3 rounded-2xl max-w-[300px] md:max-w-md break-words transition-all relative "
-              + (isMe ? 'bg-teal-600 text-white rounded-tr-sm' : 'bg-[#1e293b] text-gray-200 rounded-tl-sm')
-              + (isSelected ? ' ring-2 ring-emerald-400' : '')
-              + (selectable ? ' cursor-pointer' : '');
+            const bubbleClass = "px-4 py-3 rounded-2xl max-w-[300px] md:max-w-md break-words transition-all relative " + (isMe ? 'bg-teal-600 text-white rounded-tr-sm' : 'bg-[#1e293b] text-gray-200 rounded-tl-sm') + (isSelected ? ' ring-2 ring-emerald-400' : '') + (selectable ? ' cursor-pointer' : '');
             const ytId = msg.type === 'text' ? getYouTubeID(msg.text) : null;
             const isMenuOpen = p.activeReactionMenu === msg.id;
-            const parts = msg.type === 'text' ? renderTextWithLinks(msg.text) : [];
 
             return (
               <div key={msg.id || index} className={msgClass}>
                 <div className="flex items-center gap-2 mb-1 px-1">
-                  <span className="text-xs text-gray-400 font-medium">{isMe ? "You" : msg.senderName}</span>
+                  <span className="text-xs text-gray-400 font-medium">{isMe ? "You" : (<button onClick={() => p.onOpenUserAction(msg.senderId, msg.senderName)} className="hover:text-teal-400 hover:underline transition-colors" title="View Profile">{msg.senderName}</button>)}</span>
                   {msg.senderIsPremium && <span title="Premium Member" className="text-[10px]">👑</span>}
                   {msg.senderIsDonator && <span title="Supporter" className="text-[10px]">❤️</span>}
                 </div>
-
                 <div className="relative flex w-fit max-w-full items-center">
-                  
-                  {/* Action Buttons */}
                   <div className={`absolute top-1/2 -translate-y-1/2 flex flex-col gap-1 transition-opacity duration-200 z-30 ${isMe ? 'right-full mr-3' : 'left-full ml-3'} ${isSelected ? 'opacity-100' : 'opacity-0 md:group-hover:opacity-100'}`}>
                     <button type="button" onClick={(e) => { e.stopPropagation(); p.setReplyingTo(msg); }} className="bg-[#1e293b] border border-slate-600 hover:bg-slate-700 text-gray-300 rounded-full w-8 h-8 flex-shrink-0 flex items-center justify-center text-sm shadow-lg" title="Reply">↩️</button>
                     <button type="button" onClick={(e) => { e.stopPropagation(); p.onForward(msg.id); }} className="bg-[#1e293b] border border-slate-600 hover:bg-slate-700 text-gray-300 rounded-full w-8 h-8 flex-shrink-0 flex items-center justify-center text-sm shadow-lg" title="Forward">↪️</button>
                     <button type="button" onClick={(e) => { e.stopPropagation(); p.setActiveReactionMenu(isMenuOpen ? null : msg.id); }} className="bg-[#1e293b] border border-slate-600 hover:bg-slate-700 text-gray-300 rounded-full w-8 h-8 flex-shrink-0 flex items-center justify-center text-sm shadow-lg" title="React">😊</button>
-                    
                     {msg.type === 'text' && (
                       <div className="relative lang-menu-container">
-                        <button type="button" onClick={(e) => { 
-                          e.stopPropagation(); 
-                          setLangMenuId(langMenuId === msg.id ? null : msg.id); 
-                        }} className={`bg-[#1e293b] border border-slate-600 hover:bg-slate-700 text-teal-400 rounded-full w-8 h-8 flex-shrink-0 flex items-center justify-center text-sm shadow-lg ${translatingId === msg.id ? 'animate-pulse' : ''}`} title="Translate">
-                          {translatingId === msg.id ? '⏳' : '🌍'}
-                        </button>
-
+                        <button type="button" onClick={(e) => { e.stopPropagation(); setLangMenuId(langMenuId === msg.id ? null : msg.id); }} className={`bg-[#1e293b] border border-slate-600 hover:bg-slate-700 text-teal-400 rounded-full w-8 h-8 flex-shrink-0 flex items-center justify-center text-sm shadow-lg ${translatingId === msg.id ? 'animate-pulse' : ''}`} title="Translate">{translatingId === msg.id ? '⏳' : '🌍'}</button>
                         {langMenuId === msg.id && (
                           <div className={`absolute top-0 bg-[#1e293b] border border-teal-500 rounded-lg shadow-xl flex flex-col p-1 z-50 w-32 ${isMe ? 'right-10' : 'left-10'}`}>
-                            {[
-                              { code: 'en', label: '🇬🇧 English' },
-                              { code: 'fr', label: '🇫🇷 Français' },
-                              { code: 'ar', label: '🇸🇦 العربية' },
-                              { code: 'kab', label: 'ⵣ Kabyle' }
-                            ].map(lang => (
-                              <button key={lang.code} type="button" onClick={async (e) => {
-                                e.stopPropagation();
-                                setLangMenuId(null);
-                                setTranslatingId(msg.id);
-                                try {
-                                  const t = await p.onTranslate(msg, lang.code);
-                                  if (t) setTranslations((prev: any) => ({ ...prev, [msg.id]: t }));
-                                } finally {
-                                  setTranslatingId(null);
-                                }
-                              }} className="text-left text-xs text-gray-300 hover:bg-teal-600 hover:text-white px-2 py-1.5 rounded transition-colors">
-                                {lang.label}
-                              </button>
+                            {[{ code: 'en', label: '🇬🇧 English' }, { code: 'fr', label: '🇫🇷 Français' }, { code: 'ar', label: '🇸🇦 العربية' }, { code: 'kab', label: 'ⵣ Kabyle' }].map(lang => (
+                              <button key={lang.code} type="button" onClick={async (e) => { e.stopPropagation(); setLangMenuId(null); setTranslatingId(msg.id); try { const t = await p.onTranslate(msg, lang.code); if (t) setTranslations((prev: any) => ({ ...prev, [msg.id]: t })); } finally { setTranslatingId(null); } }} className="text-left text-xs text-gray-300 hover:bg-teal-600 hover:text-white px-2 py-1.5 rounded transition-colors">{lang.label}</button>
                             ))}
                           </div>
                         )}
                       </div>
                     )}
-
                     {(isMe || canDelete) && (
                       <>
                         {isMe && <button type="button" onClick={(e) => { e.stopPropagation(); p.handleEditMessage(msg.id, msg.text); }} className="bg-[#1e293b] border border-slate-600 hover:bg-slate-700 text-blue-400 rounded-full w-8 h-8 flex-shrink-0 flex items-center justify-center text-sm shadow-lg" title="Edit">✏️</button>}
                         <button type="button" onClick={(e) => { e.stopPropagation(); p.handleDeleteMessage(msg.id); }} className="bg-[#1e293b] border border-slate-600 hover:bg-slate-700 text-red-400 rounded-full w-8 h-8 flex-shrink-0 flex items-center justify-center text-sm shadow-lg" title="Delete">🗑️</button>
-                        {(isRoomAdmin || isRoomMod) && (
-                          <button type="button" onClick={(e) => { e.stopPropagation(); p.activeRoom.pinnedMessages?.includes(msg.id) ? p.handleUnpinMessage(msg.id) : p.handlePinMessage(msg.id); }} className={`bg-[#1e293b] border border-slate-600 rounded-full w-8 h-8 flex-shrink-0 flex items-center justify-center text-sm shadow-lg ${p.activeRoom.pinnedMessages?.includes(msg.id) ? 'text-yellow-400 border-yellow-500' : 'text-gray-300'}`} title="Pin">📌</button>
-                        )}
+                        {(isRoomAdmin || isRoomMod) && (<button type="button" onClick={(e) => { e.stopPropagation(); p.activeRoom.pinnedMessages?.includes(msg.id) ? p.handleUnpinMessage(msg.id) : p.handlePinMessage(msg.id); }} className={`bg-[#1e293b] border border-slate-600 rounded-full w-8 h-8 flex-shrink-0 flex items-center justify-center text-sm shadow-lg ${p.activeRoom.pinnedMessages?.includes(msg.id) ? 'text-yellow-400 border-yellow-500' : 'text-gray-300'}`} title="Pin">📌</button>)}
                       </>
                     )}
                   </div>
-
-                  {/* Bubble */}
-                  <div
-                    className={bubbleClass}
-                    onClick={selectable ? () => setSelectedMsgId(isSelected ? null : msg.id) : undefined}
-                  >
-                    {msg.replyTo && (
-                      <div className="bg-black/20 border-l-4 border-teal-300 p-2 rounded mb-2 text-sm">
-                        <p className="font-semibold text-teal-200 text-xs">{msg.replyTo.senderName}</p>
-                        <p className="text-gray-300 text-xs truncate max-w-[200px]">{msg.replyTo.text}</p>
-                      </div>
-                    )}
-                    
+                  <div className={bubbleClass} onClick={selectable ? () => setSelectedMsgId(isSelected ? null : msg.id) : undefined}>
+                    {msg.replyTo && (<div className="bg-black/20 border-l-4 border-teal-300 p-2 rounded mb-2 text-sm"><p className="font-semibold text-teal-200 text-xs">{msg.replyTo.senderName}</p><p className="text-gray-300 text-xs truncate max-w-[200px]">{msg.replyTo.text}</p></div>)}
                     {msg.type === 'text' && (
                       <div className="flex flex-col gap-2">
-                        <p className="break-words whitespace-pre-wrap">
-                          {renderMessageText(msg.text)}
-                        </p>
-
-                        {translations[msg.id] && (
-                          <div className="mt-2 pt-2 border-t border-black/20 text-sm italic opacity-90">
-                            🌍 {translations[msg.id]}
-                          </div>
-                        )}
-
-                        {ytId && (
-                          <div onClick={(e) => e.stopPropagation()}>
-                            <iframe width="100%" height="200" src={`https://www.youtube.com/embed/${ytId}`} title="YouTube" frameBorder="0" allowFullScreen className="rounded-lg mt-2 max-w-sm bg-black"></iframe>
-                          </div>
-                        )}
+                        <p className="break-words whitespace-pre-wrap">{renderMessageText(msg.text)}</p>
+                        {translations[msg.id] && (<div className="mt-2 pt-2 border-t border-black/20 text-sm italic opacity-90">🌍 {translations[msg.id]}</div>)}
+                        {ytId && (<div onClick={(e) => e.stopPropagation()}><iframe width="100%" height="200" src={`https://www.youtube.com/embed/${ytId}`} title="YouTube" frameBorder="0" allowFullScreen className="rounded-lg mt-2 max-w-sm bg-black"></iframe></div>)}
                       </div>
                     )}
                     {msg.type === 'image' && <img src={msg.fileUrl} alt="" className="max-w-full rounded-lg cursor-pointer" onClick={() => window.open(msg.fileUrl, '_blank')} />}
                     {msg.type === 'video' && <video controls className="max-w-full rounded-lg bg-black"><source src={msg.fileUrl} type="video/mp4" /></video>}
-                    
-                    {msg.type === 'audio' && (
-                      <div className="flex flex-col gap-2">
-                        <audio controls className="max-w-[250px] h-10">
-                          <source src={msg.fileUrl} type="audio/webm" />
-                        </audio>
-                        {msg.text && (
-                          <p className="text-sm text-gray-200 italic border-l-2 border-teal-400 pl-2">
-                            "{msg.text}"
-                          </p>
-                        )}
-                      </div>
-                    )}
-                    
+                    {msg.type === 'audio' && (<div className="flex flex-col gap-2"><audio controls className="max-w-[250px] h-10"><source src={msg.fileUrl} type="audio/webm" /></audio>{msg.text && (<p className="text-sm text-gray-200 italic border-l-2 border-teal-400 pl-2">"{msg.text}"</p>)}</div>)}
                     {msg.type === 'file' && <a href={msg.fileUrl} target="_blank" rel="noreferrer" className="flex items-center gap-3 bg-black/20 p-3 rounded-lg"><span className="text-2xl">📄</span><span className="text-sm font-semibold truncate max-w-[150px]">{msg.fileName}</span></a>}
                   </div>
                 </div>
-
-                {isMenuOpen && (
-                  <div className={`absolute top-full mt-2 z-50 bg-[#1e293b] border border-teal-500 rounded-full px-2 py-1.5 flex gap-1 shadow-2xl ${isMe ? 'right-12' : 'left-12'}`}>
-                    {REACTIONS.map(emoji => (
-                      <button type="button" key={emoji} onClick={(e) => { e.stopPropagation(); p.handleReaction(msg.id, emoji, msg.reactions); }} className="hover:scale-125 text-2xl p-1">{emoji}</button>
-                    ))}
-                  </div>
-                )}
-
-                {msg.reactions && Object.keys(msg.reactions).length > 0 && (
-                  <div className={`flex flex-wrap gap-1 mt-1 ${isMe ? 'justify-end pr-2' : 'justify-start pl-2'}`}>
-                    {Object.entries(msg.reactions).map(([emoji, users]: [string, any]) => {
-                      if (!users || users.length === 0) return null;
-                      const hasReacted = users.includes(p.user.uid);
-                      return (
-                        <button type="button" key={emoji} onClick={() => p.handleReaction(msg.id, emoji, msg.reactions)} className={`text-xs px-2 py-0.5 rounded-full border flex items-center gap-1 ${hasReacted ? 'bg-teal-900/50 border-teal-500 text-teal-300' : 'bg-[#1e293b] border-slate-600 text-gray-400'}`}>
-                          <span>{emoji}</span><span>{users.length}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-
+                {isMenuOpen && (<div className={`absolute top-full mt-2 z-50 bg-[#1e293b] border border-teal-500 rounded-full px-2 py-1.5 flex gap-1 shadow-2xl ${isMe ? 'right-12' : 'left-12'}`}>{REACTIONS.map(emoji => (<button type="button" key={emoji} onClick={(e) => { e.stopPropagation(); p.handleReaction(msg.id, emoji, msg.reactions); }} className="hover:scale-125 text-2xl p-1">{emoji}</button>))}</div>)}
+                {msg.reactions && Object.keys(msg.reactions).length > 0 && (<div className={`flex flex-wrap gap-1 mt-1 ${isMe ? 'justify-end pr-2' : 'justify-start pl-2'}`}>{Object.entries(msg.reactions).map(([emoji, users]: [string, any]) => { if (!users || users.length === 0) return null; const hasReacted = users.includes(p.user.uid); return (<button type="button" key={emoji} onClick={() => p.handleReaction(msg.id, emoji, msg.reactions)} className={`text-xs px-2 py-0.5 rounded-full border flex items-center gap-1 ${hasReacted ? 'bg-teal-900/50 border-teal-500 text-teal-300' : 'bg-[#1e293b] border-slate-600 text-gray-400'}`}><span>{emoji}</span><span>{users.length}</span></button>); })}</div>)}
                 <span className="text-[10px] text-gray-500 mt-1 px-1 flex items-center gap-1 justify-end">
                   {msg.createdAt ? new Date(msg.createdAt.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Sending...'}
                   {msg.editedAt && <span className="italic">(edited)</span>}
@@ -457,160 +300,66 @@ const selectedMsg = selectedMsgId ? p.filteredMessages.find((m: any) => m.id ===
 
       {/* Input */}
       <div className="p-4 bg-[#0f172a] border-t border-slate-800 relative z-20">
-        
         {selectedMsg && (
           <div className="bg-emerald-900/30 border border-emerald-500/50 rounded-lg p-2 mb-2 flex items-center gap-2">
-            <span className="text-xs text-emerald-300 truncate flex-1">
-              💾 Saving: “{(selectedMsg.text || '').slice(0, 60)}{(selectedMsg.text || '').length > 60 ? '…' : ''}”
-            </span>
-            <button
-              type="button"
-              onClick={async () => {
-                const r = await p.onSaveToATK(selectedMsg);
-                setSelectedMsgId(null);
-                if (r.ok) alert("Saved to ATK ✨");
-                else alert(`Save failed: ${r.error || 'unknown error'}`);
-              }}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium"
-            >
-              Save to ATK
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedMsgId(null)}
-              className="text-gray-400 hover:text-white px-2"
-              title="Cancel"
-            >
-              ✕
-            </button>
+            <span className="text-xs text-emerald-300 truncate flex-1">💾 Saving: “{(selectedMsg.text || '').slice(0, 60)}{(selectedMsg.text || '').length > 60 ? '…' : ''}”</span>
+            <button type="button" onClick={async () => { const r = await p.onSaveToATK(selectedMsg); setSelectedMsgId(null); if (r.ok) alert("Saved to ATK ✨"); else alert(`Save failed: ${r.error || 'unknown error'}`); }} className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium">Save to ATK</button>
+            <button type="button" onClick={() => setSelectedMsgId(null)} className="text-gray-400 hover:text-white px-2" title="Cancel">✕</button>
           </div>
         )}
-
-        {p.typingUsers.length > 0 && (
-          <div className="text-xs text-teal-400 px-4 py-1 italic animate-pulse">
-            {p.typingUsers.join(" and ")} {p.typingUsers.length === 1 ? 'is' : 'are'} typing...
-          </div>
-        )}
+        {p.typingUsers.length > 0 && (<div className="text-xs text-teal-400 px-4 py-1 italic animate-pulse">{p.typingUsers.join(" and ")} {p.typingUsers.length === 1 ? 'is' : 'are'} typing...</div>)}
         {p.replyingTo && (
           <div className="bg-[#1e293b] border-l-4 border-teal-500 p-2 mb-2 rounded flex justify-between items-center">
-            <div>
-              <p className="text-xs text-teal-400 font-bold">Replying to {p.replyingTo.senderName}</p>
-              <p className="text-sm text-gray-300 truncate max-w-[300px]">{p.replyingTo.text || "📎 Media"}</p>
-            </div>
+            <div><p className="text-xs text-teal-400 font-bold">Replying to {p.replyingTo.senderName}</p><p className="text-sm text-gray-300 truncate max-w-[300px]">{p.replyingTo.text || "📎 Media"}</p></div>
             <button type="button" onClick={() => p.setReplyingTo(null)} className="text-gray-400 hover:text-white text-xl px-2">✕</button>
           </div>
         )}
         
         <form onSubmit={p.handleSendText} className="flex items-center gap-2 bg-[#1e293b] rounded-xl px-4 py-2">
           <input type="file" ref={p.fileInputRef} className="hidden" onChange={p.handleFileUpload} accept="image/*,video/*,.pdf,.doc,.docx" />
-          
           <button type="button" onClick={() => p.fileInputRef.current?.click()} className="text-gray-400 hover:text-white p-2" title="File">📎</button>
           <button type="button" onClick={() => p.fileInputRef.current?.click()} className="text-gray-400 hover:text-white p-2" title="Media">🖼️</button>
           <button type="button" onClick={p.isRecording ? p.stopRecording : p.startRecording} className={`p-2 rounded-full ${p.isRecording ? 'bg-red-500 text-white animate-pulse' : 'text-gray-400'}`}>{p.isRecording ? '⏹️' : '🎤'}</button>
+          <input type="text" value={p.inputText} onChange={(e) => p.handleTyping(e.target.value)} onFocus={() => { setShowEmojiPicker(false); setShowStickerPicker(false); setShowMentionMenu(false); }} placeholder={p.isCheckingAI ? "AI Scanning..." : p.uploading ? "Uploading..." : p.isRecording ? "Recording..." : p.replyingTo ? `Reply to ${p.replyingTo.senderName}...` : `Message...`} disabled={p.uploading || p.isRecording || p.isCheckingAI || p.isDMPartnerBlocked} className="flex-1 bg-transparent text-sm text-white focus:outline-none placeholder-gray-500 px-2" />
           
-          <input 
-            type="text" 
-            value={p.inputText} 
-            onChange={(e) => p.handleTyping(e.target.value)} 
-            onFocus={() => { setShowEmojiPicker(false); setShowStickerPicker(false); }}
-            placeholder={p.isCheckingAI ? "AI Scanning..." : p.uploading ? "Uploading..." : p.isRecording ? "Recording..." : p.replyingTo ? `Reply to ${p.replyingTo.senderName}...` : `Message...`} 
-            disabled={p.uploading || p.isRecording || p.isCheckingAI || p.isDMPartnerBlocked} 
-            className="flex-1 bg-transparent text-sm text-white focus:outline-none placeholder-gray-500 px-2" 
-          />
-
           <div className="flex items-center relative" ref={pickerRef}>
-            <button 
-              type="button" 
             <button type="button" onClick={() => { setShowMentionMenu(!showMentionMenu); setShowEmojiPicker(false); setShowStickerPicker(false); }} className="text-gray-400 hover:text-white p-2 text-xl font-bold" title="Mention">@</button>
-              onClick={() => { setShowEmojiPicker(!showEmojiPicker); setShowStickerPicker(false); }} 
-              className="text-gray-400 hover:text-white p-2 text-xl"
-            >
-              😊
-            </button>
+            <button type="button" onClick={() => { setShowEmojiPicker(!showEmojiPicker); setShowStickerPicker(false); setShowMentionMenu(false); }} className="text-gray-400 hover:text-white p-2 text-xl">😊</button>
+            <button type="button" onClick={() => { setShowStickerPicker(!showStickerPicker); setShowEmojiPicker(false); setShowMentionMenu(false); }} className="text-gray-400 hover:text-white p-2 text-xl" title="Kabyle Stickers">🎨</button>
             
-            )}
-              </div>
-                })}
-                  );
-                    </button>
-                      @{name}
-                    <button key={uid} type="button" onClick={() => { p.setInputText(p.inputText + `@${name.split(' ')[0]} `); setShowMentionMenu(false); }} className="w-full text-left px-2 py-1.5 text-sm text-gray-200 hover:bg-teal-600 rounded">
-                  return (
-                  const name = p.activeRoom.memberNames?.[uid] || "User";
-                {(p.activeRoom.members || []).map((uid: string) => {
-                <p className="text-xs text-gray-400 px-2 mb-2 uppercase font-bold">Mention Member</p>
-              <div className="absolute bottom-12 right-20 bg-[#1e293b] border border-slate-600 p-2 rounded-xl shadow-2xl w-48 max-h-60 overflow-y-auto z-50">
             {showMentionMenu && p.activeRoom && (
+              <div className="absolute bottom-12 right-20 bg-[#1e293b] border border-slate-600 p-2 rounded-xl shadow-2xl w-48 max-h-60 overflow-y-auto z-50">
+                <p className="text-xs text-gray-400 px-2 mb-2 uppercase font-bold">Mention Member</p>
+                {(p.activeRoom.members || []).map((uid: string) => {
+                  const name = p.activeRoom.memberNames?.[uid] || "User";
+                  return (
+                    <button key={uid} type="button" onClick={() => { p.setInputText(p.inputText + `@${name.split(' ')[0]} `); setShowMentionMenu(false); }} className="w-full text-left px-2 py-1.5 text-sm text-gray-200 hover:bg-teal-600 rounded">@{name}</button>
+                  );
+                })}
+              </div>
+            )}
+
             {showEmojiPicker && (
               <div className="absolute bottom-12 right-0 bg-[#1e293b] border border-slate-600 p-2 rounded-xl shadow-2xl grid grid-cols-6 gap-1 w-52 z-50">
-                {["😀","😂","❤️","👍","🔥","😮","😢","🙏","🎉","💯","😍","😎","🥰","😡","🤔","👋","💪","✨","🥳","👏","🤣","😭","💔","🍀"].map(emoji => (
-                  <button key={emoji} type="button" onClick={() => { p.setInputText(p.inputText + emoji); setShowEmojiPicker(false); }} className="hover:scale-125 hover:bg-slate-700 rounded text-xl p-1 transition-transform">
-                    {emoji}
-                  </button>
-                ))}
+                {["😀","😂","❤️","👍","🔥","😮","😢","🙏","🎉","💯","😍","😎","🥰","😡","🤔","👋","💪","✨","🥳","👏","🤣","😭","💔","🍀"].map(emoji => (<button key={emoji} type="button" onClick={() => { p.setInputText(p.inputText + emoji); setShowEmojiPicker(false); }} className="hover:scale-125 hover:bg-slate-700 rounded text-xl p-1 transition-transform">{emoji}</button>))}
               </div>
             )}
-
-            <button 
-              type="button" 
-              onClick={() => { setShowStickerPicker(!showStickerPicker); setShowEmojiPicker(false); }} 
-              className="text-gray-400 hover:text-white p-2 text-xl"
-              title="Kabyle Stickers"
-            >
-              🎨
-            </button>
 
             {showStickerPicker && (
               <div className="absolute bottom-12 right-10 bg-[#1e293b] border border-slate-600 p-3 rounded-xl shadow-2xl w-80 h-96 overflow-y-auto z-50">
-                
-                {stickers.emotions.length > 0 && (
-                  <>
-                    <h4 className="text-xs text-teal-400 font-bold uppercase mb-2">Émotions ({stickers.emotions.length})</h4>
-                    <div className="grid grid-cols-4 gap-2 mb-4">
-                      {stickers.emotions.map(s => (
-                        <button key={s} type="button" onClick={() => { p.handleSendSticker(`/stickers/emotions/${s}`); setShowStickerPicker(false); }} className="hover:scale-110 transition-transform">
-                          <img src={`/stickers/emotions/${s}`} alt={s} className="w-12 h-12 rounded-lg object-cover bg-black/20" />
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
-
-                {stickers.identity.length > 0 && (
-                  <>
-                    <h4 className="text-xs text-teal-400 font-bold uppercase mb-2">Identité & Fierté ({stickers.identity.length})</h4>
-                    <div className="grid grid-cols-4 gap-2 mb-4">
-                      {stickers.identity.map(s => (
-                        <button key={s} type="button" onClick={() => { p.handleSendSticker(`/stickers/identity/${s}`); setShowStickerPicker(false); }} className="hover:scale-110 transition-transform">
-                          <img src={`/stickers/identity/${s}`} alt={s} className="w-12 h-12 rounded-lg object-cover bg-black/20" />
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
-
-                {stickers.emotions.length === 0 && stickers.identity.length === 0 && (
-                  <p className="text-center text-gray-500 text-sm mt-10">No stickers found. Drop images in the public folder!</p>
-                )}
+                {stickers.emotions.length > 0 && (<><h4 className="text-xs text-teal-400 font-bold uppercase mb-2">Émotions ({stickers.emotions.length})</h4><div className="grid grid-cols-4 gap-2 mb-4">{stickers.emotions.map(s => (<button key={s} type="button" onClick={() => { p.handleSendSticker(`/stickers/emotions/${s}`); setShowStickerPicker(false); }} className="hover:scale-110 transition-transform"><img src={`/stickers/emotions/${s}`} alt={s} className="w-12 h-12 rounded-lg object-cover bg-black/20" /></button>))}</div></>)}
+                {stickers.identity.length > 0 && (<><h4 className="text-xs text-teal-400 font-bold uppercase mb-2">Identité & Fierté ({stickers.identity.length})</h4><div className="grid grid-cols-4 gap-2 mb-4">{stickers.identity.map(s => (<button key={s} type="button" onClick={() => { p.handleSendSticker(`/stickers/identity/${s}`); setShowStickerPicker(false); }} className="hover:scale-110 transition-transform"><img src={`/stickers/identity/${s}`} alt={s} className="w-12 h-12 rounded-lg object-cover bg-black/20" /></button>))}</div></>)}
+                {stickers.emotions.length === 0 && stickers.identity.length === 0 && (<p className="text-center text-gray-500 text-sm mt-10">No stickers found. Drop images in the public folder!</p>)}
               </div>
             )}
           </div>
 
-          <button type="submit" disabled={p.uploading || p.isRecording || p.isCheckingAI || !p.inputText.trim() || p.isDMPartnerBlocked} className="bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white p-2 rounded-lg">
-            {p.isCheckingAI ? '⏳' : '➤'}
-          </button>
+          <button type="submit" disabled={p.uploading || p.isRecording || p.isCheckingAI || !p.inputText.trim() || p.isDMPartnerBlocked} className="bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white p-2 rounded-lg">{p.isCheckingAI ? '⏳' : '➤'}</button>
         </form>
       </div>
 
-      {/* FLOATING MEMBERS BUTTON (MOBILE ONLY) */}
       {p.activeRoom.type === "group" && !p.showRightSidebar && (
-        <button
-          onClick={() => p.setShowRightSidebar(true)}
-          className="fixed right-4 bottom-24 z-[90] md:hidden bg-teal-600 hover:bg-teal-500 text-white w-12 h-12 rounded-full shadow-2xl flex items-center justify-center text-2xl border-2 border-slate-700"
-          title="Show Members"
-        >
-          👥
-        </button>
+        <button onClick={() => p.setShowRightSidebar(true)} className="fixed right-4 bottom-24 z-[90] md:hidden bg-teal-600 hover:bg-teal-500 text-white w-12 h-12 rounded-full shadow-2xl flex items-center justify-center text-2xl border-2 border-slate-700" title="Show Members">👥</button>
       )}
     </div>
   );
