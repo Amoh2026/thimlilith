@@ -57,7 +57,10 @@ interface ChatAreaProps {
   onOpenSettings: () => void;
   onForward: (msgId: string) => void;
   onOpenUserAction: (uid: string, name: string) => void;
-  onUpdateRoomSettings: (data: any) => void; // 👈 ADDED THIS
+  onUpdateRoomSettings: (data: any) => void;
+  onSaveMessage: (msg: any) => void; // 👈 Added for Vault
+  savedCount: number;                // 👈 Added for Vault
+  maxSaved: number;                  // 👈 Added for Vault
   isMobileSidebarOpen: boolean;
   setIsMobileSidebarOpen: (v: boolean) => void;
 }
@@ -289,6 +292,11 @@ export function ChatArea(p: ChatAreaProps) {
                         {isMe && <button type="button" onClick={(e) => { e.stopPropagation(); p.handleEditMessage(msg.id, msg.text); }} className="bg-[#1e293b] border border-slate-600 hover:bg-slate-700 text-blue-400 rounded-full w-8 h-8 flex-shrink-0 flex items-center justify-center text-sm shadow-lg" title="Edit">✏️</button>}
                         <button type="button" onClick={(e) => { e.stopPropagation(); p.handleDeleteMessage(msg.id); }} className="bg-[#1e293b] border border-slate-600 hover:bg-slate-700 text-red-400 rounded-full w-8 h-8 flex-shrink-0 flex items-center justify-center text-sm shadow-lg" title="Delete">🗑️</button>
                         {(isRoomAdmin || isRoomMod) && (<button type="button" onClick={(e) => { e.stopPropagation(); p.activeRoom.pinnedMessages?.includes(msg.id) ? p.handleUnpinMessage(msg.id) : p.handlePinMessage(msg.id); }} className={`bg-[#1e293b] border border-slate-600 rounded-full w-8 h-8 flex-shrink-0 flex items-center justify-center text-sm shadow-lg ${p.activeRoom.pinnedMessages?.includes(msg.id) ? 'text-yellow-400 border-yellow-500' : 'text-gray-300'}`} title="Pin">📌</button>)}
+                        
+                        {/* 👇 SAVE TO VAULT BUTTON 👇 */}
+                        <button type="button" onClick={(e) => { e.stopPropagation(); p.onSaveMessage(msg); }} className={`bg-[#1e293b] border border-slate-600 hover:bg-slate-700 rounded-full w-8 h-8 flex-shrink-0 flex items-center justify-center text-sm shadow-lg ${p.savedCount >= p.maxSaved ? 'text-red-400 border-red-500' : 'text-yellow-400'}`} title={p.savedCount >= p.maxSaved ? "Vault Full" : "Save to Vault"}>
+                          {p.savedCount >= p.maxSaved ? '🔒' : '⭐'}
+                        </button>
                       </>
                     )}
                   </div>

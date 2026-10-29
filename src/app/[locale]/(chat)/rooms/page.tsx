@@ -3,16 +3,20 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { db, auth, storage } from '@/lib/firebase/client';
-import PremiumModal, { type LimitType } from './components/PremiumModal';
-import SettingsModal from './components/SettingsModal';
-import ForwardModal from './components/ForwardModal';
-import WelcomeModal from './components/WelcomeModal';
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, setDoc, where, getDocs, getDoc, deleteDoc, updateDoc, or, and, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { onAuthStateChanged, signOut, User, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { containsBannedWords } from '@/lib/moderation/filter';
-import { RightSidebar } from './components/RightSidebar';
 import { saveToATK } from '@/lib/atk';
+
+// Components
+import PremiumModal, { type LimitType } from './components/PremiumModal';
+import SettingsModal from './components/SettingsModal';
+import ForwardModal from './components/ForwardModal';
+import WelcomeModal from './components/WelcomeModal';
+import VaultFullModal from './components/VaultFullModal';
+import UserActionModal from './components/UserActionModal';
+import { RightSidebar } from './components/RightSidebar';
 import { LoginScreen, BannedScreen, MutedScreen, CharterScreen } from './components/GateScreens';
 import { Sidebars } from './components/Sidebars';
 import { ChatArea } from './components/ChatArea';
@@ -49,6 +53,10 @@ export default function ThimlilithChatUI() {
   const [messageSearchDate, setMessageSearchDate] = useState("");
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
 
+  // Vault & Limits
+  const [savedCount, setSavedCount] = useState(0);
+  const [showVaultModal, setShowVaultModal] = useState(false);
+
   // Mobile Navigation
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
@@ -59,6 +67,10 @@ export default function ThimlilithChatUI() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+
+  // User Action Menu
+  const [actionUser, setActionUser] = useState<{ id: string; name: string } | null>(null);
+  const [actionIsFriend, setActionIsFriend] = useState(false);
 
   // Modals
   const [showReportModal, setShowReportModal] = useState(false);
@@ -109,7 +121,6 @@ export default function ThimlilithChatUI() {
     return () => unsubscribe();
   }, []);
 
-  // 🔔 NOTIFICATION PERMISSION REQUEST
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
       if (Notification.permission === 'default') {
@@ -118,17 +129,13 @@ export default function ThimlilithChatUI() {
     }
   }, []);
 
-  // 🔔 UNREAD MESSAGE & TITLE TRACKER
   useEffect(() => {
     if (!user || rooms.length === 0) return;
-    
     let unreadCount = 0;
     rooms.forEach(room => {
       const lastRead = userDoc?.lastRead?.[room.id] || 0;
       const lastMsgTime = room.lastMessageAt?.toMillis() || 0;
-      if (room.lastMessageSenderId !== user.uid && lastMsgTime > lastRead) {
-        unreadCount++;
-      }
+      if (room.lastMessageSenderId !== user.uid && lastMsgTime > lastRead) unreadCount++;
     });
 
     if (unreadCount > 0) {
@@ -177,6 +184,16 @@ export default function ThimlilithChatUI() {
     return () => unsub();
   }, [user]);
 
+  // ⭐ SAVED VAULT LISTENER
+  useEffect(() => {
+    if (!user) return;
+    const q = query(collection(db, "users", user.uid, "savedMessages"));
+    const unsub = onSnapshot(q, (snap) => {
+      setSavedCount(snap.docs.length);
+    });
+    return () => unsub();
+  }, [user]);
+
   useEffect(() => {
     if (!userDoc?.blockedUsers || userDoc.blockedUsers.length === 0) { setBlockedUsersList([]); return; }
     const fetchBlocked = async () => {
@@ -206,7 +223,6 @@ export default function ThimlilithChatUI() {
     const unsub = onSnapshot(q, (snap) => {
       const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       setRooms(list);
-      
       if (list.length > 0 && !activeRoom) {
         const savedRoomId = sessionStorage.getItem('activeRoomId');
         if (savedRoomId) {
@@ -288,9 +304,18 @@ export default function ThimlilithChatUI() {
     setIsSearching(true); setSearchResults([]);
     try {
       const usersRef = collection(db, "users");
-      const q = t.includes('@') ? query(usersRef, where("email", "==", t)) : query(usersRef, where("name", ">=", t), where("name", "<=", t + '\uf8ff'));
-      const snap = await getDocs(q);
-      setSearchResults(snap.docs.map(d => ({ id: d.id, ...d.data() })).filter((u: any) => u.id !== user?.uid));
+      const snap = await getDocs(usersRef);
+      
+      const results = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter((u: any) => {
+          if (u.id === user?.uid) return false;
+          if (u.privacySearch === "private") return false;
+          const hasName = u.name && u.name.toLowerCase().includes(t);
+          const hasEmail = u.email && u.email.toLowerCase().includes(t);
+          return hasName || hasEmail;
+        });
+      setSearchResults(results);
     } catch (err: any) { alert(`Search failed: ${err.message}`); }
     setIsSearching(false);
   };
@@ -316,19 +341,14 @@ export default function ThimlilithChatUI() {
       const token = await user.getIdToken();
       const res = await fetch(`/api/chat/rooms/${activeRoom.id}/add`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ userId: target.id }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to add member');
       alert(`${data.name || target.name} added!`);
       setMemberSearchResults(prev => prev.filter(u => u.id !== target.id));
-    } catch (err: any) {
-      alert(`Failed: ${err.message}`);
-    }
+    } catch (err: any) { alert(`Failed: ${err.message}`); }
   };
 
   const handleSendFriendRequest = async (target: any) => {
@@ -346,6 +366,46 @@ export default function ThimlilithChatUI() {
   const handleAcceptRequest = async (id: string) => { try { await updateDoc(doc(db, "friend_requests", id), { status: "accepted" }); } catch {} };
   const handleRejectRequest = async (id: string) => { try { await deleteDoc(doc(db, "friend_requests", id)); } catch {} };
 
+  const handleOpenUserAction = async (uid: string, name: string) => {
+    if (!user) return;
+    setActionUser({ id: uid, name });
+    const q = query(
+      collection(db, "friend_requests"),
+      and(where("status", "==", "accepted"), or(
+        and(where("senderId", "==", user.uid), where("receiverId", "==", uid)),
+        and(where("senderId", "==", uid), where("receiverId", "==", user.uid))
+      ))
+    );
+    const snap = await getDocs(q);
+    setActionIsFriend(!snap.empty);
+  };
+
+  const handleActionSendDM = async () => {
+    if (!actionUser || !user) return;
+    setActionUser(null);
+    await handleStartDM({ id: actionUser.id, name: actionUser.name });
+  };
+
+  const handleActionAddFriend = async () => {
+    if (!actionUser || !user) return;
+    setActionUser(null);
+    await handleSendFriendRequest({ id: actionUser.id, name: actionUser.name });
+  };
+
+  const handleActionBlock = async () => {
+    if (!actionUser || !user) return;
+    const target = actionUser;
+    setActionUser(null);
+    await handleBlockUser(target.id, target.name);
+  };
+
+  const handleActionReport = async () => {
+    if (!actionUser || !user) return;
+    const target = actionUser;
+    setActionUser(null);
+    handleReportUser(target.id, target.name);
+  };
+
   const handleCreateRoom = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newRoomName.trim() || !user) return;
@@ -354,7 +414,7 @@ export default function ThimlilithChatUI() {
       const ref = await addDoc(collection(db, "rooms"), {
         name: newRoomName, createdBy: user.uid, createdAt: serverTimestamp(),
         members: [user.uid], type: "group", admins: [user.uid], moderators: [], pinnedMessages: [], inviteCode,
-        permissions: { whoCanPost: "everyone" } // Default rule
+        permissions: { whoCanPost: "everyone" }
       });
       setActiveRoom({ id: ref.id, name: newRoomName, createdBy: user.uid, type: "group", admins: [user.uid], moderators: [], pinnedMessages: [], inviteCode, permissions: { whoCanPost: "everyone" } });
       setNewRoomName(""); setIsCreatingRoom(false);
@@ -403,20 +463,13 @@ export default function ThimlilithChatUI() {
     if (!activeRoom || !user) return;
     try {
       if (activeRoom.type === "group") {
-        if (activeRoom.createdBy !== user.uid) {
-          alert("Only the room creator can change the group decoration.");
-          return;
-        }
+        if (activeRoom.createdBy !== user.uid) { alert("Only the room creator can change the group decoration."); return; }
         await updateDoc(doc(db, "rooms", activeRoom.id), { customization: themeData });
       } else {
-        await updateDoc(doc(db, "users", user.uid), { 
-          [`dmThemes.${activeRoom.id}`]: themeData 
-        });
+        await updateDoc(doc(db, "users", user.uid), { [`dmThemes.${activeRoom.id}`]: themeData });
       }
       setShowThemeModal(false);
-    } catch (err) { 
-      alert("Failed to save theme."); 
-    }
+    } catch (err) { alert("Failed to save theme."); }
   };
   
   const handleKickMember = async (targetUid: string, targetName: string) => {
@@ -426,17 +479,12 @@ export default function ThimlilithChatUI() {
       const token = await user.getIdToken();
       const res = await fetch(`/api/chat/rooms/${activeRoom.id}/kick`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ userId: targetUid }),
       });
       const data = await res.json();
       if (!res.ok) alert(data.error || 'Failed to kick');
-    } catch (e: any) {
-      alert(e.message || 'Failed to kick');
-    }
+    } catch (e: any) { alert(e.message || 'Failed to kick'); }
   };
 
   const handlePinMessage = async (id: string) => { if (activeRoom) await updateDoc(doc(db, "rooms", activeRoom.id), { pinnedMessages: arrayUnion(id) }); };
@@ -519,7 +567,6 @@ export default function ThimlilithChatUI() {
     if (!user || !activeRoom) return;
     const reply = replyingTo ? { id: replyingTo.id, text: replyingTo.text || "📎", senderName: replyingTo.senderName } : null;
     
-    // 🛡️ DISAPPEARING MESSAGES LOGIC
     let expiresAt = null;
     if (activeRoom.disappearingTimer && activeRoom.disappearingTimer > 0) {
       expiresAt = Date.now() + (activeRoom.disappearingTimer * 1000);
@@ -556,7 +603,6 @@ export default function ThimlilithChatUI() {
     e.preventDefault();
     if (!inputText.trim() || !user || !activeRoom) return;
     
-    // 🛡️ ROOM PERMISSIONS CHECK
     const isRoomAdmin = activeRoom?.admins?.includes(user.uid) || activeRoom?.createdBy === user.uid;
     const isRoomMod = activeRoom?.moderators?.includes(user.uid);
     if (activeRoom?.permissions?.whoCanPost === "moderators" && !isRoomAdmin && !isRoomMod) {
@@ -615,28 +661,17 @@ export default function ThimlilithChatUI() {
           try {
             const formData = new FormData();
             formData.append("file", blob, "voice.webm");
-            
             const token = await user!.getIdToken();
-            const transRes = await fetch('/api/transcribe', {
-              method: 'POST',
-              headers: { 'Authorization': `Bearer ${token}` },
-              body: formData
-            });
+            const transRes = await fetch('/api/transcribe', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: formData });
             if (transRes.status === 403) {
               setPremiumModal({ open: true, type: 'transcribe' });
             } else {
               const transData = await transRes.json();
               if (transData.text) transcript = transData.text;
             }
-          } catch (err) {
-            console.error("Transcription failed", err);
-          }
+          } catch (err) { console.error("Transcription failed", err); }
 
-          await sendMessageToFirestore({ 
-            type: 'audio', 
-            fileUrl: url, 
-            text: transcript || "" 
-          });
+          await sendMessageToFirestore({ type: 'audio', fileUrl: url, text: transcript || "" });
 
           if (transcript && transcript.trim().length > 3) {
             await saveToATK({
@@ -649,10 +684,7 @@ export default function ThimlilithChatUI() {
               source: "thimlilith_voice",
             }).catch(console.error);
           }
-
-        } catch (err) {
-          alert("Failed to process audio.");
-        }
+        } catch (err) { alert("Failed to process audio."); }
         setUploading(false);
       };
       mr.start(); setIsRecording(true);
@@ -698,7 +730,6 @@ export default function ThimlilithChatUI() {
     await sendMessageToFirestore({ type: 'image', fileUrl: stickerUrl, text: "" });
   };
 
-  // ─── ATK INTEGRATION ───
   const handleSaveToATK = async (msg: any) => {
     if (!user || !activeRoom) return { ok: false as const, error: "Not ready" };
     if (msg.type !== 'text' || !msg.text) return { ok: false as const, error: "Only text messages can be saved" };
@@ -712,11 +743,8 @@ export default function ThimlilithChatUI() {
     });
   };
 
-  // ─── TRANSLATION ───
   useEffect(() => {
-    if (userDoc && !userDoc.hasSeenWelcome) {
-      setShowWelcome(true);
-    }
+    if (userDoc && !userDoc.hasSeenWelcome) setShowWelcome(true);
   }, [userDoc]);
 
   const handleExecuteForward = async (targetRoomId: string) => {
@@ -748,9 +776,7 @@ export default function ThimlilithChatUI() {
       });
 
       alert("Message forwarded successfully! ✨");
-    } catch (err: any) {
-      alert(`Failed to forward: ${err.message}`);
-    }
+    } catch (err: any) { alert(`Failed to forward: ${err.message}`); }
   };
 
   const handleSaveSettings = async (data: any) => {
@@ -759,25 +785,46 @@ export default function ThimlilithChatUI() {
     catch (err) { alert("Failed to save settings."); }
   };
 
-  // 👇 ADDED THIS FUNCTION FOR ROOM SETTINGS 👇
+  const handleSaveMessage = async (msg: any) => {
+    if (!user || !activeRoom) return;
+    const maxAllowed = userDoc?.isPremium ? 10 : 6;
+    
+    if (savedCount >= maxAllowed) {
+      setShowVaultModal(true);
+      return;
+    }
+
+    try {
+      const vaultRef = doc(db, "users", user.uid, "savedMessages", msg.id);
+      await setDoc(vaultRef, {
+        originalMsgId: msg.id,
+        originalRoomId: activeRoom.id,
+        roomName: activeRoom.name || "Direct Message",
+        senderId: msg.senderId,
+        senderName: msg.senderName,
+        text: msg.text || "",
+        type: msg.type || "text",
+        fileUrl: msg.fileUrl || null,
+        fileName: msg.fileName || null,
+        savedAt: serverTimestamp(),
+        savedBy: user.uid
+      });
+      alert("⭐ Message saved to your Vault!");
+    } catch (err: any) { alert("Failed to save message: " + err.message); }
+  };
+
   const handleUpdateRoomSettings = async (data: any) => {
     if (!activeRoom || !user) return;
     try {
       await updateDoc(doc(db, "rooms", activeRoom.id), data);
       setActiveRoom({ ...activeRoom, ...data });
-    } catch (err) {
-      alert("Failed to update room settings.");
-    }
+    } catch (err) { alert("Failed to update room settings."); }
   };
 
   const handleWelcomeDismiss = async () => {
     setShowWelcome(false);
     if (user) {
-      try {
-        await updateDoc(doc(db, 'users', user.uid), { hasSeenWelcome: true });
-      } catch (err) {
-        console.error('Failed to update welcome status', err);
-      }
+      try { await updateDoc(doc(db, 'users', user.uid), { hasSeenWelcome: true }); } catch (err) {}
     }
   };
 
@@ -787,38 +834,23 @@ export default function ThimlilithChatUI() {
       const token = await user!.getIdToken();
       const res = await fetch('/api/translate', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ text: msg.text, targetLang })
       });
-      if (res.status === 403) {
-        setPremiumModal({ open: true, type: 'translate' });
-        return null;
-      }
+      if (res.status === 403) { setPremiumModal({ open: true, type: 'translate' }); return null; }
       const data = await res.json();
-      if (!res.ok) {
-        alert(`API Error: ${data.error}`);
-        return null;
-      }
+      if (!res.ok) { alert(`API Error: ${data.error}`); return null; }
       return data.translation || null;
-    } catch (err: any) {
-      alert(`Fetch Error: ${err.message}`);
-      return null;
-    }
+    } catch (err: any) { alert(`Fetch Error: ${err.message}`); return null; }
   };
 
-  // ─── RENDER: GATES ───
+  // ─── RENDER ───
   if (loading) return <div className="flex h-screen items-center justify-center bg-[#0f172a] text-white">Loading...</div>;
-
   if (!user) return <LoginScreen isLogin={isLogin} setIsLogin={setIsLogin} email={email} setEmail={setEmail} password={password} setPassword={setPassword} name={name} setName={setName} error={error} setError={setError} onSubmit={handleEmailAuth} onGoogle={handleGoogleLogin} />;
-
   if (userDoc?.status === "banned") return <BannedScreen onLogout={handleLogout} />;
   if (userDoc?.status === "muted") return <MutedScreen mutedUntil={userDoc.mutedUntil} onLogout={handleLogout} />;
   if (!userDoc?.charterAccepted) return <CharterScreen onAccept={handleAcceptCharter} onLogout={handleLogout} />;
 
-  // ─── RENDER: MAIN UI ───
   return (
     <div className="flex h-[100dvh] w-full bg-[#0f172a] text-gray-300 font-sans overflow-hidden">
       <WelcomeModal open={showWelcome} onClose={handleWelcomeDismiss} />
@@ -873,11 +905,11 @@ export default function ThimlilithChatUI() {
         onSaveToATK={handleSaveToATK}
         onOpenSettings={() => setShowSettings(true)}
         onForward={(msgId) => setForwardMsgId(msgId)}
-        onUpdateRoomSettings={handleUpdateRoomSettings} // 👈 ADDED THIS PROP
-        onOpenUserAction={(uid, name) => {
-          // This is the action menu we built earlier
-          // It's handled by the Modal component at the bottom
-        }}
+        onUpdateRoomSettings={handleUpdateRoomSettings}
+        onOpenUserAction={handleOpenUserAction}
+        onSaveMessage={handleSaveMessage}
+        savedCount={savedCount}
+        maxSaved={userDoc?.isPremium ? 10 : 6}
         handleSendSticker={handleSendSticker} 
         onTranslate={handleTranslate}
         onOpenTheme={() => {
@@ -891,7 +923,6 @@ export default function ThimlilithChatUI() {
         }}
       />
       
-      {/* Right Sidebar */}
       {showRightSidebar && activeRoom && activeRoom.type !== "direct" && (
         <RightSidebar
           activeRoom={activeRoom}
@@ -919,8 +950,23 @@ export default function ThimlilithChatUI() {
         showThemeModal={showThemeModal} setShowThemeModal={setShowThemeModal}
         themeData={themeData} setThemeData={setThemeData} handleSaveTheme={handleSaveTheme}
       />
+      
       <ForwardModal isOpen={!!forwardMsgId} onClose={() => setForwardMsgId(null)} rooms={rooms} getDMName={getDMName} onForward={handleExecuteForward} />
       <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} userDoc={userDoc} onSave={handleSaveSettings} />
+      
+      <VaultFullModal isOpen={showVaultModal} onClose={() => setShowVaultModal(false)} isPremium={userDoc?.isPremium || false} />
+      
+      <UserActionModal 
+        isOpen={!!actionUser} 
+        onClose={() => setActionUser(null)} 
+        targetUser={actionUser} 
+        isFriend={actionIsFriend} 
+        isSelf={actionUser?.id === user?.id} 
+        onSendDM={handleActionSendDM} 
+        onAddFriend={handleActionAddFriend} 
+        onBlock={handleActionBlock} 
+        onReport={handleActionReport} 
+      />
     </div>
   );
 }
