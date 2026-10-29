@@ -333,7 +333,22 @@ export function ChatArea(p: ChatAreaProps) {
                     )}
                   </div>
                   <div className={bubbleClass} onClick={selectable ? () => setSelectedMsgId(isSelected ? null : msg.id) : undefined}>
-                    {msg.replyTo && (<div className="bg-black/20 border-l-4 border-teal-300 p-2 rounded mb-2 text-sm"><p className="font-semibold text-teal-200 text-xs">{msg.replyTo.senderName}</p><p className="text-gray-300 text-xs truncate max-w-[200px]">{msg.replyTo.text}</p></div>)}
+                    {msg.replyTo && (
+  <div className="bg-black/20 border-l-4 border-teal-300 p-2 rounded mb-2 text-sm">
+    <button 
+      onClick={(e) => { 
+        e.stopPropagation(); 
+        if (msg.replyTo.senderId) {
+          p.onOpenUserAction(msg.replyTo.senderId, msg.replyTo.senderName); 
+        }
+      }}
+      className="font-semibold text-teal-200 text-xs hover:underline hover:text-teal-400 transition-colors text-left"
+    >
+      {msg.replyTo.senderName}
+    </button>
+    <p className="text-gray-300 text-xs truncate max-w-[200px]">{msg.replyTo.text}</p>
+  </div>
+)}}
                     {msg.type === 'text' && (
                       <div className="flex flex-col gap-2">
                         <p className="break-words whitespace-pre-wrap">{renderMessageText(msg.text)}</p>

@@ -565,7 +565,7 @@ export default function ThimlilithChatUI() {
 
   const sendMessageToFirestore = async (data: any) => {
     if (!user || !activeRoom) return;
-    const reply = replyingTo ? { id: replyingTo.id, text: replyingTo.text || "📎", senderName: replyingTo.senderName } : null;
+    const reply = replyingTo ? { id: replyingTo.id, text: replyingTo.text || "📎", senderName: replyingTo.senderName, senderId: replyingTo.senderId } : null;
     
     let expiresAt = null;
     if (activeRoom.disappearingTimer && activeRoom.disappearingTimer > 0) {
