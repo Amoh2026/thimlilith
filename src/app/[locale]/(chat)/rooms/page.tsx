@@ -1,6 +1,6 @@
 // src/app/[locale]/(chat)/rooms/page.tsx
 "use client";
-
+import { useSearchParams } from 'next/navigation';
 import React, { useState, useEffect, useRef } from 'react';
 import { db, auth, storage } from '@/lib/firebase/client';
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, setDoc, where, getDocs, getDoc, deleteDoc, updateDoc, or, and, arrayUnion, arrayRemove } from 'firebase/firestore';
@@ -21,6 +21,7 @@ import { LoginScreen, BannedScreen, MutedScreen, CharterScreen } from './compone
 import { Sidebars } from './components/Sidebars';
 import { ChatArea } from './components/ChatArea';
 import { Modals } from './components/Modals';
+import MobileBottomNav from '@/components/MobileBottomNav'; // 👈 ADDED THIS IMPORT
 
 export default function ThimlilithChatUI() {
   // ─── STATE ────────────────────────────────────────────────
@@ -36,7 +37,9 @@ export default function ThimlilithChatUI() {
   const [error, setError] = useState("");
 
   // Chat
-  const [sidebarTab, setSidebarTab] = useState<'rooms' | 'friends' | 'search'>('rooms');
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get('tab') as 'rooms' | 'friends' | 'search' | 'vault' | null;
+  const [sidebarTab, setSidebarTab] = useState<'rooms' | 'friends' | 'search' | 'vault'>(initialTab || 'rooms');
   const [rooms, setRooms] = useState<any[]>([]);
   const [activeRoom, setActiveRoom] = useState<any>(null);
   const [newRoomName, setNewRoomName] = useState("");
@@ -852,7 +855,7 @@ export default function ThimlilithChatUI() {
   if (!userDoc?.charterAccepted) return <CharterScreen onAccept={handleAcceptCharter} onLogout={handleLogout} />;
 
   return (
-   <div className="flex h-[100dvh] w-full bg-[#0f172a] text-gray-300 font-sans overflow-hidden">
+   <div className="flex h-[100dvh] w-full bg-[#0f172a] text-gray-300 font-sans overflow-hidden pb-16 md:pb-0">
       <WelcomeModal open={showWelcome} onClose={handleWelcomeDismiss} />
       <PremiumModal open={premiumModal.open} type={premiumModal.type} onClose={() => setPremiumModal({ ...premiumModal, open: false })} />
       
@@ -933,7 +936,7 @@ export default function ThimlilithChatUI() {
           onPromote={handlePromote}
           onDemote={handleDemote}
           onClose={() => setShowRightSidebar(false)}
-          onOpenUserAction={handleOpenUserAction} // 👈 THIS LINE MUST BE HERE
+          onOpenUserAction={handleOpenUserAction}
         />
       )}
 
@@ -957,7 +960,7 @@ export default function ThimlilithChatUI() {
       
       <VaultFullModal isOpen={showVaultModal} onClose={() => setShowVaultModal(false)} isPremium={userDoc?.isPremium || false} />
       
-    <UserActionModal 
+      <UserActionModal 
         isOpen={!!actionUser} 
         onClose={() => setActionUser(null)} 
         targetUser={actionUser} 
@@ -968,6 +971,9 @@ export default function ThimlilithChatUI() {
         onBlock={handleActionBlock} 
         onReport={handleActionReport} 
       />
+
+      {/* 👇 ADDED THE MOBILE BOTTOM NAV HERE 👇 */}
+      <MobileBottomNav />
     </div>
   );
 }

@@ -1,6 +1,9 @@
 // src/app/[locale]/feed/page.tsx
 "use client";
 
+import MobileBottomNav from '@/components/MobileBottomNav';
+import CommentModal from '@/app/[locale]/(chat)/rooms/components/CommentModal';
+import SharePostModal from '@/app/[locale]/(chat)/rooms/components/SharePostModal';
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -8,7 +11,6 @@ import { db, auth, storage } from '@/lib/firebase/client';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, updateDoc, doc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import SharePostModal from '@/app/[locale]/(chat)/rooms/components/SharePostModal';
 
 interface Post {
   id: string;
@@ -34,8 +36,9 @@ export default function FeedPage() {
   const [newPostImage, setNewPostImage] = useState<File | null>(null);
   const [isPosting, setIsPosting] = useState(false);
 
-  // Share State
+  // Modals State
   const [sharePost, setSharePost] = useState<any>(null);
+  const [commentPost, setCommentPost] = useState<any>(null);
   const [isSharing, setIsSharing] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -69,8 +72,7 @@ export default function FeedPage() {
     try {
       let imageUrl = "";
       if (newPostImage) {
-        // NOTE: Ensure your Storage rules allow 'feed_images' or 'post_images'
-        const sref = ref(storage, `feed_images/${Date.now()}_${newPostImage.name}`);
+        const sref = ref(storage, `post_images/${Date.now()}_${newPostImage.name}`);
         await uploadBytes(sref, newPostImage);
         imageUrl = await getDownloadURL(sref);
       }
@@ -99,7 +101,7 @@ export default function FeedPage() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleLike = async (postId: string, currentLikes: string[]) => {
+  const handleLike = async (postId: string, currentLikes: string[], postAuthorId: string) => {
     if (!user) return;
     const hasLiked = currentLikes?.includes(user.uid);
     const postRef = doc(db, "posts", postId);
@@ -108,12 +110,23 @@ export default function FeedPage() {
       await updateDoc(postRef, {
         likes: hasLiked ? arrayRemove(user.uid) : arrayUnion(user.uid)
       });
+
+      // 🔔 SEND NOTIFICATION IF LIKING (not unliking) AND NOT LIKING OWN POST
+      if (!hasLiked && postAuthorId !== user.uid) {
+        await addDoc(collection(db, "notifications"), {
+          userId: postAuthorId,
+          type: 'like',
+          text: `${user.displayName || 'Someone'} liked your post.`,
+          link: `/${locale}/feed`,
+          read: false,
+          createdAt: serverTimestamp()
+        });
+      }
     } catch (err) {
       console.error("Like failed", err);
     }
   };
 
-  // SHARE LOGIC
   const handleExecuteShare = async (targetRoomId: string) => {
     if (!sharePost || !user) return;
     setIsSharing(true);
@@ -158,7 +171,7 @@ export default function FeedPage() {
         <div className="w-20"></div>
       </div>
 
-      <div className="max-w-2xl mx-auto p-4 space-y-6 pb-20">
+      <div className="max-w-2xl mx-auto p-4 space-y-6 pb-24">
         
         {/* CREATE POST BOX */}
         <div className="bg-[#1e293b] border border-slate-700 rounded-2xl p-4 shadow-lg">
@@ -199,14 +212,8 @@ export default function FeedPage() {
                 
                 <div className="flex items-center gap-2">
                   {(newPostText.trim() || newPostImage) && (
-                    <button 
-                      onClick={handleCancelPost}
-                      className="text-gray-400 hover:text-white px-3 py-1.5 text-sm transition"
-                    >
-                      Cancel
-                    </button>
+                    <button onClick={handleCancelPost} className="text-gray-400 hover:text-white px-3 py-1.5 text-sm transition">Cancel</button>
                   )}
-
                   <button
                     onClick={handleCreatePost}
                     disabled={isPosting || (!newPostText.trim() && !newPostImage)}
@@ -256,17 +263,19 @@ export default function FeedPage() {
 
               <div className="flex items-center gap-4 pt-3 border-t border-slate-700">
                 <button 
-                  onClick={() => handleLike(post.id, post.likes || [])}
+                  onClick={() => handleLike(post.id, post.likes || [], post.authorId)}
                   className={`flex items-center gap-1.5 text-sm transition-colors ${hasLiked ? 'text-red-500' : 'text-gray-400 hover:text-red-400'}`}
                 >
                   {hasLiked ? '❤️' : '🤍'} {post.likes?.length || 0}
                 </button>
                 
-                <button className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-teal-400 transition-colors">
+                <button 
+                  onClick={() => setCommentPost(post)}
+                  className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-teal-400 transition-colors"
+                >
                   💬 Comment
                 </button>
 
-                {/* 🔗 SHARE BUTTON */}
                 <button 
                   onClick={() => setSharePost(post)}
                   className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-teal-400 transition-colors"
@@ -279,7 +288,7 @@ export default function FeedPage() {
         })}
       </div>
 
-      {/* SHARE MODAL */}
+      {/* MODALS */}
       {sharePost && (
         <SharePostModal 
           isOpen={!!sharePost} 
@@ -290,6 +299,16 @@ export default function FeedPage() {
         />
       )}
 
+      {commentPost && (
+        <CommentModal 
+          isOpen={!!commentPost} 
+          onClose={() => setCommentPost(null)} 
+          post={commentPost} 
+          user={user} 
+        />
+      )}
+
+      <MobileBottomNav />
     </div>
   );
 }
