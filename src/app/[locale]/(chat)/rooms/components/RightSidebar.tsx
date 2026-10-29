@@ -24,6 +24,7 @@ interface Props {
   onPromote?: (uid: string) => void;
   onDemote?: (uid: string) => void;
   onClose?: () => void;
+  onOpenUserAction?: (uid: string, name: string) => void; // 👈 ADDED THIS
 }
 
 export function RightSidebar({
@@ -35,15 +36,14 @@ export function RightSidebar({
   onPromote,
   onDemote,
   onClose,
+  onOpenUserAction, // 👈 ADDED THIS
 }: Props) {
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(false);
   const [actionMenuFor, setActionMenuFor] = useState<string | null>(null);
 
   const isOwner = activeRoom?.createdBy === user?.uid;
-  const isMod =
-    isOwner ||
-    (activeRoom?.moderators || []).includes(user?.uid);
+  const isMod = isOwner || (activeRoom?.moderators || []).includes(user?.uid);
 
   useEffect(() => {
     if (!activeRoom) {
@@ -125,7 +125,8 @@ export function RightSidebar({
     return (
       <div
         key={m.id}
-        className="relative flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-700/40 transition group"
+        onClick={() => onOpenUserAction && onOpenUserAction(m.id, m.name)} // 👈 CLICK HANDLER ADDED HERE
+        className="relative flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-700/40 transition group cursor-pointer" // 👈 CURSOR POINTER ADDED
       >
         <div className="relative flex-shrink-0">
           {m.photoURL ? (
@@ -152,7 +153,7 @@ export function RightSidebar({
         {hasActions && (
           <div className="relative">
             <button
-              onClick={() => setActionMenuFor(actionMenuFor === m.id ? null : m.id)}
+              onClick={(e) => { e.stopPropagation(); setActionMenuFor(actionMenuFor === m.id ? null : m.id); }} // 👈 STOP PROPAGATION SO IT DOESN'T OPEN PROFILE
               className="opacity-0 group-hover:opacity-100 transition text-gray-400 hover:text-white px-1"
               aria-label="Member actions"
             >
@@ -179,12 +180,8 @@ export function RightSidebar({
 
   return (
     <>
-      {/* 👇 MOBILE BACKDROP - TAP ANYWHERE TO CLOSE */}
       {showRightSidebar && (
-        <div
-          className="fixed inset-0 bg-black/60 z-[90] md:hidden"
-          onClick={onClose}
-        />
+        <div className="fixed inset-0 bg-black/60 z-[90] md:hidden" onClick={onClose} />
       )}
 
       <div className={`fixed inset-y-0 right-0 z-[100] w-64 bg-[#0f172a] border-l border-slate-800 flex flex-col h-full transform transition-transform duration-300 md:relative md:translate-x-0 ${showRightSidebar ? 'translate-x-0' : 'translate-x-full md:hidden'}`}>

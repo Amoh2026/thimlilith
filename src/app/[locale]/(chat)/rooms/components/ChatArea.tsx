@@ -296,7 +296,13 @@ export function ChatArea(p: ChatAreaProps) {
             return (
               <div key={msg.id || index} className={msgClass}>
                 <div className="flex items-center gap-2 mb-1 px-1">
-                  <span className="text-xs text-gray-400 font-medium">{isMe ? "You" : (<button onClick={() => p.onOpenUserAction(msg.senderId, msg.senderName)} className="hover:text-teal-400 hover:underline transition-colors" title="View Profile">{msg.senderName}</button>)}</span>
+                  <span className="text-xs text-gray-400 font-medium">
+  {isMe ? "You" : (
+    <button onClick={() => p.onOpenUserAction(msg.senderId, msg.senderName)} className="hover:text-teal-400 hover:underline transition-colors" title="View Profile">
+      {msg.senderName}
+    </button>
+  )}
+</span>
                   {msg.senderIsPremium && <span title="Premium Member" className="text-[10px]">👑</span>}
                   {msg.senderIsDonator && <span title="Supporter" className="text-[10px]">❤️</span>}
                 </div>

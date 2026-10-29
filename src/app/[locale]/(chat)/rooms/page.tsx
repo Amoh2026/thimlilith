@@ -933,6 +933,7 @@ export default function ThimlilithChatUI() {
           onPromote={handlePromote}
           onDemote={handleDemote}
           onClose={() => setShowRightSidebar(false)}
+          onOpenUserAction={handleOpenUserAction} // 👈 THIS LINE MUST BE HERE
         />
       )}
 
@@ -956,12 +957,12 @@ export default function ThimlilithChatUI() {
       
       <VaultFullModal isOpen={showVaultModal} onClose={() => setShowVaultModal(false)} isPremium={userDoc?.isPremium || false} />
       
-      <UserActionModal 
+    <UserActionModal 
         isOpen={!!actionUser} 
         onClose={() => setActionUser(null)} 
         targetUser={actionUser} 
         isFriend={actionIsFriend} 
-        isSelf={actionUser?.id === user?.id} 
+        isSelf={actionUser?.id === user?.uid} 
         onSendDM={handleActionSendDM} 
         onAddFriend={handleActionAddFriend} 
         onBlock={handleActionBlock} 
