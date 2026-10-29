@@ -523,6 +523,12 @@ export default function ThimlilithChatUI() {
     if (!user || !activeRoom) return;
     const reply = replyingTo ? { id: replyingTo.id, text: replyingTo.text || "📎", senderName: replyingTo.senderName } : null;
     
+    // 🛡️ DISAPPEARING MESSAGES LOGIC
+    let expiresAt = null;
+    if (activeRoom.disappearingTimer && activeRoom.disappearingTimer > 0) {
+      expiresAt = Date.now() + (activeRoom.disappearingTimer * 1000);
+    }
+
     await addDoc(collection(db, "rooms", activeRoom.id, "messages"), { 
       senderId: user.uid, 
       senderName: user.displayName || user.email?.split('@')[0] || "Anon", 
@@ -531,6 +537,7 @@ export default function ThimlilithChatUI() {
       createdAt: serverTimestamp(), 
       replyTo: reply, 
       readBy: [], 
+      expiresAt: expiresAt,
       ...data 
     });
     try { await updateDoc(doc(db, "rooms", activeRoom.id), { lastMessageAt: serverTimestamp(), lastMessageText: data.text || "📎", lastMessageSenderId: user.uid }); } catch {}
