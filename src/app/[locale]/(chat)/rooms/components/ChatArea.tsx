@@ -58,9 +58,9 @@ interface ChatAreaProps {
   onForward: (msgId: string) => void;
   onOpenUserAction: (uid: string, name: string) => void;
   onUpdateRoomSettings: (data: any) => void;
-  onSaveMessage: (msg: any) => void; // 👈 Added for Vault
-  savedCount: number;                // 👈 Added for Vault
-  maxSaved: number;                  // 👈 Added for Vault
+  onSaveMessage: (msg: any) => void;
+  savedCount: number;
+  maxSaved: number;
   isMobileSidebarOpen: boolean;
   setIsMobileSidebarOpen: (v: boolean) => void;
 }
@@ -69,6 +69,7 @@ export function ChatArea(p: ChatAreaProps) {
   const [stickers, setStickers] = useState<{ emotions: string[], identity: string[] }>({ emotions: [], identity: [] });
   const [langMenuId, setLangMenuId] = useState<string | null>(null);
   const [showHeaderMenu, setShowHeaderMenu] = useState(false);
+  const [activeSubmenu, setActiveSubmenu] = useState<'none' | 'room' | 'creator'>('none');
   const [selectedMsgId, setSelectedMsgId] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showStickerPicker, setShowStickerPicker] = useState(false);
@@ -169,47 +170,78 @@ export function ChatArea(p: ChatAreaProps) {
           )}
 
           <div className="relative header-menu-container">
-            <button onClick={() => setShowHeaderMenu(!showHeaderMenu)} className="bg-[#1e293b] hover:bg-slate-700 border border-slate-700 text-white w-10 h-10 rounded-lg flex items-center justify-center text-xl">⋮</button>
+            <button onClick={() => { setShowHeaderMenu(!showHeaderMenu); setActiveSubmenu('none'); }} className="bg-[#1e293b] hover:bg-slate-700 border border-slate-700 text-white w-10 h-10 rounded-lg flex items-center justify-center text-xl">⋮</button>
+            
             {showHeaderMenu && (
-              <div className="absolute right-0 top-12 bg-[#1e293b] border border-slate-700 rounded-xl shadow-2xl w-52 py-2 flex flex-col z-[100]">
-                <button onClick={() => { p.setIsSearchExpanded(!p.isSearchExpanded); if (p.isSearchExpanded) { p.setMessageSearchTerm(""); p.setMessageSearchDate(""); } setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">🔍 Search Messages</button>
-                <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowHeaderMenu(false); setTimeout(() => p.onOpenSettings(), 50); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">⚙️ Privacy Settings</button>
-                <button onClick={() => { p.onVideo(); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">📹 Video Call</button>
-                <div className="border-t border-slate-700 my-1"></div>
-
-                {p.activeRoom.type === "group" && (
+              <div className="absolute right-0 top-12 bg-[#1e293b] border border-slate-700 rounded-xl shadow-2xl w-56 py-2 flex flex-col z-[100] max-h-[80vh] overflow-y-auto">
+                
+                {/* MAIN MENU */}
+                {activeSubmenu === 'none' && (
                   <>
-                    <button onClick={() => { p.onOpenTheme(); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">🎨 Decorate Room</button>
-                    <button onClick={() => { p.setShowAddMemberModal(true); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">➕ Add Member</button>
-                    <button onClick={() => { p.handleCopyInviteLink(); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">🔗 Invite Link</button>
-                    <button onClick={() => { p.openMembersModal(); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">👑 Manage Roles</button>
+                    <button onClick={() => { p.setIsSearchExpanded(!p.isSearchExpanded); if (p.isSearchExpanded) { p.setMessageSearchTerm(""); p.setMessageSearchDate(""); } setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white flex justify-between">🔍 Search Messages</button>
+                    <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowHeaderMenu(false); setTimeout(() => p.onOpenSettings(), 50); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white flex justify-between">⚙️ Privacy Settings</button>
+                    <button onClick={() => { p.onVideo(); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white flex justify-between">📹 Video Call</button>
                     
-                    {p.activeRoom.createdBy === p.user.uid && (
+                    <div className="border-t border-slate-700 my-1"></div>
+
+                    {p.activeRoom.type === "group" && (
+                      <button onClick={() => setActiveSubmenu('room')} className="text-left px-4 py-2 text-sm text-teal-300 hover:bg-slate-700 hover:text-white flex justify-between items-center">
+                        <span>👥 Room Settings</span>
+                        <span>▶</span>
+                      </button>
+                    )}
+
+                    {p.activeRoom.type === "group" && p.activeRoom.createdBy === p.user.uid && (
+                      <button onClick={() => setActiveSubmenu('creator')} className="text-left px-4 py-2 text-sm text-yellow-300 hover:bg-slate-700 hover:text-white flex justify-between items-center">
+                        <span>👑 Creator Tools</span>
+                        <span>▶</span>
+                      </button>
+                    )}
+
+                    {p.activeRoom.type === "direct" && p.dmPartnerUid && (
                       <>
                         <div className="border-t border-slate-700 my-1"></div>
-                        <button onClick={() => { 
-                          const newRule = p.activeRoom.permissions?.whoCanPost === "moderators" ? "everyone" : "moderators";
-                          p.onUpdateRoomSettings({ permissions: { ...p.activeRoom.permissions, whoCanPost: newRule } }); 
-                          setShowHeaderMenu(false); 
-                        }} className="text-left px-4 py-2 text-sm text-yellow-300 hover:bg-slate-700 hover:text-white">
-                          {p.activeRoom.permissions?.whoCanPost === "moderators" ? '🔓 Unlock Chat (Everyone)' : '🔒 Lock Chat (Mods Only)'}
-                        </button>
-                        <button onClick={() => { 
-                          const newTimer = p.activeRoom.disappearingTimer === 86400 ? 0 : 86400;
-                          p.onUpdateRoomSettings({ disappearingTimer: newTimer }); 
-                          setShowHeaderMenu(false); 
-                        }} className="text-left px-4 py-2 text-sm text-orange-300 hover:bg-slate-700 hover:text-white">
-                          {p.activeRoom.disappearingTimer ? '⏳ Disappearing: ON (24h)' : '⏳ Disappearing: OFF'}
-                        </button>
+                        <button onClick={() => { p.handleBlockUser(p.dmPartnerUid!, p.getDMName(p.activeRoom)); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700 hover:text-white">{p.isDMPartnerBlocked ? '🚫 Unblock' : '🚫 Block'}</button>
+                        <button onClick={() => { p.handleReportUser(p.dmPartnerUid!, p.getDMName(p.activeRoom)); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-amber-400 hover:bg-slate-700 hover:text-white">⚠️ Report</button>
                       </>
                     )}
                   </>
                 )}
 
-                {p.activeRoom.type === "direct" && p.dmPartnerUid && (
+                {/* ROOM SETTINGS SUBMENU */}
+                {activeSubmenu === 'room' && (
                   <>
-                    <button onClick={() => { p.handleBlockUser(p.dmPartnerUid!, p.getDMName(p.activeRoom)); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">{p.isDMPartnerBlocked ? '🚫 Unblock' : '🚫 Block'}</button>
-                    <button onClick={() => { p.handleReportUser(p.dmPartnerUid!, p.getDMName(p.activeRoom)); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">⚠️ Report</button>
+                    <button onClick={() => setActiveSubmenu('none')} className="text-left px-4 py-2 text-xs text-gray-400 hover:text-white font-bold flex items-center gap-2 border-b border-slate-700 mb-1">
+                      <span>◀</span> Back to Menu
+                    </button>
+                    <button onClick={() => { p.onOpenTheme(); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">🎨 Decorate Room</button>
+                    <button onClick={() => { p.setShowAddMemberModal(true); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">➕ Add Member</button>
+                    <button onClick={() => { p.handleCopyInviteLink(); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">🔗 Invite Link</button>
+                    <button onClick={() => { p.openMembersModal(); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">👑 Manage Roles</button>
+                  </>
+                )}
+
+                {/* CREATOR TOOLS SUBMENU */}
+                {activeSubmenu === 'creator' && (
+                  <>
+                    <button onClick={() => setActiveSubmenu('none')} className="text-left px-4 py-2 text-xs text-gray-400 hover:text-white font-bold flex items-center gap-2 border-b border-slate-700 mb-1">
+                      <span>◀</span> Back to Menu
+                    </button>
+                    <button onClick={() => { 
+                      const newRule = p.activeRoom.permissions?.whoCanPost === "moderators" ? "everyone" : "moderators";
+                      p.onUpdateRoomSettings({ permissions: { ...p.activeRoom.permissions, whoCanPost: newRule } }); 
+                      setShowHeaderMenu(false); 
+                    }} className="text-left px-4 py-2 text-sm text-yellow-300 hover:bg-slate-700 hover:text-white">
+                      {p.activeRoom.permissions?.whoCanPost === "moderators" ? '🔓 Unlock Chat (Everyone)' : '🔒 Lock Chat (Mods Only)'}
+                    </button>
+
+                    <button onClick={() => { 
+                      const newTimer = p.activeRoom.disappearingTimer === 86400 ? 0 : 86400;
+                      p.onUpdateRoomSettings({ disappearingTimer: newTimer }); 
+                      setShowHeaderMenu(false); 
+                    }} className="text-left px-4 py-2 text-sm text-orange-300 hover:bg-slate-700 hover:text-white">
+                      {p.activeRoom.disappearingTimer ? '⏳ Disappearing: ON (24h)' : '⏳ Disappearing: OFF'}
+                    </button>
                   </>
                 )}
               </div>
@@ -293,7 +325,7 @@ export function ChatArea(p: ChatAreaProps) {
                         <button type="button" onClick={(e) => { e.stopPropagation(); p.handleDeleteMessage(msg.id); }} className="bg-[#1e293b] border border-slate-600 hover:bg-slate-700 text-red-400 rounded-full w-8 h-8 flex-shrink-0 flex items-center justify-center text-sm shadow-lg" title="Delete">🗑️</button>
                         {(isRoomAdmin || isRoomMod) && (<button type="button" onClick={(e) => { e.stopPropagation(); p.activeRoom.pinnedMessages?.includes(msg.id) ? p.handleUnpinMessage(msg.id) : p.handlePinMessage(msg.id); }} className={`bg-[#1e293b] border border-slate-600 rounded-full w-8 h-8 flex-shrink-0 flex items-center justify-center text-sm shadow-lg ${p.activeRoom.pinnedMessages?.includes(msg.id) ? 'text-yellow-400 border-yellow-500' : 'text-gray-300'}`} title="Pin">📌</button>)}
                         
-                        {/* 👇 SAVE TO VAULT BUTTON 👇 */}
+                        {/* SAVE TO VAULT BUTTON */}
                         <button type="button" onClick={(e) => { e.stopPropagation(); p.onSaveMessage(msg); }} className={`bg-[#1e293b] border border-slate-600 hover:bg-slate-700 rounded-full w-8 h-8 flex-shrink-0 flex items-center justify-center text-sm shadow-lg ${p.savedCount >= p.maxSaved ? 'text-red-400 border-red-500' : 'text-yellow-400'}`} title={p.savedCount >= p.maxSaved ? "Vault Full" : "Save to Vault"}>
                           {p.savedCount >= p.maxSaved ? '🔒' : '⭐'}
                         </button>
