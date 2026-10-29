@@ -175,11 +175,20 @@ export function ChatArea(p: ChatAreaProps) {
             {showHeaderMenu && (
               <div className="absolute right-0 top-12 bg-[#1e293b] border border-slate-700 rounded-xl shadow-2xl w-56 py-2 flex flex-col z-[100] max-h-[80vh] overflow-y-auto">
                 
-                {/* MAIN MENU */}
+               {/* MAIN MENU */}
                 {activeSubmenu === 'none' && (
                   <>
                     <button onClick={() => { p.setIsSearchExpanded(!p.isSearchExpanded); if (p.isSearchExpanded) { p.setMessageSearchTerm(""); p.setMessageSearchDate(""); } setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white flex justify-between">🔍 Search Messages</button>
                     <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowHeaderMenu(false); setTimeout(() => p.onOpenSettings(), 50); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white flex justify-between">⚙️ Privacy Settings</button>
+                    
+                    {/* 👇 ADDED THE VAULT COUNTER HERE 👇 */}
+                    <button onClick={() => { setShowHeaderMenu(false); alert(`You have ${p.savedCount} out of ${p.maxSaved} saved messages in your Vault.`); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white flex justify-between items-center">
+                      <span>⭐ My Vault</span>
+                      <span className={`px-2 py-0.5 rounded text-xs font-bold ${p.savedCount >= p.maxSaved ? 'bg-red-500/20 text-red-400' : 'bg-slate-700 text-teal-400'}`}>
+                        {p.savedCount} / {p.maxSaved}
+                      </span>
+                    </button>
+
                     <button onClick={() => { p.onVideo(); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white flex justify-between">📹 Video Call</button>
                     
                     <div className="border-t border-slate-700 my-1"></div>
@@ -187,13 +196,6 @@ export function ChatArea(p: ChatAreaProps) {
                     {p.activeRoom.type === "group" && (
                       <button onClick={() => setActiveSubmenu('room')} className="text-left px-4 py-2 text-sm text-teal-300 hover:bg-slate-700 hover:text-white flex justify-between items-center">
                         <span>👥 Room Settings</span>
-                        <span>▶</span>
-                      </button>
-                    )}
-
-                    {p.activeRoom.type === "group" && p.activeRoom.createdBy === p.user.uid && (
-                      <button onClick={() => setActiveSubmenu('creator')} className="text-left px-4 py-2 text-sm text-yellow-300 hover:bg-slate-700 hover:text-white flex justify-between items-center">
-                        <span>👑 Creator Tools</span>
                         <span>▶</span>
                       </button>
                     )}
@@ -209,7 +211,6 @@ export function ChatArea(p: ChatAreaProps) {
                 )}
 
                 {/* ROOM SETTINGS SUBMENU */}
-                               {/* ROOM SETTINGS SUBMENU */}
                 {activeSubmenu === 'room' && (
                   <>
                     <button onClick={() => setActiveSubmenu('none')} className="text-left px-4 py-2 text-xs text-gray-400 hover:text-white font-bold flex items-center gap-2 border-b border-slate-700 mb-1">
