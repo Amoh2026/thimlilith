@@ -71,6 +71,7 @@ export function Sidebars(p: SidebarsProps) {
         <div className="flex flex-col gap-6 text-slate-500">
           <button onClick={() => p.setSidebarTab('rooms')} className={`hover:text-teal-400 text-xl ${p.sidebarTab === 'rooms' ? 'text-teal-400' : ''}`} title="Chat">💬</button>
           <Link href="/feed" className="hover:text-teal-400 text-xl" title="Home">🏠</Link>
+          <Link href="/discover" className="hover:text-teal-400 text-xl" title="Discover Communities">🧭</Link> 
           <a href="https://apprendrethamazightkabyle.com" target="_blank" rel="noopener noreferrer" className="hover:text-teal-400 text-xl" title="Learn">📖</a>
           
           {/* ⭐ VAULT ICON ⭐ */}
