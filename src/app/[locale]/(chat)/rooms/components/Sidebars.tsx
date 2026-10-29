@@ -1,6 +1,6 @@
 // src/app/[locale]/(chat)/rooms/components/Sidebars.tsx
 "use client";
-
+import { SavedMessagesView } from './SavedMessagesView';
 import React from 'react';
 import Link from 'next/link';
 import { User } from 'firebase/auth';
@@ -10,8 +10,8 @@ interface SidebarsProps {
   userDoc: any;
   rooms: any[];
   activeRoom: any;
-  sidebarTab: 'rooms' | 'friends' | 'search';
-  setSidebarTab: (v: 'rooms' | 'friends' | 'search') => void;
+  sidebarTab: 'rooms' | 'friends' | 'search' | 'vault';
+  setSidebarTab: (v: 'rooms' | 'friends' | 'search' | 'vault') => void;
   friendRequests: any[];
   friendsList: any[];
   blockedUsersList: any[];
@@ -69,10 +69,14 @@ export function Sidebars(p: SidebarsProps) {
       <div className="hidden md:flex w-16 flex-col items-center py-4 bg-[#0b1120] border-r border-slate-800">
         <div className="w-10 h-10 bg-teal-500 rounded-xl mb-8 flex items-center justify-center text-white font-bold">T</div>
         <div className="flex flex-col gap-6 text-slate-500">
-          <button className="text-teal-400 text-xl" title="Chat">💬</button>
+          <button onClick={() => p.setSidebarTab('rooms')} className={`hover:text-teal-400 text-xl ${p.sidebarTab === 'rooms' ? 'text-teal-400' : ''}`} title="Chat">💬</button>
           <Link href="/feed" className="hover:text-teal-400 text-xl" title="Home">🏠</Link>
           <a href="https://apprendrethamazightkabyle.com" target="_blank" rel="noopener noreferrer" className="hover:text-teal-400 text-xl" title="Learn">📖</a>
-          <button className="hover:text-teal-400 text-xl" title="Groups">👥</button>
+          
+          {/* ⭐ VAULT ICON ⭐ */}
+          <button onClick={() => p.setSidebarTab('vault')} className={`hover:text-yellow-400 text-xl ${p.sidebarTab === 'vault' ? 'text-yellow-400' : ''}`} title="My Vault">⭐</button>
+          
+          <button onClick={() => p.setSidebarTab('friends')} className={`hover:text-teal-400 text-xl ${p.sidebarTab === 'friends' ? 'text-teal-400' : ''}`} title="Groups">👥</button>
           <button className="hover:text-teal-400 text-xl" title="Files">📁</button>
         </div>
         <div className="mt-auto flex flex-col items-center gap-4 pb-4">
@@ -100,15 +104,20 @@ export function Sidebars(p: SidebarsProps) {
           <button onClick={() => p.setIsMobileSidebarOpen(false)} className="text-gray-400 hover:text-white text-2xl">×</button>
         </div>
 
+        {/* TOP TABS */}
         <div className="flex border-b border-slate-800">
-          <button onClick={() => p.setSidebarTab('rooms')} className={`flex-1 py-3 px-2 text-sm font-medium ${p.sidebarTab === 'rooms' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500'}`}>Thajmaathin</button>
-          <button onClick={() => p.setSidebarTab('friends')} className={`flex-1 py-3 px-2 text-sm font-medium relative ${p.sidebarTab === 'friends' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500'}`}>
+          <button onClick={() => p.setSidebarTab('rooms')} className={`flex-1 py-3 px-1 text-xs md:text-sm font-medium ${p.sidebarTab === 'rooms' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500'}`}>Thajmaathin</button>
+          <button onClick={() => p.setSidebarTab('friends')} className={`flex-1 py-3 px-1 text-xs md:text-sm font-medium relative ${p.sidebarTab === 'friends' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500'}`}>
             Friends
             {p.friendRequests.length > 0 && <span className="absolute top-2 right-1 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center">{p.friendRequests.length}</span>}
           </button>
-          <button onClick={() => p.setSidebarTab('search')} className={`flex-1 py-3 px-2 text-sm font-medium ${p.sidebarTab === 'search' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500'}`}>Find Users</button>
+          <button onClick={() => p.setSidebarTab('search')} className={`flex-1 py-3 px-1 text-xs md:text-sm font-medium ${p.sidebarTab === 'search' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500'}`}>Find</button>
+          
+          {/* ⭐ VAULT TAB ⭐ */}
+          <button onClick={() => p.setSidebarTab('vault')} className={`flex-1 py-3 px-1 text-xs md:text-sm font-bold ${p.sidebarTab === 'vault' ? 'text-yellow-400 border-b-2 border-yellow-400' : 'text-gray-500 hover:text-yellow-400'}`}>⭐ Vault</button>
         </div>
 
+        {/* 1. ROOMS TAB */}
         {p.sidebarTab === 'rooms' && (
           <>
             <div className="p-4 flex justify-between items-center">
@@ -149,7 +158,7 @@ export function Sidebars(p: SidebarsProps) {
                       key={room.id} 
                       onClick={() => {
                         p.handleSelectRoom(room);
-                        p.setIsMobileSidebarOpen(false); // 👈 Auto-close on mobile
+                        p.setIsMobileSidebarOpen(false);
                       }} 
                       className={`flex items-center gap-3 p-3 cursor-pointer ${p.activeRoom?.id === room.id ? 'bg-[#1e293b] border-l-4 border-teal-500' : 'hover:bg-[#1e293b]'}`}
                     >
@@ -170,6 +179,7 @@ export function Sidebars(p: SidebarsProps) {
           </>
         )}
 
+        {/* 2. FRIENDS TAB */}
         {p.sidebarTab === 'friends' && (
           <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-4">
             {p.friendRequests.length > 0 && (
@@ -202,7 +212,7 @@ export function Sidebars(p: SidebarsProps) {
                     <button 
                       onClick={() => { 
                         p.handleStartDM({ id: friendId, name: friendName }); 
-                        p.setIsMobileSidebarOpen(false); // 👈 Auto-close on mobile
+                        p.setIsMobileSidebarOpen(false);
                       }} 
                       className="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-lg text-xs"
                     >
@@ -227,6 +237,7 @@ export function Sidebars(p: SidebarsProps) {
           </div>
         )}
 
+        {/* 3. SEARCH TAB */}
         {p.sidebarTab === 'search' && (
           <div className="flex flex-col h-full">
             <form onSubmit={p.handleSearchUsers} className="p-3 border-b border-slate-800">
@@ -245,7 +256,7 @@ export function Sidebars(p: SidebarsProps) {
                     <button 
                       onClick={() => { 
                         p.handleStartDM(u); 
-                        p.setIsMobileSidebarOpen(false); // 👈 Auto-close on mobile
+                        p.setIsMobileSidebarOpen(false);
                       }} 
                       className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-1.5 rounded-lg text-xs"
                     >
@@ -256,6 +267,13 @@ export function Sidebars(p: SidebarsProps) {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* 4. VAULT TAB ⭐ */}
+        {p.sidebarTab === 'vault' && (
+          <div className="flex-1 overflow-y-auto">
+            <SavedMessagesView user={p.user} />
           </div>
         )}
 
@@ -285,7 +303,6 @@ export function Sidebars(p: SidebarsProps) {
 
           {/* TIP JAR */}
           <div className="bg-[#1e293b] p-3 rounded-lg border border-slate-700 mb-2">
-            {/* TEXT ON LEFT, IMAGE ON RIGHT */}
             <div className="flex items-center justify-between w-full mb-3 px-1">
               <p className="text-[11px] text-gray-400 leading-tight max-w-[150px]">
                 Support the Kabyle language ❤️
