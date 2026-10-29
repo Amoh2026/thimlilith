@@ -156,7 +156,7 @@ export function ChatArea(p: ChatAreaProps) {
     const isMenuOpen = p.activeReactionMenu === msg.id;
 
     const baseClass = isMobile
-      ? "w-full text-left px-4 py-2.5 text-sm text-gray-200 hover:bg-slate-700 active:bg-slate-600 flex items-center gap-3 transition-colors"
+      ? "w-full text-left px-4 py-2.5 text-sm text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] hover:bg-white/10 active:bg-white/20 flex items-center gap-3 transition-colors"
       : "bg-[#1e293b] border border-slate-600 hover:bg-slate-700 text-gray-300 rounded-full w-8 h-8 flex-shrink-0 flex items-center justify-center text-sm shadow-lg";
 
     const iconClass = isMobile ? "text-base" : "";
@@ -353,7 +353,7 @@ export function ChatArea(p: ChatAreaProps) {
                       ⋮
                     </button>
                     {mobileActionMenuId === msg.id && (
-                      <div className={`absolute top-7 ${isMe ? 'right-0' : 'left-0'} z-[100] w-52 bg-[#1e293b]/80 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl py-1 flex flex-col max-h-[50vh] overflow-y-auto`}>
+                      <div className={`absolute top-7 ${isMe ? 'right-0' : 'left-0'} z-[100] w-52 bg-[#0f172a]/15 border border-white/30 rounded-xl shadow-2xl py-1 flex flex-col max-h-[50vh] overflow-y-auto`}>
                         {renderActionButtons(msg, isMe, true)}
                       </div>
                     )}
