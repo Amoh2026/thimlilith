@@ -353,7 +353,7 @@ export function ChatArea(p: ChatAreaProps) {
                       ⋮
                     </button>
                     {mobileActionMenuId === msg.id && (
-                      <div className={`absolute top-7 ${isMe ? 'right-0' : 'left-0'} z-[100] w-52 bg-[#0f172a]/15 border border-white/30 rounded-xl shadow-2xl py-1 flex flex-col max-h-[50vh] overflow-y-auto`}>
+                      <div className={`absolute top-7 ${isMe ? 'right-0' : 'left-0'} z-[100] w-52 bg-[#0f172a]/70 backdrop-blur-md border border-white/20 rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] py-1 flex flex-col max-h-[50vh] overflow-y-auto`}>
                         {renderActionButtons(msg, isMe, true)}
                       </div>
                     )}
