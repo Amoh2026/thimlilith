@@ -423,8 +423,11 @@ export function ChatArea(p: ChatAreaProps) {
         </div>
       </div>
 
-      {/* Input */}
-      <div className="p-4 bg-[#0f172a] border-t border-slate-800 relative z-20">
+           {/* Input */}
+      <div 
+        className="p-4 bg-[#0f172a] border-t border-slate-800 relative z-20" 
+        style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
+      >
         {selectedMsg && (
           <div className="bg-emerald-900/30 border border-emerald-500/50 rounded-lg p-2 mb-2 flex items-center gap-2">
             <span className="text-xs text-emerald-300 truncate flex-1">💾 Saving: “{(selectedMsg.text || '').slice(0, 60)}{(selectedMsg.text || '').length > 60 ? '…' : ''}”</span>
