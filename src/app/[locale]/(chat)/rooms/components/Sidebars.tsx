@@ -134,15 +134,15 @@ export function Sidebars(p: SidebarsProps) {
         
          {/* Mobile Quick Links */}
         <div className="flex gap-2 p-3 border-b border-slate-800 bg-[#1e293b]">
-          <Link href="/feed" className="flex-1 flex flex-col items-center justify-center p-2 rounded-lg hover:bg-slate-700 transition">
-            <span className="text-xl font-bold text-teal-400">ⵀ</span>
+          <Link href="/feed" className="...">
+            <span className="text-xl font-bold text-teal-400">ⴼ</span>
             <span className="text-[10px] text-gray-300 mt-1">Feed</span>
           </Link>
-          <Link href="/discover" className="flex-1 flex flex-col items-center justify-center p-2 rounded-lg hover:bg-slate-700 transition">
-            <span className="text-xl font-bold text-teal-400">ⴰ</span>
+          <Link href="/discover" className="...">
+            <span className="text-xl font-bold text-teal-400">ⴷ</span>
             <span className="text-[10px] text-gray-300 mt-1">Discover</span>
           </Link>
-          <a href="https://apprendrethamazightkabyle.com" target="_blank" rel="noopener noreferrer" className="flex-1 flex flex-col items-center justify-center p-2 rounded-lg hover:bg-slate-700 transition">
+          <a href="https://apprendrethamazightkabyle.com" className="...">
             <span className="text-xl font-bold text-teal-400">ⵍ</span>
             <span className="text-[10px] text-gray-300 mt-1">Learn</span>
           </a>

@@ -161,24 +161,36 @@ export function ChatArea(p: ChatAreaProps) {
 
     const iconClass = isMobile ? "text-lg font-bold" : "font-bold text-base";
 
-    return (
+       return (
       <>
+        {/* ⵔ Reply */}
         <button type="button" onClick={(e) => { e.stopPropagation(); p.setReplyingTo(msg); setMobileActionMenuId(null); }} className={baseClass} title="Reply"><span className={iconClass}>ⵔ</span> {isMobile && "Reply"}</button>
-        <button type="button" onClick={(e) => { e.stopPropagation(); p.onForward(msg.id); setMobileActionMenuId(null); }} className={baseClass} title="Forward"><span className={iconClass}>ⵙ</span> {isMobile && "Forward"}</button>
+        
+        {/* ⵗ Forward */}
+        <button type="button" onClick={(e) => { e.stopPropagation(); p.onForward(msg.id); setMobileActionMenuId(null); }} className={baseClass} title="Forward"><span className={iconClass}>ⵗ</span> {isMobile && "Forward"}</button>
+        
+        {/* 😊 React (Keep emoji for universal meaning) */}
         <button type="button" onClick={(e) => { e.stopPropagation(); p.setActiveReactionMenu(isMenuOpen ? null : msg.id); setMobileActionMenuId(null); }} className={baseClass} title="React"><span className={iconClass}>😊</span> {isMobile && "React"}</button>
         
+        {/* ⵜ Translate */}
         {msg.type === 'text' && (
-          <button type="button" onClick={(e) => { e.stopPropagation(); setLangMenuId(langMenuId === msg.id ? null : msg.id); setMobileActionMenuId(null); }} className={baseClass} title="Translate"><span className={iconClass}>ⵍ</span> {isMobile && "Translate"}</button>
+          <button type="button" onClick={(e) => { e.stopPropagation(); setLangMenuId(langMenuId === msg.id ? null : msg.id); setMobileActionMenuId(null); }} className={baseClass} title="Translate"><span className={iconClass}>ⵜ</span> {isMobile && "Translate"}</button>
         )}
 
         {(isMe || canDelete) && (
           <>
-            {isMe && <button type="button" onClick={(e) => { e.stopPropagation(); p.handleEditMessage(msg.id, msg.text); setMobileActionMenuId(null); }} className={baseClass} title="Edit"><span className={iconClass}>ⵢ</span> {isMobile && "Edit"}</button>}
-            <button type="button" onClick={(e) => { e.stopPropagation(); p.handleDeleteMessage(msg.id); setMobileActionMenuId(null); }} className={baseClass} title="Delete"><span className={iconClass}>ⵥ</span> {isMobile && "Delete"}</button>
-            {(isRoomAdmin || isRoomMod) && <button type="button" onClick={(e) => { e.stopPropagation(); p.activeRoom.pinnedMessages?.includes(msg.id) ? p.handleUnpinMessage(msg.id) : p.handlePinMessage(msg.id); setMobileActionMenuId(null); }} className={`${baseClass} ${p.activeRoom.pinnedMessages?.includes(msg.id) ? 'text-yellow-400 border-yellow-500' : ''}`} title="Pin"><span className={iconClass}>ⵇ</span> {isMobile && "Pin"}</button>}
+            {/* ⴻ Edit */}
+            {isMe && <button type="button" onClick={(e) => { e.stopPropagation(); p.handleEditMessage(msg.id, msg.text); setMobileActionMenuId(null); }} className={baseClass} title="Edit"><span className={iconClass}>ⴻ</span> {isMobile && "Edit"}</button>}
             
+            {/* ⵥ Delete */}
+            <button type="button" onClick={(e) => { e.stopPropagation(); p.handleDeleteMessage(msg.id); setMobileActionMenuId(null); }} className={baseClass} title="Delete"><span className={iconClass}>ⵥ</span> {isMobile && "Delete"}</button>
+            
+            {/* ⵒ Pin */}
+            {(isRoomAdmin || isRoomMod) && <button type="button" onClick={(e) => { e.stopPropagation(); p.activeRoom.pinnedMessages?.includes(msg.id) ? p.handleUnpinMessage(msg.id) : p.handlePinMessage(msg.id); setMobileActionMenuId(null); }} className={`${baseClass} ${p.activeRoom.pinnedMessages?.includes(msg.id) ? 'text-yellow-400 border-yellow-500' : ''}`} title="Pin"><span className={iconClass}>ⵒ</span> {isMobile && "Pin"}</button>}
+            
+            {/* ⵙ Save (or 🔒 if full) */}
             <button type="button" onClick={(e) => { e.stopPropagation(); p.onSaveMessage(msg); setMobileActionMenuId(null); }} className={`${baseClass} ${p.savedCount >= p.maxSaved ? 'text-red-400 border-red-500' : 'text-yellow-400'}`} title="Save to Vault">
-              <span className={iconClass}>{p.savedCount >= p.maxSaved ? '🔒' : 'ⵣ'}</span> {isMobile && "Save"}
+              <span className={iconClass}>{p.savedCount >= p.maxSaved ? '🔒' : 'ⵙ'}</span> {isMobile && "Save"}
             </button>
           </>
         )}
