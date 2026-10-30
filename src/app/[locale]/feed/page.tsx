@@ -42,6 +42,7 @@ export default function FeedPage() {
   const [feedTab, setFeedTab] = useState<'global' | 'following'>('global');
   const [followingIds, setFollowingIds] = useState<string[]>([]);
   const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [followingLoad, setFollowingLoad] = useState<Record<string, boolean>>({});
 
   // Stories State
   const [stories, setStories] = useState<any[]>([]);
@@ -88,7 +89,7 @@ export default function FeedPage() {
     return () => unsub();
   }, [user]);
 
-  // Fetch All Users (for Suggested People)
+  // Fetch All Users
   useEffect(() => {
     if (!user) return;
     const unsub = onSnapshot(collection(db, "users"), (snap) => {
@@ -123,7 +124,6 @@ export default function FeedPage() {
         imageUrl = await getDownloadURL(sref);
       }
 
-      // Extract Hashtags
       const extractedTags = newPostText.match(/#[\w\u0600-\u06FF]+/g)?.map(t => t.toLowerCase()) || [];
 
       await addDoc(collection(db, "posts"), {
@@ -153,25 +153,16 @@ export default function FeedPage() {
   const handleCreateStory = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
-
     setIsUploadingStory(true);
     try {
       const sref = ref(storage, `stories/${Date.now()}_${file.name}`);
       await uploadBytes(sref, file);
       const imageUrl = await getDownloadURL(sref);
-
       await addDoc(collection(db, "stories"), {
-        authorId: user.uid,
-        authorName: user.displayName || user.email?.split('@')[0] || "User",
-        authorPhotoURL: user.photoURL || null,
-        imageUrl: imageUrl,
-        createdAt: serverTimestamp()
+        authorId: user.uid, authorName: user.displayName || user.email?.split('@')[0] || "User", authorPhotoURL: user.photoURL || null, imageUrl, createdAt: serverTimestamp()
       });
-
       alert("Story uploaded! It will disappear in 24 hours.");
-    } catch (err: any) {
-      alert("Failed to upload story: " + err.message);
-    }
+    } catch (err: any) { alert("Failed: " + err.message); }
     setIsUploadingStory(false);
     if (storyInputRef.current) storyInputRef.current.value = '';
   };
@@ -180,34 +171,30 @@ export default function FeedPage() {
     if (!user) return;
     const hasLiked = currentLikes?.includes(user.uid);
     const postRef = doc(db, "posts", postId);
-    
     try {
-      await updateDoc(postRef, {
-        likes: hasLiked ? arrayRemove(user.uid) : arrayUnion(user.uid)
-      });
-
+      await updateDoc(postRef, { likes: hasLiked ? arrayRemove(user.uid) : arrayUnion(user.uid) });
       if (!hasLiked && postAuthorId !== user.uid) {
         await addDoc(collection(db, "notifications"), {
-          userId: postAuthorId,
-          type: 'like',
-          text: `${user.displayName || 'Someone'} liked your post.`,
-          link: `/${locale}/feed`,
-          read: false,
-          createdAt: serverTimestamp()
+          userId: postAuthorId, type: 'like', text: `${user.displayName || 'Someone'} liked your post.`, link: `/${locale}/feed`, read: false, createdAt: serverTimestamp()
         });
       }
-    } catch (err) {
-      console.error("Like failed", err);
-    }
+    } catch (err) {}
   };
 
+  // 🛠️ FIXED FOLLOW FUNCTION
   const handleFollow = async (targetId: string) => {
     if (!user) return;
-    await setDoc(doc(db, "follows", `${user.uid}_${targetId}`), { 
-      followerId: user.uid, 
-      followingId: targetId, 
-      createdAt: serverTimestamp() 
-    });
+    setFollowingLoad(prev => ({ ...prev, [targetId]: true }));
+    try {
+      await setDoc(doc(db, "follows", `${user.uid}_${targetId}`), { 
+        followerId: user.uid, 
+        followingId: targetId, 
+        createdAt: serverTimestamp() 
+      });
+    } catch (err: any) {
+      alert("Failed to follow user: " + err.message);
+    }
+    setFollowingLoad(prev => ({ ...prev, [targetId]: false }));
   };
 
   const handleExecuteShare = async (targetRoomId: string) => {
@@ -253,9 +240,7 @@ export default function FeedPage() {
   if (loading) return <div className="min-h-screen bg-[#0f172a] text-white flex items-center justify-center">Loading Feed...</div>;
   if (!user) return null;
 
-  const displayedPosts = feedTab === 'global' 
-    ? posts 
-    : posts.filter(post => followingIds.includes(post.authorId));
+  const displayedPosts = feedTab === 'global' ? posts : posts.filter(post => followingIds.includes(post.authorId));
 
   const suggestedUsers = allUsers
     .filter(u => u.id !== user.uid && !followingIds.includes(u.id))
@@ -265,7 +250,6 @@ export default function FeedPage() {
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-300">
       
-      {/* Header */}
       <div className="sticky top-0 z-50 bg-[#0f172a]/90 backdrop-blur border-b border-slate-800 px-4 py-3 flex items-center justify-between">
         <Link href={`/${locale}/rooms`} className="text-teal-400 hover:text-teal-300 font-medium text-sm flex items-center gap-2">
           ← Back to Chat
@@ -276,7 +260,6 @@ export default function FeedPage() {
         <div className="w-20"></div>
       </div>
 
-      {/* TABS */}
       <div className="flex border-b border-slate-800 bg-[#0f172a]">
         <button onClick={() => setFeedTab('global')} className={`flex-1 py-3 text-center font-bold transition-colors flex items-center justify-center gap-2 ${feedTab === 'global' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500 hover:text-gray-300'}`}>
           <span className="text-lg font-bold">ⴰ</span> Global
@@ -324,7 +307,15 @@ export default function FeedPage() {
                       <p className="text-xs text-gray-500">New to Thimlilith</p>
                     </div>
                   </Link>
-                  <button onClick={() => handleFollow(u.id)} className="bg-white text-black px-4 py-1.5 rounded-full text-xs font-bold hover:bg-gray-200 transition">Follow</button>
+                  
+                  {/* FIXED BUTTON WITH LOADING STATE */}
+                  <button 
+                    onClick={() => handleFollow(u.id)} 
+                    disabled={followingLoad[u.id]}
+                    className="bg-white text-black px-4 py-1.5 rounded-full text-xs font-bold hover:bg-gray-200 transition disabled:opacity-50 min-w-[70px] flex justify-center"
+                  >
+                    {followingLoad[u.id] ? '...' : 'Follow'}
+                  </button>
                 </div>
               ))}
             </div>
@@ -407,15 +398,9 @@ export default function FeedPage() {
         })}
       </div>
 
-      {sharePost && (
-        <SharePostModal isOpen={!!sharePost} onClose={() => setSharePost(null)} post={sharePost} user={user} onShare={handleExecuteShare} />
-      )}
-      {commentPost && (
-        <CommentModal isOpen={!!commentPost} onClose={() => setCommentPost(null)} post={commentPost} user={user} />
-      )}
-      {activeStory && (
-        <StoryViewer story={activeStory} onClose={() => setActiveStory(null)} />
-      )}
+      {sharePost && <SharePostModal isOpen={!!sharePost} onClose={() => setSharePost(null)} post={sharePost} user={user} onShare={handleExecuteShare} />}
+      {commentPost && <CommentModal isOpen={!!commentPost} onClose={() => setCommentPost(null)} post={commentPost} user={user} />}
+      {activeStory && <StoryViewer story={activeStory} onClose={() => setActiveStory(null)} />}
       <MobileBottomNav />
     </div>
   );
