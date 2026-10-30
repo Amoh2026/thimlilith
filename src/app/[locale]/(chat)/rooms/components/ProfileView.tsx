@@ -1,9 +1,10 @@
+// src/app/[locale]/(chat)/rooms/components/ProfileView.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase/client';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, setDoc, deleteDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { User } from 'firebase/auth';
 
 interface ProfileViewProps {
@@ -21,8 +22,13 @@ export function ProfileView({ profileId, currentUser, currentUserDoc, onClose }:
   const [editBio, setEditBio] = useState("");
   const [editBanner, setEditBanner] = useState("");
 
+  // 🤝 Follow State
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
+
   const isMe = currentUser.uid === profileId;
 
+  // Fetch Profile Data
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -40,6 +46,18 @@ export function ProfileView({ profileId, currentUser, currentUserDoc, onClose }:
     fetchProfile();
   }, [profileId]);
 
+  // Check Follow Status
+  useEffect(() => {
+    if (!currentUser || !profileId || isMe) return;
+    
+    const followRef = doc(db, "follows", `${currentUser.uid}_${profileId}`);
+    const unsub = onSnapshot(followRef, (docSnap) => {
+      setIsFollowing(docSnap.exists());
+    });
+    
+    return () => unsub();
+  }, [currentUser, profileId, isMe]);
+
   const handleSaveProfile = async () => {
     try {
       await updateDoc(doc(db, "users", profileId), {
@@ -51,6 +69,28 @@ export function ProfileView({ profileId, currentUser, currentUserDoc, onClose }:
     } catch (err) {
       alert("Failed to save profile.");
     }
+  };
+
+  const handleFollow = async () => {
+    if (!currentUser || isMe) return;
+    setFollowLoading(true);
+    
+    const followRef = doc(db, "follows", `${currentUser.uid}_${profileId}`);
+    
+    try {
+      if (isFollowing) {
+        await deleteDoc(followRef);
+      } else {
+        await setDoc(followRef, {
+          followerId: currentUser.uid,
+          followingId: profileId,
+          createdAt: serverTimestamp()
+        });
+      }
+    } catch (err) {
+      alert("Failed to update follow status.");
+    }
+    setFollowLoading(false);
   };
 
   if (loading) return <div className="text-white text-center py-20">Loading Profile...</div>;
@@ -92,9 +132,25 @@ export function ProfileView({ profileId, currentUser, currentUserDoc, onClose }:
                 </button>
               )
             ) : (
-              <button onClick={() => { if (onClose) onClose(); router.push(`/en/rooms?dm=${profileId}`); }} className="bg-teal-600 hover:bg-teal-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-                💬 Send Message
-              </button>
+              <>
+                {/* FOLLOW BUTTON */}
+                <button 
+                  onClick={handleFollow} 
+                  disabled={followLoading}
+                  className={`px-6 py-2 rounded-lg text-sm font-bold transition ${
+                    isFollowing 
+                      ? 'bg-slate-700 text-gray-300 hover:bg-slate-600' 
+                      : 'bg-teal-600 text-white hover:bg-teal-500'
+                  }`}
+                >
+                  {followLoading ? '...' : isFollowing ? 'Following' : 'Follow'}
+                </button>
+
+                {/* SEND MESSAGE BUTTON */}
+                <button onClick={() => { if (onClose) onClose(); router.push(`/en/rooms?dm=${profileId}`); }} className="bg-teal-600 hover:bg-teal-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+                  💬 Send Message
+                </button>
+              </>
             )}
           </div>
         </div>
