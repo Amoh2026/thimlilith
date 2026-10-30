@@ -132,18 +132,18 @@ export function Sidebars(p: SidebarsProps) {
           <button onClick={() => p.setIsMobileSidebarOpen(false)} className="text-gray-400 hover:text-white text-2xl">×</button>
         </div>
         
-        {/* Mobile Quick Links */}
+         {/* Mobile Quick Links */}
         <div className="flex gap-2 p-3 border-b border-slate-800 bg-[#1e293b]">
           <Link href="/feed" className="flex-1 flex flex-col items-center justify-center p-2 rounded-lg hover:bg-slate-700 transition">
-            <span className="text-xl">🏠</span>
+            <span className="text-xl font-bold text-teal-400">ⵀ</span>
             <span className="text-[10px] text-gray-300 mt-1">Feed</span>
           </Link>
           <Link href="/discover" className="flex-1 flex flex-col items-center justify-center p-2 rounded-lg hover:bg-slate-700 transition">
-            <span className="text-xl">🧭</span>
+            <span className="text-xl font-bold text-teal-400">ⴰ</span>
             <span className="text-[10px] text-gray-300 mt-1">Discover</span>
           </Link>
           <a href="https://apprendrethamazightkabyle.com" target="_blank" rel="noopener noreferrer" className="flex-1 flex flex-col items-center justify-center p-2 rounded-lg hover:bg-slate-700 transition">
-            <span className="text-xl">📖</span>
+            <span className="text-xl font-bold text-teal-400">ⵍ</span>
             <span className="text-[10px] text-gray-300 mt-1">Learn</span>
           </a>
         </div>
