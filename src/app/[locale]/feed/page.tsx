@@ -232,7 +232,9 @@ export default function FeedPage() {
         <Link href={`/${locale}/rooms`} className="text-teal-400 hover:text-teal-300 font-medium text-sm flex items-center gap-2">
           ← Back to Chat
         </Link>
-        <h1 className="text-white font-bold text-lg">🏠 Home Feed</h1>
+        <h1 className="text-white font-bold text-lg flex items-center gap-2">
+          <span className="font-bold text-xl">ⵣ</span> Home Feed
+        </h1>
         <div className="w-20"></div>
       </div>
 
@@ -240,15 +242,15 @@ export default function FeedPage() {
       <div className="flex border-b border-slate-800 bg-[#0f172a]">
         <button 
           onClick={() => setFeedTab('global')} 
-          className={`flex-1 py-3 text-center font-bold transition-colors ${feedTab === 'global' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500 hover:text-gray-300'}`}
+          className={`flex-1 py-3 text-center font-bold transition-colors flex items-center justify-center gap-2 ${feedTab === 'global' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500 hover:text-gray-300'}`}
         >
-          🌍 Global
+          <span className="text-lg font-bold">ⴰ</span> Global
         </button>
         <button 
           onClick={() => setFeedTab('following')} 
-          className={`flex-1 py-3 text-center font-bold transition-colors ${feedTab === 'following' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500 hover:text-gray-300'}`}
+          className={`flex-1 py-3 text-center font-bold transition-colors flex items-center justify-center gap-2 ${feedTab === 'following' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500 hover:text-gray-300'}`}
         >
-          👥 Following
+          <span className="text-lg font-bold">ⴼ</span> Following
         </button>
       </div>
 
@@ -299,7 +301,7 @@ export default function FeedPage() {
               <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-700">
                 <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => setNewPostImage(e.target.files?.[0] || null)} />
                 <button onClick={() => fileInputRef.current?.click()} className="text-teal-400 hover:text-teal-300 text-sm font-medium flex items-center gap-1">
-                  🖼️ Add Image
+                  <span className="font-bold text-base">ⵉ</span> Add Image
                 </button>
                 
                 <div className="flex items-center gap-2">
@@ -322,7 +324,7 @@ export default function FeedPage() {
         {/* POSTS TIMELINE */}
         {displayedPosts.length === 0 && (
           <div className="text-center text-gray-500 py-10">
-            <p className="text-4xl mb-2">🌱</p>
+            <p className="text-4xl mb-2 font-bold text-teal-600">ⵍ</p>
             <p>{feedTab === 'following' ? "You aren't following anyone yet, or they haven't posted." : "No posts yet. Be the first to share something!"}</p>
           </div>
         )}
@@ -360,11 +362,11 @@ export default function FeedPage() {
                 </button>
                 
                 <button onClick={() => setCommentPost(post)} className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-teal-400 transition-colors">
-                  💬 Comment
+                  <span className="font-bold text-base">ⵎ</span> Comment
                 </button>
 
                 <button onClick={() => setSharePost(post)} className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-teal-400 transition-colors">
-                  🔗 Share
+                  <span className="font-bold text-base">ⵙ</span> Share
                 </button>
               </div>
             </div>
