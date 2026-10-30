@@ -149,36 +149,36 @@ export function ChatArea(p: ChatAreaProps) {
     });
   };
 
-  const renderActionButtons = (msg: any, isMe: boolean, isMobile: boolean = false) => {
+    const renderActionButtons = (msg: any, isMe: boolean, isMobile: boolean = false) => {
     const isRoomAdmin = p.activeRoom?.admins?.includes(p.user.uid) || p.activeRoom?.createdBy === p.user.uid;
     const isRoomMod = p.activeRoom?.moderators?.includes(p.user.uid);
     const canDelete = isMe || isRoomAdmin || isRoomMod;
     const isMenuOpen = p.activeReactionMenu === msg.id;
 
     const baseClass = isMobile
-      ? "w-full text-left px-4 py-2.5 text-sm text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] hover:bg-white/10 active:bg-white/20 flex items-center gap-3 transition-colors"
+      ? "w-full text-left px-4 py-2.5 text-sm text-gray-200 hover:bg-slate-700 active:bg-slate-600 flex items-center gap-3 transition-colors"
       : "bg-[#1e293b] border border-slate-600 hover:bg-slate-700 text-gray-300 rounded-full w-8 h-8 flex-shrink-0 flex items-center justify-center text-sm shadow-lg";
 
-    const iconClass = isMobile ? "text-base" : "";
+    const iconClass = isMobile ? "text-lg font-bold" : "font-bold text-base";
 
     return (
       <>
-        <button type="button" onClick={(e) => { e.stopPropagation(); p.setReplyingTo(msg); setMobileActionMenuId(null); }} className={baseClass} title="Reply"><span className={iconClass}>↩️</span> {isMobile && "Reply"}</button>
-        <button type="button" onClick={(e) => { e.stopPropagation(); p.onForward(msg.id); setMobileActionMenuId(null); }} className={baseClass} title="Forward"><span className={iconClass}>↪️</span> {isMobile && "Forward"}</button>
+        <button type="button" onClick={(e) => { e.stopPropagation(); p.setReplyingTo(msg); setMobileActionMenuId(null); }} className={baseClass} title="Reply"><span className={iconClass}>ⵔ</span> {isMobile && "Reply"}</button>
+        <button type="button" onClick={(e) => { e.stopPropagation(); p.onForward(msg.id); setMobileActionMenuId(null); }} className={baseClass} title="Forward"><span className={iconClass}>ⵙ</span> {isMobile && "Forward"}</button>
         <button type="button" onClick={(e) => { e.stopPropagation(); p.setActiveReactionMenu(isMenuOpen ? null : msg.id); setMobileActionMenuId(null); }} className={baseClass} title="React"><span className={iconClass}>😊</span> {isMobile && "React"}</button>
         
         {msg.type === 'text' && (
-          <button type="button" onClick={(e) => { e.stopPropagation(); setLangMenuId(langMenuId === msg.id ? null : msg.id); setMobileActionMenuId(null); }} className={baseClass} title="Translate"><span className={iconClass}>🌍</span> {isMobile && "Translate"}</button>
+          <button type="button" onClick={(e) => { e.stopPropagation(); setLangMenuId(langMenuId === msg.id ? null : msg.id); setMobileActionMenuId(null); }} className={baseClass} title="Translate"><span className={iconClass}>ⵍ</span> {isMobile && "Translate"}</button>
         )}
 
         {(isMe || canDelete) && (
           <>
-            {isMe && <button type="button" onClick={(e) => { e.stopPropagation(); p.handleEditMessage(msg.id, msg.text); setMobileActionMenuId(null); }} className={baseClass} title="Edit"><span className={iconClass}>✏️</span> {isMobile && "Edit"}</button>}
-            <button type="button" onClick={(e) => { e.stopPropagation(); p.handleDeleteMessage(msg.id); setMobileActionMenuId(null); }} className={baseClass} title="Delete"><span className={iconClass}>🗑️</span> {isMobile && "Delete"}</button>
-            {(isRoomAdmin || isRoomMod) && <button type="button" onClick={(e) => { e.stopPropagation(); p.activeRoom.pinnedMessages?.includes(msg.id) ? p.handleUnpinMessage(msg.id) : p.handlePinMessage(msg.id); setMobileActionMenuId(null); }} className={`${baseClass} ${p.activeRoom.pinnedMessages?.includes(msg.id) ? 'text-yellow-400 border-yellow-500' : ''}`} title="Pin"><span className={iconClass}>📌</span> {isMobile && "Pin"}</button>}
+            {isMe && <button type="button" onClick={(e) => { e.stopPropagation(); p.handleEditMessage(msg.id, msg.text); setMobileActionMenuId(null); }} className={baseClass} title="Edit"><span className={iconClass}>ⵢ</span> {isMobile && "Edit"}</button>}
+            <button type="button" onClick={(e) => { e.stopPropagation(); p.handleDeleteMessage(msg.id); setMobileActionMenuId(null); }} className={baseClass} title="Delete"><span className={iconClass}>ⵥ</span> {isMobile && "Delete"}</button>
+            {(isRoomAdmin || isRoomMod) && <button type="button" onClick={(e) => { e.stopPropagation(); p.activeRoom.pinnedMessages?.includes(msg.id) ? p.handleUnpinMessage(msg.id) : p.handlePinMessage(msg.id); setMobileActionMenuId(null); }} className={`${baseClass} ${p.activeRoom.pinnedMessages?.includes(msg.id) ? 'text-yellow-400 border-yellow-500' : ''}`} title="Pin"><span className={iconClass}>ⵇ</span> {isMobile && "Pin"}</button>}
             
             <button type="button" onClick={(e) => { e.stopPropagation(); p.onSaveMessage(msg); setMobileActionMenuId(null); }} className={`${baseClass} ${p.savedCount >= p.maxSaved ? 'text-red-400 border-red-500' : 'text-yellow-400'}`} title="Save to Vault">
-              <span className={iconClass}>{p.savedCount >= p.maxSaved ? '🔒' : '⭐'}</span> {isMobile && "Save"}
+              <span className={iconClass}>{p.savedCount >= p.maxSaved ? '🔒' : 'ⵣ'}</span> {isMobile && "Save"}
             </button>
           </>
         )}
