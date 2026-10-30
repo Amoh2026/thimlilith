@@ -79,7 +79,7 @@ export default function UserActionModal({
 
               <div className="border-t border-slate-700 my-2 pt-2"></div>
 
-              {/* SAFETY TOGGLE */}
+              {/* SAFETY TOGGLE WITH NEW SYMBOL ⵎ */}
               {!showSafety ? (
                 <button 
                   onClick={() => setShowSafety(true)} 
