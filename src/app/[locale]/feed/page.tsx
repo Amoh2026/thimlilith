@@ -1,6 +1,7 @@
 // src/app/[locale]/feed/page.tsx
 "use client";
 
+import StoryViewer from '@/app/[locale]/(chat)/rooms/components/StoryViewer';
 import MobileBottomNav from '@/components/MobileBottomNav';
 import CommentModal from '@/app/[locale]/(chat)/rooms/components/CommentModal';
 import SharePostModal from '@/app/[locale]/(chat)/rooms/components/SharePostModal';
@@ -36,6 +37,12 @@ export default function FeedPage() {
   const [newPostImage, setNewPostImage] = useState<File | null>(null);
   const [isPosting, setIsPosting] = useState(false);
 
+  // Stories State
+  const [stories, setStories] = useState<any[]>([]);
+  const [activeStory, setActiveStory] = useState<any>(null);
+  const storyInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingStory, setIsUploadingStory] = useState(false);
+
   // Modals State
   const [sharePost, setSharePost] = useState<any>(null);
   const [commentPost, setCommentPost] = useState<any>(null);
@@ -61,6 +68,20 @@ export default function FeedPage() {
     const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
     const unsub = onSnapshot(q, (snap) => {
       setPosts(snap.docs.map(d => ({ id: d.id, ...d.data() } as Post)));
+    });
+    return () => unsub();
+  }, [user]);
+
+  // Fetch Stories (Filter last 24h)
+  useEffect(() => {
+    if (!user) return;
+    const q = query(collection(db, "stories"), orderBy("createdAt", "desc"));
+    const unsub = onSnapshot(q, (snap) => {
+      const twentyFourHoursAgo = Date.now() - 24 * 60 * 60 * 1000;
+      const validStories = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter((s: any) => s.createdAt && s.createdAt.toMillis() > twentyFourHoursAgo);
+      setStories(validStories);
     });
     return () => unsub();
   }, [user]);
@@ -101,6 +122,32 @@ export default function FeedPage() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const handleCreateStory = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    setIsUploadingStory(true);
+    try {
+      const sref = ref(storage, `stories/${Date.now()}_${file.name}`);
+      await uploadBytes(sref, file);
+      const imageUrl = await getDownloadURL(sref);
+
+      await addDoc(collection(db, "stories"), {
+        authorId: user.uid,
+        authorName: user.displayName || user.email?.split('@')[0] || "User",
+        authorPhotoURL: user.photoURL || null,
+        imageUrl: imageUrl,
+        createdAt: serverTimestamp()
+      });
+
+      alert("Story uploaded! It will disappear in 24 hours.");
+    } catch (err: any) {
+      alert("Failed to upload story: " + err.message);
+    }
+    setIsUploadingStory(false);
+    if (storyInputRef.current) storyInputRef.current.value = '';
+  };
+
   const handleLike = async (postId: string, currentLikes: string[], postAuthorId: string) => {
     if (!user) return;
     const hasLiked = currentLikes?.includes(user.uid);
@@ -111,7 +158,6 @@ export default function FeedPage() {
         likes: hasLiked ? arrayRemove(user.uid) : arrayUnion(user.uid)
       });
 
-      // 🔔 SEND NOTIFICATION IF LIKING (not unliking) AND NOT LIKING OWN POST
       if (!hasLiked && postAuthorId !== user.uid) {
         await addDoc(collection(db, "notifications"), {
           userId: postAuthorId,
@@ -173,6 +219,34 @@ export default function FeedPage() {
 
       <div className="max-w-2xl mx-auto p-4 space-y-6 pb-24">
         
+        {/* STORIES ROW */}
+        <div className="flex gap-4 overflow-x-auto pb-4 pt-2 px-1">
+          {/* Create Story Button */}
+          <div className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer" onClick={() => storyInputRef.current?.click()}>
+            <div className="w-16 h-16 rounded-full bg-slate-800 border-2 border-teal-500 flex items-center justify-center relative overflow-hidden">
+               {isUploadingStory ? (
+                 <span className="text-xs text-white">...</span>
+               ) : (
+                 <span className="text-2xl text-teal-400 font-bold">+</span>
+               )}
+            </div>
+            <span className="text-xs text-gray-400 font-medium">Create Story</span>
+            <input type="file" ref={storyInputRef} className="hidden" accept="image/*" onChange={handleCreateStory} />
+          </div>
+
+          {/* Display Active Stories */}
+          {stories.map((story) => (
+            <div key={story.id} className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer" onClick={() => setActiveStory(story)}>
+              <div className="w-16 h-16 rounded-full border-2 border-teal-500 p-0.5">
+                <img src={story.imageUrl} alt="Story" className="w-full h-full rounded-full object-cover" />
+              </div>
+              <span className="text-xs text-gray-300 truncate w-16 text-center">
+                {story.authorName.split(' ')[0]}
+              </span>
+            </div>
+          ))}
+        </div>
+
         {/* CREATE POST BOX */}
         <div className="bg-[#1e293b] border border-slate-700 rounded-2xl p-4 shadow-lg">
           <div className="flex gap-3">
@@ -306,6 +380,11 @@ export default function FeedPage() {
           post={commentPost} 
           user={user} 
         />
+      )}
+
+      {/* 👇 THE MISSING STORY VIEWER 👇 */}
+      {activeStory && (
+        <StoryViewer story={activeStory} onClose={() => setActiveStory(null)} />
       )}
 
       <MobileBottomNav />
