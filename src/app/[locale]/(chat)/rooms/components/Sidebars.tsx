@@ -1,5 +1,10 @@
 // src/app/[locale]/(chat)/rooms/components/Sidebars.tsx
 "use client";
+
+import StoryViewer from './StoryViewer';
+import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase/client';
+import { useEffect, useState } from 'react';
 import { SavedMessagesView } from './SavedMessagesView';
 import React from 'react';
 import Link from 'next/link';
@@ -63,6 +68,34 @@ export function Sidebars(p: SidebarsProps) {
     }
   };
 
+  // 📸 STORIES STATE & LOGIC
+  const [activeStoryUids, setActiveStoryUids] = useState<string[]>([]);
+  const [storiesList, setStoriesList] = useState<any[]>([]);
+  const [viewingStory, setViewingStory] = useState<any>(null);
+
+  useEffect(() => {
+    if (!p.user) return;
+    const q = query(collection(db, "stories"), orderBy("createdAt", "desc"));
+    const unsub = onSnapshot(q, (snap) => {
+      const twentyFourHoursAgo = Date.now() - 24 * 60 * 60 * 1000;
+      const validStories = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter((s: any) => s.createdAt && s.createdAt.toMillis() > twentyFourHoursAgo);
+      
+      setStoriesList(validStories);
+      
+      // Get unique UIDs of people who have active stories
+      const uids = [...new Set(validStories.map((s: any) => s.authorId))] as string[];
+      setActiveStoryUids(uids);
+    });
+    return () => unsub();
+  }, [p.user]);
+
+  const openStoryForUser = (uid: string) => {
+    const story = storiesList.find(s => s.authorId === uid);
+    if (story) setViewingStory(story);
+  };
+
   return (
     <>
       {/* Far Left Sidebar (Desktop Only) */}
@@ -73,10 +106,7 @@ export function Sidebars(p: SidebarsProps) {
           <Link href="/feed" className="hover:text-teal-400 text-xl" title="Home">🏠</Link>
           <Link href="/discover" className="hover:text-teal-400 text-xl" title="Discover Communities">🧭</Link> 
           <a href="https://apprendrethamazightkabyle.com" target="_blank" rel="noopener noreferrer" className="hover:text-teal-400 text-xl" title="Learn">📖</a>
-          
-          {/* ⭐ VAULT ICON ⭐ */}
           <button onClick={() => p.setSidebarTab('vault')} className={`hover:text-yellow-400 text-xl ${p.sidebarTab === 'vault' ? 'text-yellow-400' : ''}`} title="My Vault">⭐</button>
-          
           <button onClick={() => p.setSidebarTab('friends')} className={`hover:text-teal-400 text-xl ${p.sidebarTab === 'friends' ? 'text-teal-400' : ''}`} title="Groups">👥</button>
           <button className="hover:text-teal-400 text-xl" title="Files">📁</button>
         </div>
@@ -88,12 +118,9 @@ export function Sidebars(p: SidebarsProps) {
         </div>
       </div>
 
-      {/* 👇 MOBILE BACKDROP - TAP ANYWHERE TO CLOSE */}
+      {/* Mobile Backdrop */}
       {p.isMobileSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/60 z-[90] md:hidden"
-          onClick={() => p.setIsMobileSidebarOpen(false)}
-        />
+        <div className="fixed inset-0 bg-black/60 z-[90] md:hidden" onClick={() => p.setIsMobileSidebarOpen(false)} />
       )}
 
       {/* Chat List Sidebar */}
@@ -104,7 +131,8 @@ export function Sidebars(p: SidebarsProps) {
           <span className="text-white font-bold text-lg">Thajmaathin</span>
           <button onClick={() => p.setIsMobileSidebarOpen(false)} className="text-gray-400 hover:text-white text-2xl">×</button>
         </div>
-        {/* 👇 ADD THIS NEW BLOCK 👇 */}
+        
+        {/* Mobile Quick Links */}
         <div className="flex gap-2 p-3 border-b border-slate-800 bg-[#1e293b]">
           <Link href="/feed" className="flex-1 flex flex-col items-center justify-center p-2 rounded-lg hover:bg-slate-700 transition">
             <span className="text-xl">🏠</span>
@@ -119,7 +147,6 @@ export function Sidebars(p: SidebarsProps) {
             <span className="text-[10px] text-gray-300 mt-1">Learn</span>
           </a>
         </div>
-        {/* 👆 END OF NEW BLOCK 👆 */}
 
         {/* TOP TABS */}
         <div className="flex border-b border-slate-800">
@@ -129,8 +156,6 @@ export function Sidebars(p: SidebarsProps) {
             {p.friendRequests.length > 0 && <span className="absolute top-2 right-1 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center">{p.friendRequests.length}</span>}
           </button>
           <button onClick={() => p.setSidebarTab('search')} className={`flex-1 py-3 px-1 text-xs md:text-sm font-medium ${p.sidebarTab === 'search' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500'}`}>Find</button>
-          
-          {/* ⭐ VAULT TAB ⭐ */}
           <button onClick={() => p.setSidebarTab('vault')} className={`flex-1 py-3 px-1 text-xs md:text-sm font-bold ${p.sidebarTab === 'vault' ? 'text-yellow-400 border-b-2 border-yellow-400' : 'text-gray-500 hover:text-yellow-400'}`}>⭐ Vault</button>
         </div>
 
@@ -170,6 +195,11 @@ export function Sidebars(p: SidebarsProps) {
                   const lastReadTime = p.userDoc?.lastRead?.[room.id] || 0;
                   const lastMessageTime = room.lastMessageAt?.toMillis() || 0;
                   const isUnread = room.lastMessageSenderId !== p.user.uid && lastMessageTime > lastReadTime;
+                  
+                  // 📸 STORY RING LOGIC
+                  const partnerUid = isDM ? room.members?.find((uid: string) => uid !== p.user.uid) : null;
+                  const hasStory = isDM && partnerUid && activeStoryUids.includes(partnerUid);
+
                   return (
                     <div 
                       key={room.id} 
@@ -180,7 +210,19 @@ export function Sidebars(p: SidebarsProps) {
                       className={`flex items-center gap-3 p-3 cursor-pointer ${p.activeRoom?.id === room.id ? 'bg-[#1e293b] border-l-4 border-teal-500' : 'hover:bg-[#1e293b]'}`}
                     >
                       <div className="relative">
-                        <div className="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center text-xl">{isDM ? '👤' : '👥'}</div>
+                        <div 
+                          onClick={(e) => {
+                            if (hasStory && partnerUid) {
+                              e.stopPropagation(); // Don't open the chat
+                              openStoryForUser(partnerUid);
+                            }
+                          }}
+                          className={`w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center text-xl transition-all ${
+                            hasStory ? 'ring-2 ring-teal-500 ring-offset-2 ring-offset-[#0f172a] cursor-pointer hover:scale-105' : ''
+                          }`}
+                        >
+                          {isDM ? '👤' : '👥'}
+                        </div>
                       </div>
                       <div className="flex-1 overflow-hidden">
                         <div className="flex justify-between items-center">
@@ -219,9 +261,25 @@ export function Sidebars(p: SidebarsProps) {
               {p.friendsList.map(f => {
                 const friendId = f.senderId === p.user.uid ? f.receiverId : f.senderId;
                 const friendName = f.senderId === p.user.uid ? f.receiverName : f.senderName;
+                
+                // 📸 STORY RING LOGIC
+                const friendHasStory = activeStoryUids.includes(friendId);
+
                 return (
                   <div key={f.id} className="flex items-center gap-3 p-3 bg-[#1e293b] rounded-lg border border-slate-700 mb-2">
-                    <div className="w-10 h-10 rounded-full bg-teal-600 flex items-center justify-center text-white font-bold">{friendName?.[0].toUpperCase()}</div>
+                    <div 
+                      onClick={(e) => {
+                        if (friendHasStory) {
+                          e.stopPropagation();
+                          openStoryForUser(friendId);
+                        }
+                      }}
+                      className={`w-10 h-10 rounded-full bg-teal-600 flex items-center justify-center text-white font-bold transition-all ${
+                        friendHasStory ? 'ring-2 ring-teal-500 ring-offset-2 ring-offset-[#0f172a] cursor-pointer hover:scale-105' : ''
+                      }`}
+                    >
+                      {friendName?.[0].toUpperCase()}
+                    </div>
                     <div className="flex-1 overflow-hidden">
                       <h4 className="text-white font-medium text-sm truncate">{friendName}</h4>
                       <p className="text-xs text-teal-400">Friend</p>
@@ -287,78 +345,47 @@ export function Sidebars(p: SidebarsProps) {
           </div>
         )}
 
-        {/* 4. VAULT TAB ⭐ */}
+        {/* 4. VAULT TAB */}
         {p.sidebarTab === 'vault' && (
           <div className="flex-1 overflow-y-auto">
             <SavedMessagesView user={p.user} />
           </div>
         )}
 
-        {/* 👇 MONETIZATION, TIP JAR & AD SPACE SECTION 👇 */}
+        {/* MONETIZATION & TIP JAR */}
         <div className="mt-auto p-4 border-t border-slate-800 bg-[#0f172a]">
-          
-          {/* AD SPACE (Only shows for Free users) */}
           {!p.userDoc?.isPremium && (
             <div className="w-full h-20 bg-slate-800 border border-slate-700 rounded-lg mb-3 flex items-center justify-center text-[10px] text-gray-500 text-center">
               [ Google AdSense Space ]<br/>Hide with Premium 💎
             </div>
           )}
 
-          {/* PREMIUM BUTTON */}
           {!p.userDoc?.isPremium ? (
-            <button 
-              onClick={() => handleCheckout('premium')}
-              className="w-full bg-gradient-to-r from-yellow-500 to-amber-600 text-white font-bold py-2 rounded-lg mb-3 shadow-lg hover:scale-105 transition text-sm"
-            >
-              💎 Go Premium (€4.99/mo)
-            </button>
+            <button onClick={() => handleCheckout('premium')} className="w-full bg-gradient-to-r from-yellow-500 to-amber-600 text-white font-bold py-2 rounded-lg mb-3 shadow-lg hover:scale-105 transition text-sm">💎 Go Premium (€4.99/mo)</button>
           ) : (
-            <div className="w-full bg-gradient-to-r from-yellow-500 to-amber-600 text-white font-bold py-2 rounded-lg mb-3 text-center shadow-lg text-sm">
-              👑 Premium Member
-            </div>
+            <div className="w-full bg-gradient-to-r from-yellow-500 to-amber-600 text-white font-bold py-2 rounded-lg mb-3 text-center shadow-lg text-sm">👑 Premium Member</div>
           )}
 
-          {/* TIP JAR */}
           <div className="bg-[#1e293b] p-3 rounded-lg border border-slate-700 mb-2">
             <div className="flex items-center justify-between w-full mb-3 px-1">
-              <p className="text-[11px] text-gray-400 leading-tight max-w-[150px]">
-                Support the Kabyle language ❤️
-              </p>
-              <img 
-                src="/stickers/identity/13_pottery.png" 
-                alt="Kabyle Tip Jar" 
-                className="w-12 h-12 object-contain drop-shadow-md hover:scale-110 transition-transform cursor-pointer"
-              />
+              <p className="text-[11px] text-gray-400 leading-tight max-w-[150px]">Support the Kabyle language ❤️</p>
+              <img src="/stickers/identity/13_pottery.png" alt="Kabyle Tip Jar" className="w-12 h-12 object-contain drop-shadow-md hover:scale-110 transition-transform cursor-pointer" />
             </div>
             
             <div className="flex gap-1 justify-center mb-2 w-full">
               {[2, 5, 10].map(amt => (
-                <button 
-                  key={amt}
-                  onClick={() => handleCheckout('donation', amt)}
-                  className="bg-slate-700 hover:bg-slate-600 text-white text-xs px-3 py-1 rounded flex-1"
-                >
-                  €{amt}
-                </button>
+                <button key={amt} onClick={() => handleCheckout('donation', amt)} className="bg-slate-700 hover:bg-slate-600 text-white text-xs px-3 py-1 rounded flex-1">€{amt}</button>
               ))}
             </div>
             
             <div className="flex gap-1 mt-1 w-full">
-              <input 
-                type="number" 
-                id="custom-donation"
-                placeholder="Custom €" 
-                min="1"
-                className="w-full bg-[#0f172a] text-white text-xs px-2 py-1 rounded border border-slate-600 focus:outline-none focus:border-teal-500"
-              />
+              <input type="number" id="custom-donation" placeholder="Custom €" min="1" className="w-full bg-[#0f172a] text-white text-xs px-2 py-1 rounded border border-slate-600 focus:outline-none focus:border-teal-500" />
               <button 
                 onClick={() => {
                   const input = document.getElementById('custom-donation') as HTMLInputElement;
                   const amt = Number(input.value);
                   if (amt >= 1) {
-                     if (confirm(`Are you sure you want to donate €${amt}? Thank you! ❤️`)) {
-                        handleCheckout('donation', amt);
-                     }
+                     if (confirm(`Are you sure you want to donate €${amt}? Thank you! ❤️`)) handleCheckout('donation', amt);
                   } else {
                     alert("Please enter an amount of €1 or more.");
                   }
@@ -371,6 +398,11 @@ export function Sidebars(p: SidebarsProps) {
           </div>
         </div>
       </div>
+
+      {/* 👇 STORY VIEWER GOES HERE — OUTSIDE THE SIDEBAR DIV 👇 */}
+      {viewingStory && (
+        <StoryViewer story={viewingStory} onClose={() => setViewingStory(null)} />
+      )}
     </>
   );
 }
