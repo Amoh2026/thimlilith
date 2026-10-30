@@ -149,7 +149,7 @@ export function ChatArea(p: ChatAreaProps) {
     });
   };
 
-    const renderActionButtons = (msg: any, isMe: boolean, isMobile: boolean = false) => {
+  const renderActionButtons = (msg: any, isMe: boolean, isMobile: boolean = false) => {
     const isRoomAdmin = p.activeRoom?.admins?.includes(p.user.uid) || p.activeRoom?.createdBy === p.user.uid;
     const isRoomMod = p.activeRoom?.moderators?.includes(p.user.uid);
     const canDelete = isMe || isRoomAdmin || isRoomMod;
@@ -161,34 +161,22 @@ export function ChatArea(p: ChatAreaProps) {
 
     const iconClass = isMobile ? "text-lg font-bold" : "font-bold text-base";
 
-       return (
+    return (
       <>
-        {/* ⵔ Reply */}
         <button type="button" onClick={(e) => { e.stopPropagation(); p.setReplyingTo(msg); setMobileActionMenuId(null); }} className={baseClass} title="Reply"><span className={iconClass}>ⵔ</span> {isMobile && "Reply"}</button>
-        
-        {/* ⵗ Forward */}
         <button type="button" onClick={(e) => { e.stopPropagation(); p.onForward(msg.id); setMobileActionMenuId(null); }} className={baseClass} title="Forward"><span className={iconClass}>ⵗ</span> {isMobile && "Forward"}</button>
-        
-        {/* 😊 React (Keep emoji for universal meaning) */}
         <button type="button" onClick={(e) => { e.stopPropagation(); p.setActiveReactionMenu(isMenuOpen ? null : msg.id); setMobileActionMenuId(null); }} className={baseClass} title="React"><span className={iconClass}>😊</span> {isMobile && "React"}</button>
         
-        {/* ⵜ Translate */}
         {msg.type === 'text' && (
           <button type="button" onClick={(e) => { e.stopPropagation(); setLangMenuId(langMenuId === msg.id ? null : msg.id); setMobileActionMenuId(null); }} className={baseClass} title="Translate"><span className={iconClass}>ⵜ</span> {isMobile && "Translate"}</button>
         )}
 
         {(isMe || canDelete) && (
           <>
-            {/* ⴻ Edit */}
             {isMe && <button type="button" onClick={(e) => { e.stopPropagation(); p.handleEditMessage(msg.id, msg.text); setMobileActionMenuId(null); }} className={baseClass} title="Edit"><span className={iconClass}>ⴻ</span> {isMobile && "Edit"}</button>}
-            
-            {/* ⵥ Delete */}
             <button type="button" onClick={(e) => { e.stopPropagation(); p.handleDeleteMessage(msg.id); setMobileActionMenuId(null); }} className={baseClass} title="Delete"><span className={iconClass}>ⵥ</span> {isMobile && "Delete"}</button>
-            
-            {/* ⵒ Pin */}
             {(isRoomAdmin || isRoomMod) && <button type="button" onClick={(e) => { e.stopPropagation(); p.activeRoom.pinnedMessages?.includes(msg.id) ? p.handleUnpinMessage(msg.id) : p.handlePinMessage(msg.id); setMobileActionMenuId(null); }} className={`${baseClass} ${p.activeRoom.pinnedMessages?.includes(msg.id) ? 'text-yellow-400 border-yellow-500' : ''}`} title="Pin"><span className={iconClass}>ⵒ</span> {isMobile && "Pin"}</button>}
             
-            {/* ⵙ Save (or 🔒 if full) */}
             <button type="button" onClick={(e) => { e.stopPropagation(); p.onSaveMessage(msg); setMobileActionMenuId(null); }} className={`${baseClass} ${p.savedCount >= p.maxSaved ? 'text-red-400 border-red-500' : 'text-yellow-400'}`} title="Save to Vault">
               <span className={iconClass}>{p.savedCount >= p.maxSaved ? '🔒' : 'ⵙ'}</span> {isMobile && "Save"}
             </button>
@@ -458,20 +446,29 @@ export function ChatArea(p: ChatAreaProps) {
           </div>
         )}
         
-        <form onSubmit={p.handleSendText} className="flex items-center gap-2 bg-[#1e293b] rounded-xl px-4 py-2">
+        <form onSubmit={p.handleSendText} className="flex items-center gap-1 bg-[#1e293b] rounded-xl px-2 py-2">
           <input type="file" ref={p.fileInputRef} className="hidden" onChange={p.handleFileUpload} accept="image/*,video/*,.pdf,.doc,.docx" />
-          <button type="button" onClick={() => p.fileInputRef.current?.click()} className="text-gray-400 hover:text-white p-2" title="File">📎</button>
-          <button type="button" onClick={() => p.fileInputRef.current?.click()} className="text-gray-400 hover:text-white p-2" title="Media">🖼️</button>
-          <button type="button" onClick={p.isRecording ? p.stopRecording : p.startRecording} className={`p-2 rounded-full ${p.isRecording ? 'bg-red-500 text-white animate-pulse' : 'text-gray-400'}`}>{p.isRecording ? '⏹️' : '🎤'}</button>
-          <input type="text" value={p.inputText} onChange={(e) => p.handleTyping(e.target.value)} onFocus={() => { setShowEmojiPicker(false); setShowStickerPicker(false); setShowMentionMenu(false); }} placeholder={p.isCheckingAI ? "AI Scanning..." : p.uploading ? "Uploading..." : p.isRecording ? "Recording..." : p.replyingTo ? `Reply to ${p.replyingTo.senderName}...` : `Message...`} disabled={p.uploading || p.isRecording || p.isCheckingAI || p.isDMPartnerBlocked} className="flex-1 bg-transparent text-sm text-white focus:outline-none placeholder-gray-500 px-2" />
+          <button type="button" onClick={() => p.fileInputRef.current?.click()} className="text-gray-400 hover:text-white p-2 flex-shrink-0" title="File">📎</button>
+          <button type="button" onClick={p.isRecording ? p.stopRecording : p.startRecording} className={`p-2 rounded-full flex-shrink-0 ${p.isRecording ? 'bg-red-500 text-white animate-pulse' : 'text-gray-400'}`}>{p.isRecording ? '⏹️' : '🎤'}</button>
           
-          <div className="flex items-center relative" ref={pickerRef}>
-            <button type="button" onClick={() => { setShowMentionMenu(!showMentionMenu); setShowEmojiPicker(false); setShowStickerPicker(false); }} className="text-gray-400 hover:text-white p-2 text-xl font-bold" title="Mention">@</button>
-            <button type="button" onClick={() => { setShowEmojiPicker(!showEmojiPicker); setShowStickerPicker(false); setShowMentionMenu(false); }} className="text-gray-400 hover:text-white p-2 text-xl">😊</button>
-            <button type="button" onClick={() => { setShowStickerPicker(!showStickerPicker); setShowEmojiPicker(false); setShowMentionMenu(false); }} className="text-gray-400 hover:text-white p-2 text-xl" title="Kabyle Stickers">🎨</button>
+          <input 
+            type="text" 
+            value={p.inputText} 
+            onChange={(e) => p.handleTyping(e.target.value)} 
+            onFocus={() => { setShowEmojiPicker(false); setShowStickerPicker(false); setShowMentionMenu(false); }} 
+            placeholder={p.isCheckingAI ? "AI Scanning..." : p.uploading ? "Uploading..." : p.isRecording ? "Recording..." : p.replyingTo ? `Reply to ${p.replyingTo.senderName}...` : `Message...`} 
+            disabled={p.uploading || p.isRecording || p.isCheckingAI || p.isDMPartnerBlocked} 
+            className="flex-1 bg-transparent text-sm text-white focus:outline-none placeholder-gray-500 px-2 min-w-0" 
+          />
+          
+          <div className="flex items-center relative flex-shrink-0" ref={pickerRef}>
+            <button type="button" onClick={() => { setShowMentionMenu(!showMentionMenu); setShowEmojiPicker(false); setShowStickerPicker(false); }} className="text-gray-400 hover:text-white p-2 text-lg font-bold" title="Mention">@</button>
+            <button type="button" onClick={() => { setShowEmojiPicker(!showEmojiPicker); setShowStickerPicker(false); setShowMentionMenu(false); }} className="text-gray-400 hover:text-white p-2 text-xl hidden sm:block">😊</button>
+            <button type="button" onClick={() => { setShowStickerPicker(!showStickerPicker); setShowEmojiPicker(false); setShowMentionMenu(false); }} className="text-gray-400 hover:text-white p-2 text-xl hidden sm:block" title="Kabyle Stickers">🎨</button>
             
+            {/* MENTION MENU */}
             {showMentionMenu && p.activeRoom && (
-              <div className="absolute bottom-12 right-20 bg-[#1e293b] border border-slate-600 p-2 rounded-xl shadow-2xl w-48 max-h-60 overflow-y-auto z-50">
+              <div className="absolute bottom-12 right-0 bg-[#1e293b] border border-slate-600 p-2 rounded-xl shadow-2xl w-48 max-h-60 overflow-y-auto z-50">
                 <p className="text-xs text-gray-400 px-2 mb-2 uppercase font-bold">Mention Member</p>
                 {(p.activeRoom.members || []).map((uid: string) => {
                   const name = p.activeRoom.memberNames?.[uid] || "User";
@@ -482,14 +479,16 @@ export function ChatArea(p: ChatAreaProps) {
               </div>
             )}
 
+            {/* EMOJI MENU */}
             {showEmojiPicker && (
               <div className="absolute bottom-12 right-0 bg-[#1e293b] border border-slate-600 p-2 rounded-xl shadow-2xl grid grid-cols-6 gap-1 w-52 z-50">
                 {["😀","😂","❤️","👍","🔥","😮","😢","🙏","🎉","💯","😍","😎","🥰","😡","🤔","👋","💪","✨","🥳","👏","🤣","😭","💔","🍀"].map(emoji => (<button key={emoji} type="button" onClick={() => { p.setInputText(p.inputText + emoji); setShowEmojiPicker(false); }} className="hover:scale-125 hover:bg-slate-700 rounded text-xl p-1 transition-transform">{emoji}</button>))}
               </div>
             )}
 
+            {/* STICKER MENU */}
             {showStickerPicker && (
-              <div className="absolute bottom-12 right-10 bg-[#1e293b] border border-slate-600 p-3 rounded-xl shadow-2xl w-80 h-96 overflow-y-auto z-50">
+              <div className="absolute bottom-12 right-0 bg-[#1e293b] border border-slate-600 p-3 rounded-xl shadow-2xl w-80 h-96 overflow-y-auto z-50">
                 {stickers.emotions.length > 0 && (<><h4 className="text-xs text-teal-400 font-bold uppercase mb-2">Émotions ({stickers.emotions.length})</h4><div className="grid grid-cols-4 gap-2 mb-4">{stickers.emotions.map(s => (<button key={s} type="button" onClick={() => { p.handleSendSticker(`/stickers/emotions/${s}`); setShowStickerPicker(false); }} className="hover:scale-110 transition-transform"><img src={`/stickers/emotions/${s}`} alt={s} className="w-12 h-12 rounded-lg object-cover bg-black/20" /></button>))}</div></>)}
                 {stickers.identity.length > 0 && (<><h4 className="text-xs text-teal-400 font-bold uppercase mb-2">Identité & Fierté ({stickers.identity.length})</h4><div className="grid grid-cols-4 gap-2 mb-4">{stickers.identity.map(s => (<button key={s} type="button" onClick={() => { p.handleSendSticker(`/stickers/identity/${s}`); setShowStickerPicker(false); }} className="hover:scale-110 transition-transform"><img src={`/stickers/identity/${s}`} alt={s} className="w-12 h-12 rounded-lg object-cover bg-black/20" /></button>))}</div></>)}
                 {stickers.emotions.length === 0 && stickers.identity.length === 0 && (<p className="text-center text-gray-500 text-sm mt-10">No stickers found. Drop images in the public folder!</p>)}
@@ -497,7 +496,15 @@ export function ChatArea(p: ChatAreaProps) {
             )}
           </div>
 
-          <button type="submit" disabled={p.uploading || p.isRecording || p.isCheckingAI || !p.inputText.trim() || p.isDMPartnerBlocked} className="bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white p-2 rounded-lg">{p.isCheckingAI ? '⏳' : '➤'}</button>
+          {/* SEND BUTTON */}
+          <button 
+            type="submit" 
+            disabled={p.uploading || p.isRecording || p.isCheckingAI || !p.inputText.trim() || p.isDMPartnerBlocked} 
+            className="bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white p-2.5 rounded-lg ml-1 font-bold text-lg flex items-center justify-center min-w-[44px] flex-shrink-0 transition-colors"
+            title="Send Message"
+          >
+            {p.isCheckingAI ? '⏳' : 'ⵙ'}
+          </button>
         </form>
       </div>
 
