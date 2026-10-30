@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface UserActionModalProps {
@@ -27,6 +27,7 @@ export default function UserActionModal({
   onReport
 }: UserActionModalProps) {
   const router = useRouter();
+  const [showSafety, setShowSafety] = useState(false);
 
   if (!isOpen || !targetUser) return null;
 
@@ -49,7 +50,7 @@ export default function UserActionModal({
         <div className="space-y-2">
           {!isSelf && (
             <>
-              {/* 👤 VIEW PROFILE BUTTON */}
+              {/* View Profile */}
               <button 
                 onClick={() => { 
                   onClose(); 
@@ -60,10 +61,12 @@ export default function UserActionModal({
                 <span>👤</span> View Profile
               </button>
 
+              {/* Send Message */}
               <button onClick={onSendDM} className="w-full flex items-center gap-3 bg-teal-600 hover:bg-teal-500 text-white px-4 py-3 rounded-xl transition-colors font-medium">
                 <span>💬</span> Send Message
               </button>
               
+              {/* Add Friend */}
               {!isFriend ? (
                 <button onClick={onAddFriend} className="w-full flex items-center gap-3 bg-[#0f172a] hover:bg-slate-800 border border-slate-700 text-white px-4 py-3 rounded-xl transition-colors font-medium">
                   <span>➕</span> Add to Friends
@@ -76,12 +79,27 @@ export default function UserActionModal({
 
               <div className="border-t border-slate-700 my-2 pt-2"></div>
 
-              <button onClick={onBlock} className="w-full flex items-center gap-3 text-red-400 hover:bg-red-500/10 px-4 py-2 rounded-xl transition-colors text-sm">
-                <span>🚫</span> Block User
-              </button>
-              <button onClick={onReport} className="w-full flex items-center gap-3 text-amber-400 hover:bg-amber-500/10 px-4 py-2 rounded-xl transition-colors text-sm">
-                <span>⚠️</span> Report User
-              </button>
+              {/* SAFETY TOGGLE */}
+              {!showSafety ? (
+                <button 
+                  onClick={() => setShowSafety(true)} 
+                  className="w-full flex items-center gap-3 text-gray-400 hover:text-white hover:bg-slate-800 px-4 py-2 rounded-xl transition-colors text-sm font-medium"
+                >
+                  <span className="text-base font-bold">ⵥ</span> Safety & Moderation
+                </button>
+              ) : (
+                <div className="bg-[#0f172a] p-2 rounded-xl border border-slate-700 space-y-1">
+                  <button onClick={onBlock} className="w-full flex items-center gap-3 text-red-400 hover:bg-red-500/10 px-4 py-2 rounded-lg transition-colors text-sm">
+                    <span>🚫</span> Block User
+                  </button>
+                  <button onClick={onReport} className="w-full flex items-center gap-3 text-amber-400 hover:bg-amber-500/10 px-4 py-2 rounded-lg transition-colors text-sm">
+                    <span>⚠️</span> Report User
+                  </button>
+                  <button onClick={() => setShowSafety(false)} className="w-full text-center text-xs text-gray-500 hover:text-gray-300 pt-1">
+                    Cancel
+                  </button>
+                </div>
+              )}
             </>
           )}
         </div>
