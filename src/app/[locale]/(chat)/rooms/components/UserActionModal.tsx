@@ -85,7 +85,7 @@ export default function UserActionModal({
                   onClick={() => setShowSafety(true)} 
                   className="w-full flex items-center gap-3 text-gray-400 hover:text-white hover:bg-slate-800 px-4 py-2 rounded-xl transition-colors text-sm font-medium"
                 >
-                  <span className="text-base font-bold">ⵥ</span> Safety & Moderation
+                  <span className="text-base font-bold">ⵎ</span> Safety & Moderation
                 </button>
               ) : (
                 <div className="bg-[#0f172a] p-2 rounded-xl border border-slate-700 space-y-1">
