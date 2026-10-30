@@ -9,7 +9,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { db, auth, storage } from '@/lib/firebase/client';
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, updateDoc, doc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, updateDoc, doc, arrayUnion, arrayRemove, where } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { onAuthStateChanged, User } from 'firebase/auth';
 
@@ -36,6 +36,10 @@ export default function FeedPage() {
   const [newPostText, setNewPostText] = useState("");
   const [newPostImage, setNewPostImage] = useState<File | null>(null);
   const [isPosting, setIsPosting] = useState(false);
+
+  // Follow System State
+  const [feedTab, setFeedTab] = useState<'global' | 'following'>('global');
+  const [followingIds, setFollowingIds] = useState<string[]>([]);
 
   // Stories State
   const [stories, setStories] = useState<any[]>([]);
@@ -72,7 +76,18 @@ export default function FeedPage() {
     return () => unsub();
   }, [user]);
 
-  // Fetch Stories (Filter last 24h)
+  // Fetch Follows (For the "Following" tab)
+  useEffect(() => {
+    if (!user) return;
+    const q = query(collection(db, "follows"), where("followerId", "==", user.uid));
+    const unsub = onSnapshot(q, (snap) => {
+      const ids = snap.docs.map(d => d.data().followingId);
+      setFollowingIds(ids);
+    });
+    return () => unsub();
+  }, [user]);
+
+  // Fetch Stories
   useEffect(() => {
     if (!user) return;
     const q = query(collection(db, "stories"), orderBy("createdAt", "desc"));
@@ -111,7 +126,6 @@ export default function FeedPage() {
       handleCancelPost();
     } catch (err: any) {
       alert("Failed to create post: " + err.message);
-      console.error(err);
     }
     setIsPosting(false);
   };
@@ -205,6 +219,11 @@ export default function FeedPage() {
   if (loading) return <div className="min-h-screen bg-[#0f172a] text-white flex items-center justify-center">Loading Feed...</div>;
   if (!user) return null;
 
+  // Filter posts based on the active tab
+  const displayedPosts = feedTab === 'global' 
+    ? posts 
+    : posts.filter(post => followingIds.includes(post.authorId));
+
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-300">
       
@@ -217,32 +236,40 @@ export default function FeedPage() {
         <div className="w-20"></div>
       </div>
 
+      {/* 🌍 GLOBAL / 👥 FOLLOWING TABS */}
+      <div className="flex border-b border-slate-800 bg-[#0f172a]">
+        <button 
+          onClick={() => setFeedTab('global')} 
+          className={`flex-1 py-3 text-center font-bold transition-colors ${feedTab === 'global' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500 hover:text-gray-300'}`}
+        >
+          🌍 Global
+        </button>
+        <button 
+          onClick={() => setFeedTab('following')} 
+          className={`flex-1 py-3 text-center font-bold transition-colors ${feedTab === 'following' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500 hover:text-gray-300'}`}
+        >
+          👥 Following
+        </button>
+      </div>
+
       <div className="max-w-2xl mx-auto p-4 space-y-6 pb-24">
         
         {/* STORIES ROW */}
         <div className="flex gap-4 overflow-x-auto pb-4 pt-2 px-1">
-          {/* Create Story Button */}
           <div className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer" onClick={() => storyInputRef.current?.click()}>
             <div className="w-16 h-16 rounded-full bg-slate-800 border-2 border-teal-500 flex items-center justify-center relative overflow-hidden">
-               {isUploadingStory ? (
-                 <span className="text-xs text-white">...</span>
-               ) : (
-                 <span className="text-2xl text-teal-400 font-bold">+</span>
-               )}
+               {isUploadingStory ? <span className="text-xs text-white">...</span> : <span className="text-2xl text-teal-400 font-bold">+</span>}
             </div>
             <span className="text-xs text-gray-400 font-medium">Create Story</span>
             <input type="file" ref={storyInputRef} className="hidden" accept="image/*" onChange={handleCreateStory} />
           </div>
 
-          {/* Display Active Stories */}
           {stories.map((story) => (
             <div key={story.id} className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer" onClick={() => setActiveStory(story)}>
               <div className="w-16 h-16 rounded-full border-2 border-teal-500 p-0.5">
                 <img src={story.imageUrl} alt="Story" className="w-full h-full rounded-full object-cover" />
               </div>
-              <span className="text-xs text-gray-300 truncate w-16 text-center">
-                {story.authorName.split(' ')[0]}
-              </span>
+              <span className="text-xs text-gray-300 truncate w-16 text-center">{story.authorName.split(' ')[0]}</span>
             </div>
           ))}
         </div>
@@ -270,17 +297,8 @@ export default function FeedPage() {
               )}
 
               <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-700">
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  className="hidden" 
-                  accept="image/*" 
-                  onChange={(e) => setNewPostImage(e.target.files?.[0] || null)} 
-                />
-                <button 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="text-teal-400 hover:text-teal-300 text-sm font-medium flex items-center gap-1"
-                >
+                <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => setNewPostImage(e.target.files?.[0] || null)} />
+                <button onClick={() => fileInputRef.current?.click()} className="text-teal-400 hover:text-teal-300 text-sm font-medium flex items-center gap-1">
                   🖼️ Add Image
                 </button>
                 
@@ -302,14 +320,14 @@ export default function FeedPage() {
         </div>
 
         {/* POSTS TIMELINE */}
-        {posts.length === 0 && (
+        {displayedPosts.length === 0 && (
           <div className="text-center text-gray-500 py-10">
             <p className="text-4xl mb-2">🌱</p>
-            <p>No posts yet. Be the first to share something!</p>
+            <p>{feedTab === 'following' ? "You aren't following anyone yet, or they haven't posted." : "No posts yet. Be the first to share something!"}</p>
           </div>
         )}
 
-        {posts.map(post => {
+        {displayedPosts.map(post => {
           const hasLiked = post.likes?.includes(user.uid);
           const postDate = post.createdAt ? new Date(post.createdAt.toMillis()) : new Date();
           
@@ -331,9 +349,7 @@ export default function FeedPage() {
 
               {post.text && <p className="text-gray-200 text-sm whitespace-pre-wrap mb-3">{post.text}</p>}
               
-              {post.imageUrl && (
-                <img src={post.imageUrl} alt="Post" className="w-full rounded-xl mb-3 border border-slate-700" />
-              )}
+              {post.imageUrl && <img src={post.imageUrl} alt="Post" className="w-full rounded-xl mb-3 border border-slate-700" />}
 
               <div className="flex items-center gap-4 pt-3 border-t border-slate-700">
                 <button 
@@ -343,17 +359,11 @@ export default function FeedPage() {
                   {hasLiked ? '❤️' : '🤍'} {post.likes?.length || 0}
                 </button>
                 
-                <button 
-                  onClick={() => setCommentPost(post)}
-                  className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-teal-400 transition-colors"
-                >
+                <button onClick={() => setCommentPost(post)} className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-teal-400 transition-colors">
                   💬 Comment
                 </button>
 
-                <button 
-                  onClick={() => setSharePost(post)}
-                  className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-teal-400 transition-colors"
-                >
+                <button onClick={() => setSharePost(post)} className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-teal-400 transition-colors">
                   🔗 Share
                 </button>
               </div>
@@ -364,25 +374,13 @@ export default function FeedPage() {
 
       {/* MODALS */}
       {sharePost && (
-        <SharePostModal 
-          isOpen={!!sharePost} 
-          onClose={() => setSharePost(null)} 
-          post={sharePost} 
-          user={user} 
-          onShare={handleExecuteShare} 
-        />
+        <SharePostModal isOpen={!!sharePost} onClose={() => setSharePost(null)} post={sharePost} user={user} onShare={handleExecuteShare} />
       )}
 
       {commentPost && (
-        <CommentModal 
-          isOpen={!!commentPost} 
-          onClose={() => setCommentPost(null)} 
-          post={commentPost} 
-          user={user} 
-        />
+        <CommentModal isOpen={!!commentPost} onClose={() => setCommentPost(null)} post={commentPost} user={user} />
       )}
 
-      {/* 👇 THE MISSING STORY VIEWER 👇 */}
       {activeStory && (
         <StoryViewer story={activeStory} onClose={() => setActiveStory(null)} />
       )}
