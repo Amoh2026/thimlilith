@@ -9,7 +9,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { db, auth, storage } from '@/lib/firebase/client';
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, updateDoc, doc, arrayUnion, arrayRemove, where } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, updateDoc, doc, arrayUnion, arrayRemove, where, setDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { onAuthStateChanged, User } from 'firebase/auth';
 
@@ -20,6 +20,7 @@ interface Post {
   authorPhotoURL?: string;
   text: string;
   imageUrl?: string;
+  hashtags?: string[];
   createdAt: any;
   likes: string[];
 }
@@ -37,9 +38,10 @@ export default function FeedPage() {
   const [newPostImage, setNewPostImage] = useState<File | null>(null);
   const [isPosting, setIsPosting] = useState(false);
 
-  // Follow System State
+  // Feed & Follow State
   const [feedTab, setFeedTab] = useState<'global' | 'following'>('global');
   const [followingIds, setFollowingIds] = useState<string[]>([]);
+  const [allUsers, setAllUsers] = useState<any[]>([]);
 
   // Stories State
   const [stories, setStories] = useState<any[]>([]);
@@ -76,13 +78,21 @@ export default function FeedPage() {
     return () => unsub();
   }, [user]);
 
-  // Fetch Follows (For the "Following" tab)
+  // Fetch Follows
   useEffect(() => {
     if (!user) return;
     const q = query(collection(db, "follows"), where("followerId", "==", user.uid));
     const unsub = onSnapshot(q, (snap) => {
-      const ids = snap.docs.map(d => d.data().followingId);
-      setFollowingIds(ids);
+      setFollowingIds(snap.docs.map(d => d.data().followingId));
+    });
+    return () => unsub();
+  }, [user]);
+
+  // Fetch All Users (for Suggested People)
+  useEffect(() => {
+    if (!user) return;
+    const unsub = onSnapshot(collection(db, "users"), (snap) => {
+      setAllUsers(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     });
     return () => unsub();
   }, [user]);
@@ -113,12 +123,16 @@ export default function FeedPage() {
         imageUrl = await getDownloadURL(sref);
       }
 
+      // Extract Hashtags
+      const extractedTags = newPostText.match(/#[\w\u0600-\u06FF]+/g)?.map(t => t.toLowerCase()) || [];
+
       await addDoc(collection(db, "posts"), {
         authorId: user.uid,
         authorName: user.displayName || user.email?.split('@')[0] || "Anon",
         authorPhotoURL: user.photoURL || null,
         text: newPostText.trim(),
         imageUrl: imageUrl || null,
+        hashtags: extractedTags,
         createdAt: serverTimestamp(),
         likes: []
       });
@@ -187,6 +201,15 @@ export default function FeedPage() {
     }
   };
 
+  const handleFollow = async (targetId: string) => {
+    if (!user) return;
+    await setDoc(doc(db, "follows", `${user.uid}_${targetId}`), { 
+      followerId: user.uid, 
+      followingId: targetId, 
+      createdAt: serverTimestamp() 
+    });
+  };
+
   const handleExecuteShare = async (targetRoomId: string) => {
     if (!sharePost || !user) return;
     setIsSharing(true);
@@ -216,13 +239,28 @@ export default function FeedPage() {
     setIsSharing(false);
   };
 
+  const renderPostText = (text: string) => {
+    if (!text) return null;
+    const parts = text.split(/(#[\w\u0600-\u06FF]+)/g);
+    return parts.map((part, i) => {
+      if (part.startsWith('#')) {
+        return <Link key={i} href={`/${locale}/hashtag/${part.slice(1)}`} className="text-teal-400 hover:underline font-medium">{part}</Link>;
+      }
+      return <span key={i}>{part}</span>;
+    });
+  };
+
   if (loading) return <div className="min-h-screen bg-[#0f172a] text-white flex items-center justify-center">Loading Feed...</div>;
   if (!user) return null;
 
-  // Filter posts based on the active tab
   const displayedPosts = feedTab === 'global' 
     ? posts 
     : posts.filter(post => followingIds.includes(post.authorId));
+
+  const suggestedUsers = allUsers
+    .filter(u => u.id !== user.uid && !followingIds.includes(u.id))
+    .sort(() => 0.5 - Math.random())
+    .slice(0, 3);
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-300">
@@ -238,18 +276,12 @@ export default function FeedPage() {
         <div className="w-20"></div>
       </div>
 
-      {/* 🌍 GLOBAL / 👥 FOLLOWING TABS */}
+      {/* TABS */}
       <div className="flex border-b border-slate-800 bg-[#0f172a]">
-        <button 
-          onClick={() => setFeedTab('global')} 
-          className={`flex-1 py-3 text-center font-bold transition-colors flex items-center justify-center gap-2 ${feedTab === 'global' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500 hover:text-gray-300'}`}
-        >
+        <button onClick={() => setFeedTab('global')} className={`flex-1 py-3 text-center font-bold transition-colors flex items-center justify-center gap-2 ${feedTab === 'global' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500 hover:text-gray-300'}`}>
           <span className="text-lg font-bold">ⴰ</span> Global
         </button>
-        <button 
-          onClick={() => setFeedTab('following')} 
-          className={`flex-1 py-3 text-center font-bold transition-colors flex items-center justify-center gap-2 ${feedTab === 'following' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500 hover:text-gray-300'}`}
-        >
+        <button onClick={() => setFeedTab('following')} className={`flex-1 py-3 text-center font-bold transition-colors flex items-center justify-center gap-2 ${feedTab === 'following' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500 hover:text-gray-300'}`}>
           <span className="text-lg font-bold">ⴼ</span> Following
         </button>
       </div>
@@ -276,6 +308,29 @@ export default function FeedPage() {
           ))}
         </div>
 
+        {/* WHO TO FOLLOW WIDGET */}
+        {suggestedUsers.length > 0 && (
+          <div className="bg-[#1e293b] border border-slate-700 rounded-2xl p-4 shadow-lg">
+            <h3 className="text-sm font-bold text-gray-400 mb-3 uppercase tracking-wider">Who to follow</h3>
+            <div className="space-y-3">
+              {suggestedUsers.map(u => (
+                <div key={u.id} className="flex items-center justify-between">
+                  <Link href={`/${locale}/profile/${u.id}`} className="flex items-center gap-3 hover:opacity-80">
+                    <div className="w-10 h-10 rounded-full bg-teal-600 flex items-center justify-center text-white font-bold overflow-hidden">
+                      {u.photoURL ? <img src={u.photoURL} className="w-full h-full object-cover" /> : u.name?.[0].toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="text-white font-bold text-sm truncate max-w-[150px]">{u.name}</p>
+                      <p className="text-xs text-gray-500">New to Thimlilith</p>
+                    </div>
+                  </Link>
+                  <button onClick={() => handleFollow(u.id)} className="bg-white text-black px-4 py-1.5 rounded-full text-xs font-bold hover:bg-gray-200 transition">Follow</button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* CREATE POST BOX */}
         <div className="bg-[#1e293b] border border-slate-700 rounded-2xl p-4 shadow-lg">
           <div className="flex gap-3">
@@ -283,38 +338,21 @@ export default function FeedPage() {
               {user.displayName?.[0].toUpperCase() || "U"}
             </div>
             <div className="flex-1">
-              <textarea
-                value={newPostText}
-                onChange={(e) => setNewPostText(e.target.value)}
-                placeholder="What's on your mind? Share with the community..."
-                className="w-full bg-transparent text-white resize-none outline-none placeholder-gray-500 min-h-[60px]"
-                rows={2}
-              />
-              
+              <textarea value={newPostText} onChange={(e) => setNewPostText(e.target.value)} placeholder="What's on your mind? Use #hashtags..." className="w-full bg-transparent text-white resize-none outline-none placeholder-gray-500 min-h-[60px]" rows={2} />
               {newPostImage && (
                 <div className="mt-2 relative inline-block">
                   <img src={URL.createObjectURL(newPostImage)} alt="Preview" className="h-32 rounded-lg object-cover" />
                   <button onClick={() => setNewPostImage(null)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">✕</button>
                 </div>
               )}
-
               <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-700">
                 <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => setNewPostImage(e.target.files?.[0] || null)} />
-                <button onClick={() => fileInputRef.current?.click()} className="text-teal-400 hover:text-teal-300 text-sm font-medium flex items-center gap-1">
-                  <span className="font-bold text-base">ⵉ</span> Add Image
-                </button>
-                
+                <button onClick={() => fileInputRef.current?.click()} className="text-teal-400 hover:text-teal-300 text-sm font-medium flex items-center gap-1"><span className="font-bold text-base">ⵉ</span> Add Image</button>
                 <div className="flex items-center gap-2">
                   {(newPostText.trim() || newPostImage) && (
                     <button onClick={handleCancelPost} className="text-gray-400 hover:text-white px-3 py-1.5 text-sm transition">Cancel</button>
                   )}
-                  <button
-                    onClick={handleCreatePost}
-                    disabled={isPosting || (!newPostText.trim() && !newPostImage)}
-                    className="bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white px-5 py-1.5 rounded-full text-sm font-bold transition"
-                  >
-                    {isPosting ? 'Posting...' : 'Post'}
-                  </button>
+                  <button onClick={handleCreatePost} disabled={isPosting || (!newPostText.trim() && !newPostImage)} className="bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white px-5 py-1.5 rounded-full text-sm font-bold transition">{isPosting ? 'Posting...' : 'Post'}</button>
                 </div>
               </div>
             </div>
@@ -349,22 +387,17 @@ export default function FeedPage() {
                 </div>
               </div>
 
-              {post.text && <p className="text-gray-200 text-sm whitespace-pre-wrap mb-3">{post.text}</p>}
+              {post.text && <p className="text-gray-200 text-sm whitespace-pre-wrap mb-3">{renderPostText(post.text)}</p>}
               
               {post.imageUrl && <img src={post.imageUrl} alt="Post" className="w-full rounded-xl mb-3 border border-slate-700" />}
 
               <div className="flex items-center gap-4 pt-3 border-t border-slate-700">
-                <button 
-                  onClick={() => handleLike(post.id, post.likes || [], post.authorId)}
-                  className={`flex items-center gap-1.5 text-sm transition-colors ${hasLiked ? 'text-red-500' : 'text-gray-400 hover:text-red-400'}`}
-                >
+                <button onClick={() => handleLike(post.id, post.likes || [], post.authorId)} className={`flex items-center gap-1.5 text-sm transition-colors ${hasLiked ? 'text-red-500' : 'text-gray-400 hover:text-red-400'}`}>
                   {hasLiked ? '❤️' : '🤍'} {post.likes?.length || 0}
                 </button>
-                
                 <button onClick={() => setCommentPost(post)} className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-teal-400 transition-colors">
                   <span className="font-bold text-base">ⵎ</span> Comment
                 </button>
-
                 <button onClick={() => setSharePost(post)} className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-teal-400 transition-colors">
                   <span className="font-bold text-base">ⵙ</span> Share
                 </button>
@@ -374,19 +407,15 @@ export default function FeedPage() {
         })}
       </div>
 
-      {/* MODALS */}
       {sharePost && (
         <SharePostModal isOpen={!!sharePost} onClose={() => setSharePost(null)} post={sharePost} user={user} onShare={handleExecuteShare} />
       )}
-
       {commentPost && (
         <CommentModal isOpen={!!commentPost} onClose={() => setCommentPost(null)} post={commentPost} user={user} />
       )}
-
       {activeStory && (
         <StoryViewer story={activeStory} onClose={() => setActiveStory(null)} />
       )}
-
       <MobileBottomNav />
     </div>
   );
