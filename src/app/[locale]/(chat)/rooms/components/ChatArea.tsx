@@ -69,7 +69,7 @@ export function ChatArea(p: ChatAreaProps) {
   const [stickers, setStickers] = useState<{ emotions: string[], identity: string[] }>({ emotions: [], identity: [] });
   const [langMenuId, setLangMenuId] = useState<string | null>(null);
   const [showHeaderMenu, setShowHeaderMenu] = useState(false);
-  const [activeSubmenu, setActiveSubmenu] = useState<'none' | 'room'>('none');
+  const [activeSubmenu, setActiveSubmenu] = useState<'none' | 'room' | 'safety'>('none');
   const [selectedMsgId, setSelectedMsgId] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showStickerPicker, setShowStickerPicker] = useState(false);
@@ -239,17 +239,19 @@ export function ChatArea(p: ChatAreaProps) {
                       </button>
                     )}
 
-                    {p.activeRoom.type === "direct" && p.dmPartnerUid && (
+                       {p.activeRoom.type === "direct" && p.dmPartnerUid && (
                       <>
                         <div className="border-t border-slate-700 my-1"></div>
-                        <button onClick={() => { p.handleBlockUser(p.dmPartnerUid!, p.getDMName(p.activeRoom)); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700 hover:text-white">{p.isDMPartnerBlocked ? '🚫 Unblock' : '🚫 Block'}</button>
-                        <button onClick={() => { p.handleReportUser(p.dmPartnerUid!, p.getDMName(p.activeRoom)); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-amber-400 hover:bg-slate-700 hover:text-white">⚠️ Report</button>
+                        <button onClick={() => setActiveSubmenu('safety')} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white flex justify-between items-center">
+                          <span>ⵎ Safety & Moderation</span>
+                          <span>▶</span>
+                        </button>
                       </>
                     )}
                   </>
                 )}
 
-                {activeSubmenu === 'room' && (
+                    {activeSubmenu === 'room' && (
                   <>
                     <button onClick={() => setActiveSubmenu('none')} className="text-left px-4 py-2 text-xs text-gray-400 hover:text-white font-bold flex items-center gap-2 border-b border-slate-700 mb-1">
                       <span>◀</span> Back to Menu
@@ -281,6 +283,23 @@ export function ChatArea(p: ChatAreaProps) {
                     )}
                   </>
                 )}
+
+                {/* 👇 NEW SAFETY SUBMENU 👇 */}
+                {activeSubmenu === 'safety' && p.activeRoom.type === "direct" && p.dmPartnerUid && (
+                  <>
+                    <button onClick={() => setActiveSubmenu('none')} className="text-left px-4 py-2 text-xs text-gray-400 hover:text-white font-bold flex items-center gap-2 border-b border-slate-700 mb-1">
+                      <span>◀</span> Back to Menu
+                    </button>
+                    <button onClick={() => { p.handleBlockUser(p.dmPartnerUid!, p.getDMName(p.activeRoom)); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700 hover:text-white">
+                      {p.isDMPartnerBlocked ? '🚫 Unblock User' : '🚫 Block User'}
+                    </button>
+                    <button onClick={() => { p.handleReportUser(p.dmPartnerUid!, p.getDMName(p.activeRoom)); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-amber-400 hover:bg-slate-700 hover:text-white">
+                      ⚠️ Report User
+                    </button>
+                  </>
+                )}
+                {/* 👆 END OF SAFETY SUBMENU 👆 */}
+
               </div>
             )}
           </div>
