@@ -20,54 +20,8 @@ export default function LiveRoom() {
   const [token, setToken] = useState('');
   const [wsUrl, setWsUrl] = useState('');
   const [error, setError] = useState('');
-  
-  const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
-  const [selectedCamera, setSelectedCamera] = useState<string>('');
 
-  // 1. Hard Reset Camera Hardware
-  useEffect(() => {
-    const initCamera = async () => {
-      try {
-        let stream;
-        // Try to get the default camera first
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        } catch (defaultErr) {
-          console.warn("Default camera failed (is the lid closed?). Searching for USB...");
-          // If default fails, list all devices and force the first available one
-          const tempDevices = await navigator.mediaDevices.enumerateDevices();
-          const videoDevs = tempDevices.filter(d => d.kind === 'videoinput');
-          if (videoDevs.length > 0) {
-            stream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: videoDevs[0].deviceId } });
-          } else {
-            throw new Error("No cameras found on this device.");
-          }
-        }
-
-        // Stop the stream immediately so LiveKit can take over the hardware
-        if (stream) stream.getTracks().forEach(track => track.stop());
-
-        // Now get the full list with labels
-        const allDevices = await navigator.mediaDevices.enumerateDevices();
-        const videoDevices = allDevices.filter(d => d.kind === 'videoinput');
-        setDevices(videoDevices);
-
-        // Auto-select USB
-        const usbCam = videoDevices.find(d => d.label.toLowerCase().includes('usb'));
-        if (usbCam) {
-          setSelectedCamera(usbCam.deviceId);
-        } else if (videoDevices.length > 0) {
-          setSelectedCamera(videoDevices[0].deviceId);
-        }
-      } catch (err: any) {
-        console.error("Camera init error:", err);
-        // We won't block the UI, we'll just let them see the dropdown and try manually
-      }
-    };
-    initCamera();
-  }, []);
-
-  // 2. Fetch LiveKit Token
+  // Fetch LiveKit Token
   useEffect(() => {
     if (!roomId) return;
 
@@ -116,44 +70,18 @@ export default function LiveRoom() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f172a] flex flex-col" data-lk-theme="default">
-      
-      {/* Camera Dropdown */}
-      {isHost && (
-        <div className="bg-[#1e293b] p-3 flex flex-col sm:flex-row items-center justify-center gap-3 border-b border-white/10 z-50">
-          <span className="text-sm text-slate-300 font-medium">Select Camera:</span>
-          <select 
-            value={selectedCamera} 
-            onChange={(e) => setSelectedCamera(e.target.value)}
-            className="bg-[#0f172a] text-white text-sm rounded-lg px-3 py-2 focus:outline-none border border-slate-600 w-full max-w-xs"
-          >
-            <option value="">System Default</option>
-            {devices.map((device, idx) => (
-              device.deviceId !== 'default' && (
-                <option key={device.deviceId} value={device.deviceId}>
-                  {device.label || `Camera ${idx + 1}`}
-                </option>
-              )
-            ))}
-          </select>
-        </div>
-      )}
-
-      <div className="flex-1">
-        {/* 👇 If no camera is selected, we tell LiveKit NOT to start the camera initially 👇 */}
-        <LiveKitRoom
-          key={selectedCamera || 'default'} 
-          video={isHost ? (selectedCamera ? { deviceId: selectedCamera } : true) : false}
-          audio={isHost} 
-          token={token}
-          serverUrl={wsUrl}
-          onDisconnected={() => window.history.back()}
-          className="h-full"
-        >
-          <VideoConference />
-          <RoomAudioRenderer />
-        </LiveKitRoom>
-      </div>
+    <div className="min-h-screen bg-[#0f172a]" data-lk-theme="default">
+      <LiveKitRoom
+        video={isHost} // Let LiveKit handle the camera natively
+        audio={isHost} 
+        token={token}
+        serverUrl={wsUrl}
+        onDisconnected={() => window.history.back()}
+        className="h-screen"
+      >
+        <VideoConference />
+        <RoomAudioRenderer />
+      </LiveKitRoom>
     </div>
   );
 }
