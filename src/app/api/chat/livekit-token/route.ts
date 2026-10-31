@@ -1,7 +1,7 @@
 // ============================================================
 // /api/chat/livekit-token  (POST)
 // ============================================================
-// Body: { roomId }
+// Body: { roomId, isHost }
 // Returns: { token, url, roomName, identity }
 //
 // Requires env vars:
@@ -41,20 +41,33 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const roomId = String(body?.roomId ?? '').trim();
+    const isHost = Boolean(body?.isHost); // 👈 Read host flag
+
     if (!roomId) return badRequest('roomId required');
 
+    // Allow instant live streams (e.g. "live-171345") that don't exist in Firestore
+    const isInstantLive = roomId.startsWith('live-');
+    
     const snap = await adminDb().collection('rooms').doc(roomId).get();
-    if (!snap.exists) {
+    
+    // If it's not an instant live stream and the room doesn't exist, throw 404
+    if (!snap.exists && !isInstantLive) {
       return new Response(JSON.stringify({ error: 'Room not found' }), { status: 404 });
     }
-    const data = snap.data()!;
-    const members: string[] = data.members ?? [];
-    if (!members.includes(user.uid)) {
-      return new Response(JSON.stringify({ error: 'Not a member' }), { status: 403 });
+
+    // If it's a normal chat room, verify the user is a member
+    if (snap.exists) {
+      const data = snap.data()!;
+      const members: string[] = data.members ?? [];
+      if (!members.includes(user.uid)) {
+        return new Response(JSON.stringify({ error: 'Not a member' }), { status: 403 });
+      }
     }
 
     const displayName = user.name || user.email?.split('@')[0] || 'Member';
-    const roomName = `safmalmo-chat-${roomId}`;
+    
+    // Differentiate naming so Live streams don't collide with Chat calls
+    const roomName = isInstantLive ? `live-stage-${roomId}` : `safmalmo-chat-${roomId}`;
 
     const at = new AccessToken(apiKey, apiSecret, {
       identity: user.uid,
@@ -65,8 +78,8 @@ export async function POST(req: NextRequest) {
     at.addGrant({
       roomJoin: true,
       room: roomName,
-      canPublish: true,
-      canSubscribe: true,
+      canPublish: isHost, // 🔒 Only the Host can broadcast camera/mic
+      canSubscribe: true, // 👈 Everyone can watch
       canPublishData: true,
     });
 
