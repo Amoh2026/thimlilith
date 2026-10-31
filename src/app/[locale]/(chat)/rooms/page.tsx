@@ -947,7 +947,6 @@ export default function ThimlilithChatUI() {
 
           {/* 👇 FLOATING SSO BUTTON FOR EASY TESTING 👇 */}
           <div className="fixed bottom-20 left-4 z-50 md:bottom-6 md:left-24">
-            <SSOButton target="atk" label="Go to ATK ⵣ" className="shadow-2xl shadow-indigo-500/50" />
           </div>
 
           
