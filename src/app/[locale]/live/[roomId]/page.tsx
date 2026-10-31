@@ -19,16 +19,19 @@ export default function LiveRoom() {
   
   const [token, setToken] = useState('');
   const [error, setError] = useState('');
+  
+  // Pre-join state
+  const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
+  const [selectedDevice, setSelectedDevice] = useState<string>('');
   const [permissionsGranted, setPermissionsGranted] = useState(false);
+  const [previewStream, setPreviewStream] = useState<MediaStream | null>(null);
 
+  // 1. Fetch LiveKit Token
   useEffect(() => {
     if (!roomId) return;
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        setError("You must be logged in to join a live stream.");
-        return;
-      }
+      if (!user) return setError("You must be logged in.");
 
       try {
         const idToken = await user.getIdToken();
@@ -53,49 +56,76 @@ export default function LiveRoom() {
     return () => unsubscribe();
   }, [roomId, isHost]);
 
-  const handleRequestPermissions = async () => {
+  // 2. Start Camera Preview (Force enumeration)
+  const handleStartPreview = async () => {
     try {
+      // Try to get a stream. This forces Chrome to ask for permission.
       let stream;
       try {
-        // Try the default camera first
-        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      } catch (defaultErr: any) {
-        // If the default fails (lid closed), scan for ANY camera and use the first one
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const videoDevices = devices.filter(d => d.kind === 'videoinput');
-        if (videoDevices.length > 0) {
-          stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { deviceId: videoDevices[0].deviceId }, 
-            audio: true 
-          });
-        } else {
-          throw defaultErr;
-        }
+        // First, just try the default
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      } catch (err) {
+        console.log("Default failed, enumerating devices...");
+        throw err;
       }
       
-      // Stop hardware lock, then allow LiveKit to mount
-      stream.getTracks().forEach(track => track.stop());
+      setPreviewStream(stream);
+      
+      // Now that we have permission, we can get the labels
+      const allDevices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = allDevices.filter(d => d.kind === 'videoinput');
+      setDevices(videoDevices);
+      
+      if (videoDevices.length > 0) {
+        setSelectedDevice(videoDevices[0].deviceId);
+      }
+
       setPermissionsGranted(true);
     } catch (err: any) {
-      // Tell the user EXACTLY why it failed
       console.error(err);
       if (err.name === 'NotAllowedError') {
-        alert("Permission Denied!\n\nPlease click the Lock icon 🔒 in the URL bar and set Camera to 'Allow'.");
-      } else if (err.name === 'NotReadableError') {
-        alert("Camera is busy!\n\nAnother app (Zoom, Teams, PowerPoint) is using your camera. Close it and try again.");
+        setError("Chrome is blocking the camera. Please click the Lock icon 🔒 in the URL bar, set Camera to 'Allow', and refresh the page.");
       } else if (err.name === 'NotFoundError') {
-        alert("No Camera Found!\n\nPlease plug in your USB camera.");
+        setError("No camera found. Please plug in your USB camera.");
       } else {
-        alert(`Error: ${err.message}`);
+        setError("Could not access camera: " + err.message);
       }
     }
+  };
+
+  // 3. Handle switching camera in the preview
+  const handleDeviceChange = async (deviceId: string) => {
+    setSelectedDevice(deviceId);
+    try {
+      // Stop old stream
+      if (previewStream) {
+        previewStream.getTracks().forEach(t => t.stop());
+      }
+      // Get new stream
+      const newStream = await navigator.mediaDevices.getUserMedia({ video: { deviceId }, audio: false });
+      setPreviewStream(newStream);
+    } catch (err: any) {
+      alert("Could not switch to that camera.");
+    }
+  };
+
+  const handleJoinCall = () => {
+    // Stop preview stream to free hardware before LiveKit takes over
+    if (previewStream) {
+      previewStream.getTracks().forEach(t => t.stop());
+    }
+    setPermissionsGranted(true);
+    // Use a small delay to ensure Chrome fully releases the camera hardware
+    setTimeout(() => {
+      setPermissionsGranted(true);
+    }, 500);
   };
 
   if (error) {
     return (
       <div className="min-h-screen bg-[#0f172a] flex flex-col items-center justify-center text-red-400 p-4 text-center">
-        <p className="mb-4 text-sm font-mono bg-red-500/10 p-4 rounded-xl border border-red-500/20">⚠️ {error}</p>
-        <button onClick={() => window.history.back()} className="text-teal-400 underline mt-2">Go Back</button>
+        <p className="mb-4 text-sm bg-red-500/10 p-4 rounded-xl border border-red-500/20 max-w-md">{error}</p>
+        <button onClick={() => window.history.back()} className="text-teal-400 underline">Go Back</button>
       </div>
     );
   }
@@ -108,30 +138,70 @@ export default function LiveRoom() {
     );
   }
 
+  // PRE-JOIN SCREEN
   if (isHost && !permissionsGranted) {
     return (
       <div className="min-h-screen bg-[#0f172a] flex flex-col items-center justify-center p-4">
-        <div className="bg-[#1e293b] p-8 rounded-2xl shadow-xl border border-white/10 max-w-md w-full text-center">
-          <h1 className="text-2xl font-bold text-white mb-2">Ready to go live?</h1>
-          <p className="text-slate-400 mb-6 text-sm">Click below to allow your browser to use your camera and microphone.</p>
+        <div className="bg-[#1e293b] p-8 rounded-2xl shadow-xl border border-white/10 max-w-lg w-full text-center">
+          <h1 className="text-2xl font-bold text-white mb-2">Camera Setup</h1>
+          <p className="text-slate-400 mb-6 text-sm">Allow access and select your USB camera.</p>
+          
           <button 
-            onClick={handleRequestPermissions}
+            onClick={handleStartPreview}
             className="w-full bg-teal-500 hover:bg-teal-400 text-slate-900 font-bold py-4 rounded-xl shadow-lg transition-transform active:scale-95 text-lg"
           >
-            Turn On Camera & Mic
-          </button>
-          <button onClick={() => window.history.back()} className="mt-4 text-sm text-slate-500 hover:text-white underline">
-            Cancel and go back
+            Allow Camera Access
           </button>
         </div>
       </div>
     );
   }
 
+  // PREVIEW SCREEN (Once permission granted)
+  if (isHost && permissionsGranted && previewStream) {
+    return (
+      <div className="min-h-screen bg-[#0f172a] flex flex-col items-center justify-center p-4">
+        <div className="bg-[#1e293b] p-6 rounded-2xl shadow-xl border border-white/10 max-w-lg w-full">
+          <h1 className="text-xl font-bold text-white mb-4 text-center">Select USB Camera</h1>
+          
+          <div className="bg-black rounded-xl overflow-hidden aspect-video mb-4">
+            <video 
+              autoPlay 
+              playsInline 
+              muted 
+              ref={el => { if (el) el.srcObject = previewStream; }}
+              className="w-full h-full object-cover"
+            />
+          </div>
+
+          <select 
+            value={selectedDevice} 
+            onChange={(e) => handleDeviceChange(e.target.value)}
+            className="w-full bg-[#0f172a] text-white text-sm rounded-lg px-3 py-3 mb-4 focus:outline-none border border-slate-600"
+          >
+            {devices.map((d, idx) => (
+              <option key={d.deviceId} value={d.deviceId}>
+                {d.label || `Camera ${idx + 1}`}
+              </option>
+            ))}
+          </select>
+
+          <button 
+            onClick={handleJoinCall}
+            className="w-full bg-teal-500 hover:bg-teal-400 text-slate-900 font-bold py-3 rounded-xl shadow-lg transition-transform active:scale-95 text-lg"
+          >
+            Enter Live Stage
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // LIVEKIT ROOM (Once joined)
   return (
     <div className="min-h-screen bg-[#0f172a]" data-lk-theme="default">
       <LiveKitRoom
-        video={isHost} 
+        video={isHost ? { deviceId: selectedDevice } : false} // Force the exact USB camera
         audio={isHost} 
         token={token}
         serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL}
