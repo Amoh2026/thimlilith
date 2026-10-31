@@ -11,6 +11,7 @@ import { saveToATK } from '@/lib/atk';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { RequireVerified } from '@/components/auth/RequireVerified';
 import { SSOButton } from '@/components/auth/SSOButton'; // 👈 NEW IMPORT
+import DesktopActionHub from '@/components/DesktopActionHub';
 
 // Components
 import PremiumModal, { type LimitType } from './components/PremiumModal';
