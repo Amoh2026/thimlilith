@@ -24,7 +24,6 @@ export default function LiveRoom() {
   useEffect(() => {
     if (!roomId) return;
 
-    // Wait for Firebase auth to load, then fetch the token
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         setError("You must be logged in to join a live stream.");
@@ -81,7 +80,6 @@ export default function LiveRoom() {
     );
   }
 
-  // Clean, simple LiveKit implementation
   return (
     <div className="min-h-screen bg-[#0f172a]" data-lk-theme="default">
       <LiveKitRoom
