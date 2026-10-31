@@ -6,7 +6,6 @@ import { verifyChatUser, unauthorized } from '@/lib/chat/auth-server';
 const DIGITAL_SERVICES_TAX_CODE = 'txcd_10000000';
 
 export async function POST(req: NextRequest) {
-  // 👇 Stripe initialization MUST be inside the handler
   const stripeKey = process.env.STRIPE_SECRET_KEY;
   if (!stripeKey) {
     return NextResponse.json({ error: "Stripe key not configured on server" }, { status: 500 });
@@ -17,11 +16,28 @@ export async function POST(req: NextRequest) {
   if (!user) return unauthorized();
 
   try {
-    const { type, plan, amount } = await req.json();
+    const { type, plan, amount, roomId } = await req.json();
     let lineItems = [];
     let metadata: any = { uid: user.uid, type };
 
-    if (type === 'donation') {
+    if (type === 'room_join') {
+      if (!amount || amount < 1) return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
+      if (!roomId) return NextResponse.json({ error: "Missing room ID" }, { status: 400 });
+      
+      lineItems = [{
+        price_data: {
+          currency: 'eur',
+          product_data: { 
+            name: 'Premium Room Access', 
+            description: 'Monthly access to a private Thajmaath',
+            tax_code: DIGITAL_SERVICES_TAX_CODE
+          },
+          unit_amount: amount * 100,
+        },
+        quantity: 1,
+      }];
+      metadata.roomId = roomId;
+    } else if (type === 'donation') {
       if (!amount || amount < 1) return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
       lineItems = [{
         price_data: {

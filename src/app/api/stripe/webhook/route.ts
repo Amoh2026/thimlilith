@@ -36,7 +36,14 @@ export async function POST(req: NextRequest) {
       const db = adminDb();
       const userRef = db.collection('users').doc(uid);
 
-      if (type === 'donation') {
+      if (type === 'room_join') {
+        const roomId = session.metadata?.roomId;
+        if (roomId && uid) {
+          await db.collection('rooms').doc(roomId).update({
+            members: FieldValue.arrayUnion(uid)
+          });
+        }
+      } else if (type === 'donation') {
         await userRef.set({
           isDonator: true,
           totalDonated: FieldValue.increment(donationAmount),

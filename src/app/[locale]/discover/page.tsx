@@ -37,19 +37,35 @@ export default function DiscoverPage() {
     return () => unsub();
   }, [user]);
 
-  const handleJoin = async (roomId: string) => {
+  const handleJoin = async (room: any) => {
     if (!user) return;
-    setJoiningId(roomId);
-    try {
-      const roomRef = doc(db, "rooms", roomId);
-      await updateDoc(roomRef, {
-        members: arrayUnion(user.uid),
-        [`memberNames.${user.uid}`]: user.displayName || user.email?.split('@')[0] || "User"
-      });
-      // After joining, go straight into the room
-      router.push(`/${locale}/rooms`);
-    } catch (err: any) {
-      alert("Failed to join room: " + err.message);
+    setJoiningId(room.id);
+
+    if (room.isPaid) {
+      try {
+        const token = await user.getIdToken();
+        const res = await fetch('/api/stripe/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ type: 'room_join', roomId: room.id, amount: room.price })
+        });
+        const data = await res.json();
+        if (data.url) window.location.href = data.url;
+        else alert(data.error || 'Failed to start checkout');
+      } catch (err: any) {
+        alert("Error: " + err.message);
+      }
+    } else {
+      try {
+        const roomRef = doc(db, "rooms", room.id);
+        await updateDoc(roomRef, {
+          members: arrayUnion(user.uid),
+          [`memberNames.${user.uid}`]: user.displayName || user.email?.split('@')[0] || "User"
+        });
+        router.push(`/${locale}/rooms`);
+      } catch (err: any) {
+        alert("Failed to join room: " + err.message);
+      }
     }
     setJoiningId(null);
   };
@@ -103,11 +119,11 @@ export default function DiscoverPage() {
                 </button>
               ) : (
                 <button 
-                  onClick={() => handleJoin(room.id)}
+                  onClick={() => handleJoin(room)}
                   disabled={joiningId === room.id}
-                  className="bg-teal-600 hover:bg-teal-500 text-white px-4 py-2 rounded-lg text-sm font-bold transition disabled:opacity-50"
+                  className={`px-4 py-2 rounded-lg text-sm font-bold transition disabled:opacity-50 ${room.isPaid ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-teal-600 hover:bg-teal-500 text-white'}`}
                 >
-                  {joiningId === room.id ? 'Joining...' : 'Join'}
+                  {joiningId === room.id ? 'Processing...' : room.isPaid ? `🔒 €${room.price}/mo` : 'Join'}
                 </button>
               )}
             </div>

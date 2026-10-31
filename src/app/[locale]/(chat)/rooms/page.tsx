@@ -41,6 +41,8 @@ export default function ThimlilithChatUI() {
   const [rooms, setRooms] = useState<any[]>([]);
   const [activeRoom, setActiveRoom] = useState<any>(null);
   const [newRoomName, setNewRoomName] = useState("");
+  const [isPaidRoom, setIsPaidRoom] = useState(false);
+  const [roomPrice, setRoomPrice] = useState("");
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
   const [inputText, setInputText] = useState("");
@@ -837,7 +839,7 @@ export default function ThimlilithChatUI() {
             sidebarTab={sidebarTab} setSidebarTab={setSidebarTab}
             friendRequests={friendRequests} friendsList={friendsList} blockedUsersList={blockedUsersList}
             searchQuery={searchQuery} setSearchQuery={setSearchQuery} searchResults={searchResults} isSearching={isSearching}
-            newRoomName={newRoomName} setNewRoomName={setNewRoomName} isCreatingRoom={isCreatingRoom} setIsCreatingRoom={setIsCreatingRoom}
+            newRoomName={newRoomName} setNewRoomName={setNewRoomName} isCreatingRoom={isCreatingRoom} setIsCreatingRoom={setIsCreatingRoom} isPaidRoom={isPaidRoom} setIsPaidRoom={setIsPaidRoom} roomPrice={roomPrice} setRoomPrice={setRoomPrice}
             getDMName={getDMName} handleSelectRoom={handleSelectRoom} handleCreateRoom={handleCreateRoom}
             handleSearchUsers={handleSearchUsers} handleSendFriendRequest={handleSendFriendRequest}
             handleAcceptRequest={handleAcceptRequest} handleRejectRequest={handleRejectRequest}

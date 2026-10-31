@@ -32,6 +32,10 @@ interface SidebarsProps {
   getDMName: (room: any) => string;
   handleSelectRoom: (room: any) => void;
   handleCreateRoom: (e: React.FormEvent) => void;
+  isPaidRoom: boolean;
+  setIsPaidRoom: (v: boolean) => void;
+  roomPrice: string;
+  setRoomPrice: (v: string) => void;
   handleSearchUsers: (e: React.FormEvent) => void;
   handleSendFriendRequest: (u: any) => void;
   handleAcceptRequest: (id: string) => void;
@@ -178,6 +182,20 @@ export function Sidebars(p: SidebarsProps) {
             {p.isCreatingRoom && (
               <form onSubmit={p.handleCreateRoom} className="p-3 bg-[#1e293b] border-y border-slate-700">
                 <input type="text" value={p.newRoomName} onChange={(e) => p.setNewRoomName(e.target.value)} placeholder="E.g. Paris..." className="w-full bg-[#0f172a] text-sm text-white rounded-lg px-3 py-2 mb-2 border border-slate-600" autoFocus />
+
+                <div className="flex items-center gap-2 mb-3">
+                  <input type="checkbox" checked={p.isPaidRoom} onChange={(e) => p.setIsPaidRoom(e.target.checked)} id="paidRoomToggle" className="w-4 h-4 accent-teal-500" />
+                  <label htmlFor="paidRoomToggle" className="text-xs text-gray-300 font-medium">Premium Room 🔒</label>
+                </div>
+
+                {p.isPaidRoom && (
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-xs text-gray-300">€</span>
+                    <input type="number" min="1" value={p.roomPrice} onChange={(e) => p.setRoomPrice(e.target.value)} placeholder="Price (e.g. 5)" className="w-full bg-[#0f172a] text-sm text-white rounded-lg px-3 py-2 border border-slate-600" required={p.isPaidRoom} />
+                    <span className="text-xs text-gray-300">/mo</span>
+                  </div>
+                )}
+
                 <div className="flex gap-2">
                   <button type="submit" className="flex-1 bg-teal-600 text-white text-xs py-1.5 rounded">Create</button>
                   <button type="button" onClick={() => p.setIsCreatingRoom(false)} className="flex-1 bg-slate-600 text-white text-xs py-1.5 rounded">Cancel</button>
