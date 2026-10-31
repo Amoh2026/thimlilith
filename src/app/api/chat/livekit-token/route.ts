@@ -1,78 +1,38 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { AccessToken } from 'livekit-server-sdk';
-import { adminDb } from '@/lib/firebase/admin';
-import { verifyChatUser, unauthorized, badRequest } from '@/lib/chat/auth-server';
+
+export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
   try {
-    // 👈 EVERYTHING IS NOW INSIDE THE TRY BLOCK
-    const user = await verifyChatUser(req);
-    if (!user) return unauthorized();
-
     const apiKey = process.env.LIVEKIT_API_KEY;
     const apiSecret = process.env.LIVEKIT_API_SECRET;
-    const wsUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL;
 
-    if (!apiKey || !apiSecret || !wsUrl) {
-      return new Response(
-        JSON.stringify({ error: 'LiveKit keys missing on server' }),
-        { status: 503, headers: { 'Content-Type': 'application/json' } }
-      );
+    if (!apiKey || !apiSecret) {
+      return NextResponse.json({ error: 'Missing LiveKit keys on Vercel' }, { status: 500 });
     }
 
-    const body = await req.json();
-    const roomId = String(body?.roomId ?? '').trim();
-    const isHost = Boolean(body?.isHost);
-
-    if (!roomId) return badRequest('roomId required');
-
-    const isInstantLive = roomId.startsWith('live-');
-    const snap = await adminDb().collection('rooms').doc(roomId).get();
-    
-    if (!snap.exists && !isInstantLive) {
-      return new Response(JSON.stringify({ error: 'Room not found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
-    }
-
-    if (snap.exists) {
-      const data = snap.data()!;
-      const members: string[] = data.members ?? [];
-      if (!members.includes(user.uid)) {
-        return new Response(JSON.stringify({ error: 'Not a member' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
-      }
-    }
-
-    const displayName = user.name || user.email?.split('@')[0] || 'Member';
-    const roomName = isInstantLive ? `live-stage-${roomId}` : `safmalmo-chat-${roomId}`;
-
+    // Hardcoded test user
     const at = new AccessToken(apiKey, apiSecret, {
-      identity: user.uid,
-      name: displayName,
+      identity: 'test-user',
+      name: 'Test User',
       ttl: '2h',
     });
 
     at.addGrant({
       roomJoin: true,
-      room: roomName,
-      canPublish: isHost,
+      room: 'debug-room',
+      canPublish: true,
       canSubscribe: true,
-      canPublishData: true,
     });
 
     const token = await at.toJwt();
 
-    return Response.json({
+    return NextResponse.json({
       token,
-      url: wsUrl,
-      roomName,
-      identity: user.uid,
+      url: process.env.NEXT_PUBLIC_LIVEKIT_URL,
     });
-    
   } catch (err: any) {
-    console.error('POST /api/chat/livekit-token error:', err);
-    // 🛡️ This will now catch Firebase crashes and send the error to the frontend
-    return new Response(
-      JSON.stringify({ error: err?.message || 'Internal Server Error' }), 
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
