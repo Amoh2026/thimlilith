@@ -1,6 +1,6 @@
 // src/app/[locale]/(chat)/rooms/components/ChatArea.tsx
 "use client";
-
+import DesktopActionHub from '@/components/DesktopActionHub';
 import React, { RefObject, useState, useEffect, useRef } from 'react';
 import { User } from 'firebase/auth';
 import { getYouTubeID, renderTextWithLinks, REACTIONS } from './utils';
@@ -205,10 +205,13 @@ export function ChatArea(p: ChatAreaProps) {
           </div>
         </div>
 
-        <div className="flex gap-2 items-center relative">
+            <div className="flex gap-2 items-center relative">
           {p.activeRoom.type === "group" && (
             <button onClick={() => p.setShowRightSidebar(!p.showRightSidebar)} className={`border w-10 h-10 rounded-lg flex items-center justify-center text-xl transition ${p.showRightSidebar ? 'bg-teal-600 border-teal-500 text-white' : 'bg-[#1e293b] hover:bg-slate-700 border-slate-700 text-gray-300'}`} title="Toggle Members List">👥</button>
           )}
+
+          {/* 👇 DESKTOP ACTION HUB BUTTON 👇 */}
+          <DesktopActionHub /> 
 
           <div className="relative header-menu-container">
             <button onClick={() => { setShowHeaderMenu(!showHeaderMenu); setActiveSubmenu('none'); }} className="bg-[#1e293b] hover:bg-slate-700 border border-slate-700 text-white w-10 h-10 rounded-lg flex items-center justify-center text-xl">⋮</button>
