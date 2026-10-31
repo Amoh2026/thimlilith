@@ -18,12 +18,12 @@ export default function LiveRoom() {
   const isHost = searchParams?.get('host') === 'true';
   
   const [token, setToken] = useState('');
-  const [wsUrl, setWsUrl] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (!roomId) return;
 
+    // 👇 WAIT FOR FIREBASE AUTH TO FINISH LOADING
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         setError("You must be logged in to join a live stream.");
@@ -54,7 +54,6 @@ export default function LiveRoom() {
         }
 
         setToken(data.token);
-        setWsUrl(data.url);
       } catch (err: any) {
         setError(err.message);
       }
@@ -86,7 +85,7 @@ export default function LiveRoom() {
         video={isHost} 
         audio={isHost} 
         token={token}
-        serverUrl={wsUrl}
+        serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL}
         onDisconnected={() => window.history.back()}
         className="h-screen"
       >
