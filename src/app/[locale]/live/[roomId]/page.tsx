@@ -18,39 +18,10 @@ export default function LiveRoom() {
   const isHost = searchParams?.get('host') === 'true';
   
   const [token, setToken] = useState('');
-  const [wsUrl, setWsUrl] = useState('');
   const [error, setError] = useState('');
-  const [cameraId, setCameraId] = useState<string | null>(null);
+  const [permissionsGranted, setPermissionsGranted] = useState(false);
 
-  // 👇 1. FORCE BROWSER TO PROMPT FOR CAMERA AND GET DEVICE ID 👇
-  useEffect(() => {
-    if (!isHost) return;
-    
-    const setupCamera = async () => {
-      try {
-        // This forces the browser popup to allow the camera
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        // Stop the stream so LiveKit can take over the hardware
-        stream.getTracks().forEach(t => t.stop());
-        
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const videoDevices = devices.filter(d => d.kind === 'videoinput');
-        
-        // Look for USB/Webcam, otherwise grab the first available camera
-        const usbCam = videoDevices.find(d => d.label.toLowerCase().includes('usb') || d.label.toLowerCase().includes('webcam'));
-        if (usbCam) {
-          setCameraId(usbCam.deviceId);
-        } else if (videoDevices.length > 0) {
-          setCameraId(videoDevices[0].deviceId);
-        }
-      } catch (err) {
-        console.error("Camera permission failed:", err);
-      }
-    };
-    setupCamera();
-  }, [isHost]);
-
-  // 2. Fetch LiveKit Token
+  // 1. Fetch LiveKit Token via Firebase Auth
   useEffect(() => {
     if (!roomId) return;
 
@@ -84,7 +55,6 @@ export default function LiveRoom() {
         }
 
         setToken(data.token);
-        setWsUrl(data.url);
       } catch (err: any) {
         setError(err.message);
       }
@@ -92,6 +62,22 @@ export default function LiveRoom() {
 
     return () => unsubscribe();
   }, [roomId, isHost]);
+
+  // 2. Handle Pre-Join Permissions
+  const handleRequestPermissions = async () => {
+    try {
+      // Force the browser to grab the camera and mic
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      
+      // Immediately stop the stream to completely release the hardware lock
+      stream.getTracks().forEach(track => track.stop());
+      
+      // Once safely released, allow LiveKit to mount
+      setPermissionsGranted(true);
+    } catch (err: any) {
+      alert("Could not access camera/mic. Please check your browser permissions.");
+    }
+  };
 
   if (error) {
     return (
@@ -110,18 +96,39 @@ export default function LiveRoom() {
     );
   }
 
+  // 👇 THE FIX: Show a pre-join screen for the Host to clear old hardware locks 👇
+  if (isHost && !permissionsGranted) {
+    return (
+      <div className="min-h-screen bg-[#0f172a] flex flex-col items-center justify-center p-4">
+        <div className="bg-[#1e293b] p-8 rounded-2xl shadow-xl border border-white/10 max-w-md w-full text-center">
+          <h1 className="text-2xl font-bold text-white mb-2">Ready to go live?</h1>
+          <p className="text-slate-400 mb-6 text-sm">Click below to allow your browser to use your camera and microphone.</p>
+          <button 
+            onClick={handleRequestPermissions}
+            className="w-full bg-teal-500 hover:bg-teal-400 text-slate-900 font-bold py-4 rounded-xl shadow-lg transition-transform active:scale-95 text-lg"
+          >
+            Turn On Camera & Mic
+          </button>
+          <button 
+            onClick={() => window.history.back()} 
+            className="mt-4 text-sm text-slate-500 hover:text-white underline"
+          >
+            Cancel and go back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // 3. Mount LiveKit only after permission is granted
   return (
     <div className="min-h-screen bg-[#0f172a]" data-lk-theme="default">
       <LiveKitRoom
-        // 👇 Tell LiveKit to use the exact camera ID we found 👇
-        video={isHost ? (cameraId ? { deviceId: cameraId } : true) : false}
+        video={isHost} 
         audio={isHost} 
         token={token}
-        serverUrl={wsUrl}
+        serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL}
         onDisconnected={() => window.history.back()}
-        onMediaDeviceFailure={(e, kind) => {
-          console.error("Media Device Failure:", kind, e);
-        }}
         className="h-screen"
       >
         <VideoConference />
