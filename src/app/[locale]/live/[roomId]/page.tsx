@@ -24,28 +24,44 @@ export default function LiveRoom() {
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedCamera, setSelectedCamera] = useState<string>('');
 
-  // 1. Wake up the camera and get the list safely
+  // 1. Hard Reset Camera Hardware
   useEffect(() => {
     const initCamera = async () => {
       try {
-        // This forces the browser permission prompt
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        // Stop the stream immediately so it frees the hardware
-        stream.getTracks().forEach(track => track.stop());
+        let stream;
+        // Try to get the default camera first
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        } catch (defaultErr) {
+          console.warn("Default camera failed (is the lid closed?). Searching for USB...");
+          // If default fails, list all devices and force the first available one
+          const tempDevices = await navigator.mediaDevices.enumerateDevices();
+          const videoDevs = tempDevices.filter(d => d.kind === 'videoinput');
+          if (videoDevs.length > 0) {
+            stream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: videoDevs[0].deviceId } });
+          } else {
+            throw new Error("No cameras found on this device.");
+          }
+        }
 
+        // Stop the stream immediately so LiveKit can take over the hardware
+        if (stream) stream.getTracks().forEach(track => track.stop());
+
+        // Now get the full list with labels
         const allDevices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = allDevices.filter(d => d.kind === 'videoinput');
         setDevices(videoDevices);
 
-        // Auto-select the USB camera if we find one
-        const usbCam = videoDevices.find(d => d.label.toLowerCase().includes('usb') || d.label.toLowerCase().includes('external'));
+        // Auto-select USB
+        const usbCam = videoDevices.find(d => d.label.toLowerCase().includes('usb'));
         if (usbCam) {
           setSelectedCamera(usbCam.deviceId);
         } else if (videoDevices.length > 0) {
           setSelectedCamera(videoDevices[0].deviceId);
         }
-      } catch (err) {
-        console.warn("Initial camera check failed:", err);
+      } catch (err: any) {
+        console.error("Camera init error:", err);
+        // We won't block the UI, we'll just let them see the dropdown and try manually
       }
     };
     initCamera();
@@ -91,12 +107,10 @@ export default function LiveRoom() {
     );
   }
 
-  // Wait for both token and camera list
-  if (!token || (isHost && devices.length > 0 && !selectedCamera)) {
+  if (!token) {
     return (
-      <div className="min-h-screen bg-[#0f172a] flex flex-col items-center justify-center text-teal-400">
+      <div className="min-h-screen bg-[#0f172a] flex items-center justify-center text-teal-400">
         <div className="animate-pulse">Connecting to Live Stage...</div>
-        {isHost && <p className="text-xs text-slate-500 mt-2">Scanning for cameras...</p>}
       </div>
     );
   }
@@ -117,7 +131,7 @@ export default function LiveRoom() {
             {devices.map((device, idx) => (
               device.deviceId !== 'default' && (
                 <option key={device.deviceId} value={device.deviceId}>
-                  {device.label || `External Camera ${idx + 1}`}
+                  {device.label || `Camera ${idx + 1}`}
                 </option>
               )
             ))}
@@ -126,8 +140,9 @@ export default function LiveRoom() {
       )}
 
       <div className="flex-1">
+        {/* 👇 If no camera is selected, we tell LiveKit NOT to start the camera initially 👇 */}
         <LiveKitRoom
-          key={selectedCamera || 'default'} // This forces a full refresh when you change cameras
+          key={selectedCamera || 'default'} 
           video={isHost ? (selectedCamera ? { deviceId: selectedCamera } : true) : false}
           audio={isHost} 
           token={token}
