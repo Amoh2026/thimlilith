@@ -101,15 +101,15 @@ export function Sidebars(p: SidebarsProps) {
       <div className="hidden md:flex w-16 flex-col items-center py-4 bg-[#0b1120] border-r border-slate-800">
         <div className="w-10 h-10 bg-teal-500 rounded-xl mb-8 flex items-center justify-center text-white font-bold">T</div>
         <div className="flex flex-col gap-6 text-slate-500">
-          <button onClick={() => p.setSidebarTab('rooms')} className={`hover:text-teal-400 text-xl ${p.sidebarTab === 'rooms' ? 'text-teal-400' : ''}`} title="Chat">💬</button>
-          <Link href="/feed" className="hover:text-teal-400 text-xl" title="Home">🏠</Link>
-          <Link href="/discover" className="hover:text-teal-400 text-xl" title="Discover Communities">🧭</Link> 
+          <button onClick={() => p.setSidebarTab('rooms')} className={`hover:text-teal-400 text-xl ${p.sidebarTab === 'rooms' ? 'text-teal-400' : ''}`} title="Chat">ⵣ</button>
+          <Link href="/feed" className="hover:text-teal-400 text-xl" title="Home">ⴼ</Link>
+          <Link href="/discover" className="hover:text-teal-400 text-xl" title="Discover Communities">ⴷ</Link> 
           
           {/* 👇 SSO BUTTON WITH TIFINAGH 'YAL' (L for Learn) 👇 */}
-          <SSOButton target="atk" icon="ⵍ" label="Learn ATK" className="!text-slate-500" />
+          <SSOButton target="atk" icon="ⴰ" label="Learn ATK" className="!text-slate-500" />
           
-          <button onClick={() => p.setSidebarTab('vault')} className={`hover:text-yellow-400 text-xl ${p.sidebarTab === 'vault' ? 'text-yellow-400' : ''}`} title="My Vault">⭐</button>
-          <button onClick={() => p.setSidebarTab('friends')} className={`hover:text-teal-400 text-xl ${p.sidebarTab === 'friends' ? 'text-teal-400' : ''}`} title="Groups">👥</button>
+          <button onClick={() => p.setSidebarTab('vault')} className={`hover:text-yellow-400 text-xl ${p.sidebarTab === 'vault' ? 'text-yellow-400' : ''}`} title="My Vault">ⵡ</button>
+          <button onClick={() => p.setSidebarTab('friends')} className={`hover:text-teal-400 text-xl ${p.sidebarTab === 'friends' ? 'text-teal-400' : ''}`} title="Friends">ⵗ</button>
           <button className="hover:text-teal-400 text-xl" title="Files">📁</button>
         </div>
         <div className="mt-auto flex flex-col items-center gap-4 pb-4">
