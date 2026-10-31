@@ -1,64 +1,166 @@
-rules_version = '2';
+﻿rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Helper: Is signed in?
-    function isSignedIn() {
-      return request.auth != null;
-    }
-    
-    // Helper: Am I the user?
-    function isUser(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+
+    function isSignedIn() { return request.auth != null; }
+    function uid() { return request.auth.uid; }
+    function isEmailVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
+    function userRole() { return (isSignedIn() && request.auth.token.role != null) ? request.auth.token.role : "reader"; }
+
+    function isAdmin() {
+      return userRole() == "admin" || (isSignedIn() && request.auth.token.email == "aoudiamohand70@gmail.com");
     }
 
-    // Users: Can read anyone, can only edit yourself (except status/strikes)
+    function isReviewer() { return userRole() == "reviewer" || isAdmin(); }
+    function userDocExists() { return isSignedIn() && exists(/databases/$(database)/documents/users/$(uid())); }
+    function isContributor() {
+      return isEmailVerified() && userDocExists() &&
+        get(/databases/$(database)/documents/users/$(uid())).data.agreements.contributor.accepted == true;
+    }
+
+    match /db_all_submissions/{submissionId} {
+      allow read: if isSignedIn() && (resource.data.submitted_by == uid() || isReviewer());
+      allow create: if isSignedIn() && isContributor() && request.resource.data.submitted_by == uid();
+      allow create: if isSignedIn()
+        && request.resource.data.source in ["thimlilith_chat", "thimlilith_voice"]
+        && request.resource.data.submitted_by == uid()
+        && request.resource.data.data.kab_latin is string
+        && request.resource.data.data.kab_latin.size() > 0
+        && request.resource.data.data.kab_latin.size() <= 500
+        && request.resource.data.chat_context is map
+        && request.resource.data.chat_context.message_id is string
+        && request.resource.data.chat_context.room_id is string;
+      allow update, delete: if false;
+    }
+
+    match /db2_words/{wordId} { allow read: if true; allow write: if false; }
+
+    match /db1_candidates/{candidateId} {
+      allow read: if isSignedIn() && (resource.data.submitted_by == uid() || isReviewer());
+      allow create: if isSignedIn() && isContributor() && request.resource.data.submitted_by == uid() && request.resource.data.contributor_agreement.accepted == true;
+      allow update: if isReviewer() || (isSignedIn() && resource.data.submitted_by == uid() && resource.data.status in ["draft", "pending"] && request.resource.data.submitted_by == resource.data.submitted_by);
+      allow delete: if isAdmin();
+    }
+
+    match /users/{userId}/content/{contentId} { allow read, write: if isSignedIn() && userId == uid(); }
+    match /users/{userId}/progress/{progressId} { allow read, write: if isSignedIn() && userId == uid(); }
+    match /users/{userId}/vocabulary/{wordId} { allow read, write: if isSignedIn() && userId == uid(); }
+    match /users/{userId}/audio/{audioId} { allow read, write: if isSignedIn() && userId == uid(); }
+    match /users/{userId}/pending_words/{wordId} { allow read, write: if isSignedIn() && userId == uid(); }
+
+    match /users/{userId}/savedMessages/{savedId} {
+      allow read, write: if isSignedIn() && userId == uid();
+    }
+
+    match /lesson_feedback/{feedbackId} {
+      allow read: if isSignedIn() && resource.data.userId == uid();
+      allow create: if request.resource.data.message is string && request.resource.data.message.size() > 0 && request.resource.data.message.size() <= 2000 && request.resource.data.lessonId is string && request.resource.data.type in ['correction', 'addition', 'error', 'suggestion'];
+      allow update, delete: if false;
+    }
+
+    match /reviews/{reviewId} { allow read: if isReviewer(); allow create, update: if isReviewer(); allow delete: if isAdmin(); }
+    match /regions/{regionId} { allow read: if true; allow write: if false; }
+
+    match /ingestion_jobs/{jobId} {
+      allow read: if isSignedIn() && (resource.data.submitted_by == uid() || isReviewer());
+      allow create: if isSignedIn() && isContributor() && request.resource.data.submitted_by == uid();
+      allow update: if isReviewer() || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /audit_log/{entryId} { allow read: if isAdmin(); allow write: if false; }
+
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow create: if isUser(userId);
-      allow update: if isUser(userId) && 
-        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'strikes', 'mutedUntil']));
-      allow update: if isSignedIn() && 
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'strikes', 'mutedUntil']); // For admins (simplified)
+      allow create: if isSignedIn() && userId == uid();
+      allow update: if isAdmin() || (isSignedIn() && userId == uid() && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'reputation']));
+      allow delete: if isAdmin();
     }
 
-    // Rooms: Members can read, Owners can update
     match /rooms/{roomId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn();
-      allow update, delete: if isSignedIn() && 
-        (resource.data.createdBy == request.auth.uid || request.auth.uid in resource.data.members);
 
-      // Messages: Members can read, anyone can create, only sender/mod can delete
+      allow update: if isAdmin() || (isSignedIn() && (
+        resource.data.createdBy == uid() ||
+        (resource.data.admins != null && request.auth.uid in resource.data.admins) ||
+        (resource.data.moderators != null && request.auth.uid in resource.data.moderators) ||
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'memberNames']) &&
+          request.resource.data.members.hasAny([uid()])
+        ) ||
+        (
+          request.auth.uid in resource.data.members &&
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['pinnedMessages', 'admins', 'moderators', 'inviteCode'])
+        )
+      ));
+
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.createdBy == uid());
+
       match /messages/{messageId} {
         allow read: if isSignedIn();
-        allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid;
-        allow update: if isSignedIn(); // For reactions and readBy
-        allow delete: if isSignedIn(); // Client-side deletes
+        allow create: if isSignedIn() && request.resource.data.senderId == uid();
+
+        allow update: if isSignedIn() && (
+          resource.data.senderId == uid() ||
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions', 'readBy'])
+        );
+
+        allow delete: if isSignedIn() && (
+          resource.data.senderId == uid() ||
+          request.auth.uid in get(/databases/$(database)/documents/rooms/$(roomId)).data.admins ||
+          request.auth.uid in get(/databases/$(database)/documents/rooms/$(roomId)).data.moderators
+        );
       }
 
-      // Typing indicators
-      match /typing/{userId} {
+      match /typing/{typingId} {
         allow read, write: if isSignedIn();
       }
-      
-      // Shared docs
-      match /sharedDocs/{docId} {
-        allow read: if isSignedIn();
-        allow write: if isSignedIn();
-      }
     }
 
-    // Reports: Anyone can create, only Admin can read
+    match /posts/{postId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.authorId == uid();
+      allow update: if isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']);
+      allow delete: if isSignedIn() && resource.data.authorId == uid();
+    }
+
+    match /stories/{storyId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.authorId == uid();
+      allow delete: if isSignedIn() && resource.data.authorId == uid();
+    }
+
+    match /follows/{followId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.resource.data.followerId == uid()
+        && request.resource.data.followingId is string
+        && request.resource.data.followingId != uid();
+      allow delete: if isSignedIn() && resource.data.followerId == uid();
+      allow update: if false;
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn() && resource.data.userId == uid();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource.data.userId == uid();
+      allow delete: if isSignedIn() && resource.data.userId == uid();
+    }
+
+    match /friend_requests/{requestId} {
+      allow read: if isSignedIn() && (resource.data.senderId == uid() || resource.data.receiverId == uid());
+      allow create: if isSignedIn() && request.resource.data.senderId == uid();
+      allow update, delete: if isSignedIn() && resource.data.receiverId == uid();
+    }
+
     match /reports/{reportId} {
       allow create: if isSignedIn();
-      allow read, update, delete: if isSignedIn(); // Let the Admin dashboard handle this
+      allow read, update, delete: if isAdmin();
     }
 
-    // Friend requests
-    match /friend_requests/{requestId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
