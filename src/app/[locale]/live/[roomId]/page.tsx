@@ -22,27 +22,17 @@ export default function LiveRoom() {
   const [error, setError] = useState('');
   
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
-  const [selectedCamera, setSelectedCamera] = useState<string>('');
+  const [selectedCamera, setSelectedCamera] = useState<string>('default'); // 👈 Default to PC camera
 
-  // 1. Force the browser to find your USB camera
+  // 1. Get the list of cameras safely (does not block the UI if permission is denied)
   useEffect(() => {
     const getCameras = async () => {
       try {
-        // Ask for permission first
-        await navigator.mediaDevices.getUserMedia({ video: true });
         const allDevices = await navigator.mediaDevices.enumerateDevices();
-        
-        // Filter only video inputs (ignores microphones)
         const videoDevices = allDevices.filter(d => d.kind === 'videoinput');
         setDevices(videoDevices);
-        
-        // Auto-select the first available camera (which will be your USB since the laptop is closed)
-        if (videoDevices.length > 0) {
-          setSelectedCamera(videoDevices[0].deviceId);
-        }
       } catch (err) {
-        console.error("Camera access denied", err);
-        setError("Please allow camera permissions in your browser.");
+        console.warn("Could not list cameras yet. Waiting for permissions.", err);
       }
     };
     getCameras();
@@ -88,12 +78,10 @@ export default function LiveRoom() {
     );
   }
 
-  // 👇 WAIT: Don't connect to LiveKit until the camera is found!
-  if (!token || (isHost && !selectedCamera && devices.length > 0)) {
+  if (!token) {
     return (
-      <div className="min-h-screen bg-[#0f172a] flex flex-col items-center justify-center text-teal-400">
-        <div className="animate-pulse mb-4">Connecting to Live Stage...</div>
-        {isHost && <p className="text-xs text-slate-500">Looking for USB Camera...</p>}
+      <div className="min-h-screen bg-[#0f172a] flex items-center justify-center text-teal-400">
+        <div className="animate-pulse">Connecting to Live Stage...</div>
       </div>
     );
   }
@@ -101,28 +89,35 @@ export default function LiveRoom() {
   return (
     <div className="min-h-screen bg-[#0f172a] flex flex-col" data-lk-theme="default">
       
-      {/* Camera Dropdown (Only shows if you have more than 1 camera connected) */}
-      {isHost && devices.length > 1 && (
-        <div className="bg-[#1e293b] p-3 flex items-center justify-center gap-3 border-b border-white/10 z-50">
-          <span className="text-sm text-slate-300">Select Camera:</span>
+      {/* 👇 Camera Dropdown (Shows for Hosts with any connected cameras) 👇 */}
+      {isHost && (
+        <div className="bg-[#1e293b] p-3 flex flex-col sm:flex-row items-center justify-center gap-3 border-b border-white/10 z-50">
+          <span className="text-sm text-slate-300 font-medium">Camera:</span>
           <select 
             value={selectedCamera} 
             onChange={(e) => setSelectedCamera(e.target.value)}
-            className="bg-[#0f172a] text-white text-sm rounded-lg px-3 py-1.5 focus:outline-none border border-slate-600"
+            className="bg-[#0f172a] text-white text-sm rounded-lg px-3 py-2 focus:outline-none border border-slate-600 w-full max-w-xs"
           >
+            <option value="default">Default PC Camera</option>
             {devices.map((device, idx) => (
-              <option key={device.deviceId} value={device.deviceId}>
-                {device.label || `USB Camera ${idx + 1}`}
-              </option>
+              // Only show devices that have a label (meaning permission was granted)
+              device.deviceId !== 'default' && device.label && (
+                <option key={device.deviceId} value={device.deviceId}>
+                  {device.label || `External Camera ${idx + 1}`}
+                </option>
+              )
             ))}
           </select>
+          <span className="text-xs text-slate-500 hidden sm:block">
+            (If the list is empty, allow camera access in your browser)
+          </span>
         </div>
       )}
 
       <div className="flex-1">
         <LiveKitRoom
-          key={selectedCamera} // 👈 THIS IS THE MAGIC. It forces a re-connect to the USB camera.
-          video={isHost ? { deviceId: selectedCamera } : false}
+          key={selectedCamera} // 👈 Reconnects instantly when you change the dropdown
+          video={isHost ? (selectedCamera === 'default' ? true : { deviceId: selectedCamera }) : false}
           audio={isHost} 
           token={token}
           serverUrl={wsUrl}
