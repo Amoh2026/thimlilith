@@ -16,24 +16,45 @@ export default function LiveRoom() {
   const isHost = searchParams?.get('host') === 'true';
   
   const [token, setToken] = useState('');
-  // TODO: Replace with actual user ID from AuthContext
-  const username = 'User_' + Math.floor(Math.random() * 1000);
+  const [wsUrl, setWsUrl] = useState('');
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (!roomId) return;
     
     const fetchToken = async () => {
       try {
-        const res = await fetch(`/api/chat/livekit-token?room=${roomId}&username=${username}&isHost=${isHost}`);
+        // ✅ POST REQUEST MATCHING YOUR NEW API
+        const res = await fetch('/api/chat/livekit-token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ roomId, isHost }),
+        });
+
         const data = await res.json();
-        if (data.token) setToken(data.token);
-      } catch (err) {
-        console.error("Failed to fetch token", err);
+        
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to get token');
+        }
+
+        setToken(data.token);
+        setWsUrl(data.url); // Use the URL returned from the server
+      } catch (err: any) {
+        setError(err.message);
       }
     };
     
     fetchToken();
   }, [roomId, isHost]);
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#0f172a] flex flex-col items-center justify-center text-red-400 p-4 text-center">
+        <p className="mb-4">⚠️ {error}</p>
+        <button onClick={() => window.history.back()} className="text-teal-400 underline">Go Back</button>
+      </div>
+    );
+  }
 
   if (!token) {
     return (
@@ -46,16 +67,16 @@ export default function LiveRoom() {
   return (
     <div className="min-h-screen bg-[#0f172a]" data-lk-theme="default">
       <LiveKitRoom
-        video={isHost} // Only host turns on camera
-        audio={isHost} // Only host turns on mic
+        video={isHost} 
+        audio={isHost} 
         token={token}
-        serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL}
-        onDisconnected={() => window.history.back()} // Return to origin if dropped
+        serverUrl={wsUrl}
+        onDisconnected={() => window.history.back()}
         className="h-screen"
       >
         <VideoConference 
           chatMessageFormatter={undefined} 
-          settings={isHost} // Viewers can't change settings
+          settings={isHost} 
         />
         <RoomAudioRenderer />
       </LiveKitRoom>
