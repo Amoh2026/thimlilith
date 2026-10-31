@@ -30,10 +30,21 @@ export default function LiveRoom() {
           body: JSON.stringify({ roomId, isHost }),
         });
 
-        const data = await res.json();
+        // 👇 SAFE JSON PARSING: Prevents "Unexpected end of JSON input" crash
+        const text = await res.text();
+        if (!text) {
+          throw new Error(`Server returned empty response (Status: ${res.status})`);
+        }
+
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          throw new Error(`Invalid JSON from server (Status: ${res.status})`);
+        }
         
         if (!res.ok) {
-          throw new Error(data.error || 'Failed to get token');
+          throw new Error(data.error || `Server error: ${res.status}`);
         }
 
         setToken(data.token);
@@ -49,7 +60,7 @@ export default function LiveRoom() {
   if (error) {
     return (
       <div className="min-h-screen bg-[#0f172a] flex flex-col items-center justify-center text-red-400 p-4 text-center">
-        <p className="mb-4">⚠️ {error}</p>
+        <p className="mb-4 text-sm font-mono bg-red-500/10 p-4 rounded-xl border border-red-500/20">⚠️ {error}</p>
         <button onClick={() => window.history.back()} className="text-teal-400 underline">Go Back</button>
       </div>
     );
@@ -73,7 +84,6 @@ export default function LiveRoom() {
         onDisconnected={() => window.history.back()}
         className="h-screen"
       >
-        {/* Removed the invalid 'settings' and 'chatMessageFormatter' props */}
         <VideoConference />
         <RoomAudioRenderer />
       </LiveKitRoom>

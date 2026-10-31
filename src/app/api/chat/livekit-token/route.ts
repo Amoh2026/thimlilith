@@ -17,7 +17,6 @@ import {
   verifyChatUser,
   unauthorized,
   badRequest,
-  serverError,
 } from '@/lib/chat/auth-server';
 
 export async function POST(req: NextRequest) {
@@ -52,7 +51,7 @@ export async function POST(req: NextRequest) {
     
     // If it's not an instant live stream and the room doesn't exist, throw 404
     if (!snap.exists && !isInstantLive) {
-      return new Response(JSON.stringify({ error: 'Room not found' }), { status: 404 });
+      return new Response(JSON.stringify({ error: 'Room not found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
     }
 
     // If it's a normal chat room, verify the user is a member
@@ -60,7 +59,7 @@ export async function POST(req: NextRequest) {
       const data = snap.data()!;
       const members: string[] = data.members ?? [];
       if (!members.includes(user.uid)) {
-        return new Response(JSON.stringify({ error: 'Not a member' }), { status: 403 });
+        return new Response(JSON.stringify({ error: 'Not a member' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
       }
     }
 
@@ -91,8 +90,14 @@ export async function POST(req: NextRequest) {
       roomName,
       identity: user.uid,
     });
-  } catch (err) {
+    
+  } catch (err: any) {
+    // 🛡️ SAFE ERROR CATCH: Prevents empty responses from crashing the frontend
     console.error('POST /api/chat/livekit-token error:', err);
-    return serverError();
+    
+    return new Response(
+      JSON.stringify({ error: err?.message || 'Internal Server Error' }), 
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
   }
 }
