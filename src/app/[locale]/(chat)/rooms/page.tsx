@@ -873,20 +873,20 @@ export default function ThimlilithChatUI() {
             setIsMobileSidebarOpen={setIsMobileSidebarOpen}
             onVideo={async () => {
               if (!user || !activeRoom) return;
-              
+            
               // Hybrid Logic: Free users use Jitsi, Premium users use LiveKit
               if (!userDoc?.isPremium && !activeRoom?.isPaid) {
-                const jitsiRoomName = Thimlilith_Video_;
-                window.open(https://meet.jit.si/, '_blank');
+                const jitsiRoomName = `Thimlilith_Video_${activeRoom.id}`;
+                window.open(`https://meet.jit.si/${jitsiRoomName}`, '_blank');
                 return;
               }
-              
+            
               // PREMIUM FLOW: LiveKit
               try {
                 const token = await user.getIdToken();
-                const res = await fetch('/api/chat/livekit-token', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': Bearer  }, body: JSON.stringify({ roomName: activeRoom.id, participantName: user.displayName || 'Guest' }) });
+                const res = await fetch('/api/chat/livekit-token', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ roomName: activeRoom.id, participantName: user.displayName || 'Guest' }) });
                 const data = await res.json();
-                if (data.token) { sessionStorage.setItem('lk_token', data.token); window.location.href = /room/; }
+                if (data.token) { sessionStorage.setItem('lk_token', data.token); window.location.href = `/room/${activeRoom.id}`; }
               } catch (err) {
                 console.error('LiveKit error:', err);
                 alert('Failed to start premium video call.');
