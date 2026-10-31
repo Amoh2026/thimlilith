@@ -18,12 +18,42 @@ export default function LiveRoom() {
   const isHost = searchParams?.get('host') === 'true';
   
   const [token, setToken] = useState('');
+  const [wsUrl, setWsUrl] = useState('');
   const [error, setError] = useState('');
+  const [cameraId, setCameraId] = useState<string | null>(null);
 
+  // 👇 1. FORCE BROWSER TO PROMPT FOR CAMERA AND GET DEVICE ID 👇
+  useEffect(() => {
+    if (!isHost) return;
+    
+    const setupCamera = async () => {
+      try {
+        // This forces the browser popup to allow the camera
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        // Stop the stream so LiveKit can take over the hardware
+        stream.getTracks().forEach(t => t.stop());
+        
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(d => d.kind === 'videoinput');
+        
+        // Look for USB/Webcam, otherwise grab the first available camera
+        const usbCam = videoDevices.find(d => d.label.toLowerCase().includes('usb') || d.label.toLowerCase().includes('webcam'));
+        if (usbCam) {
+          setCameraId(usbCam.deviceId);
+        } else if (videoDevices.length > 0) {
+          setCameraId(videoDevices[0].deviceId);
+        }
+      } catch (err) {
+        console.error("Camera permission failed:", err);
+      }
+    };
+    setupCamera();
+  }, [isHost]);
+
+  // 2. Fetch LiveKit Token
   useEffect(() => {
     if (!roomId) return;
 
-    // 👇 WAIT FOR FIREBASE AUTH TO FINISH LOADING
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         setError("You must be logged in to join a live stream.");
@@ -54,6 +84,7 @@ export default function LiveRoom() {
         }
 
         setToken(data.token);
+        setWsUrl(data.url);
       } catch (err: any) {
         setError(err.message);
       }
@@ -82,11 +113,15 @@ export default function LiveRoom() {
   return (
     <div className="min-h-screen bg-[#0f172a]" data-lk-theme="default">
       <LiveKitRoom
-        video={isHost} 
+        // 👇 Tell LiveKit to use the exact camera ID we found 👇
+        video={isHost ? (cameraId ? { deviceId: cameraId } : true) : false}
         audio={isHost} 
         token={token}
-        serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL}
+        serverUrl={wsUrl}
         onDisconnected={() => window.history.back()}
+        onMediaDeviceFailure={(e, kind) => {
+          console.error("Media Device Failure:", kind, e);
+        }}
         className="h-screen"
       >
         <VideoConference />
