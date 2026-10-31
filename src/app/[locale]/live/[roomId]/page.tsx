@@ -22,20 +22,33 @@ export default function LiveRoom() {
   const [error, setError] = useState('');
   
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
-  const [selectedCamera, setSelectedCamera] = useState<string>('default'); // 👈 Default to PC camera
+  const [selectedCamera, setSelectedCamera] = useState<string>('');
 
-  // 1. Get the list of cameras safely (does not block the UI if permission is denied)
+  // 1. Wake up the camera and get the list safely
   useEffect(() => {
-    const getCameras = async () => {
+    const initCamera = async () => {
       try {
+        // This forces the browser permission prompt
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        // Stop the stream immediately so it frees the hardware
+        stream.getTracks().forEach(track => track.stop());
+
         const allDevices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = allDevices.filter(d => d.kind === 'videoinput');
         setDevices(videoDevices);
+
+        // Auto-select the USB camera if we find one
+        const usbCam = videoDevices.find(d => d.label.toLowerCase().includes('usb') || d.label.toLowerCase().includes('external'));
+        if (usbCam) {
+          setSelectedCamera(usbCam.deviceId);
+        } else if (videoDevices.length > 0) {
+          setSelectedCamera(videoDevices[0].deviceId);
+        }
       } catch (err) {
-        console.warn("Could not list cameras yet. Waiting for permissions.", err);
+        console.warn("Initial camera check failed:", err);
       }
     };
-    getCameras();
+    initCamera();
   }, []);
 
   // 2. Fetch LiveKit Token
@@ -78,10 +91,12 @@ export default function LiveRoom() {
     );
   }
 
-  if (!token) {
+  // Wait for both token and camera list
+  if (!token || (isHost && devices.length > 0 && !selectedCamera)) {
     return (
-      <div className="min-h-screen bg-[#0f172a] flex items-center justify-center text-teal-400">
+      <div className="min-h-screen bg-[#0f172a] flex flex-col items-center justify-center text-teal-400">
         <div className="animate-pulse">Connecting to Live Stage...</div>
+        {isHost && <p className="text-xs text-slate-500 mt-2">Scanning for cameras...</p>}
       </div>
     );
   }
@@ -89,35 +104,31 @@ export default function LiveRoom() {
   return (
     <div className="min-h-screen bg-[#0f172a] flex flex-col" data-lk-theme="default">
       
-      {/* 👇 Camera Dropdown (Shows for Hosts with any connected cameras) 👇 */}
+      {/* Camera Dropdown */}
       {isHost && (
         <div className="bg-[#1e293b] p-3 flex flex-col sm:flex-row items-center justify-center gap-3 border-b border-white/10 z-50">
-          <span className="text-sm text-slate-300 font-medium">Camera:</span>
+          <span className="text-sm text-slate-300 font-medium">Select Camera:</span>
           <select 
             value={selectedCamera} 
             onChange={(e) => setSelectedCamera(e.target.value)}
             className="bg-[#0f172a] text-white text-sm rounded-lg px-3 py-2 focus:outline-none border border-slate-600 w-full max-w-xs"
           >
-            <option value="default">Default PC Camera</option>
+            <option value="">System Default</option>
             {devices.map((device, idx) => (
-              // Only show devices that have a label (meaning permission was granted)
-              device.deviceId !== 'default' && device.label && (
+              device.deviceId !== 'default' && (
                 <option key={device.deviceId} value={device.deviceId}>
                   {device.label || `External Camera ${idx + 1}`}
                 </option>
               )
             ))}
           </select>
-          <span className="text-xs text-slate-500 hidden sm:block">
-            (If the list is empty, allow camera access in your browser)
-          </span>
         </div>
       )}
 
       <div className="flex-1">
         <LiveKitRoom
-          key={selectedCamera} // 👈 Reconnects instantly when you change the dropdown
-          video={isHost ? (selectedCamera === 'default' ? true : { deviceId: selectedCamera }) : false}
+          key={selectedCamera || 'default'} // This forces a full refresh when you change cameras
+          video={isHost ? (selectedCamera ? { deviceId: selectedCamera } : true) : false}
           audio={isHost} 
           token={token}
           serverUrl={wsUrl}
