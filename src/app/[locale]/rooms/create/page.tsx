@@ -24,17 +24,30 @@ export default function CreateRoomPage() {
     setLoading(true);
 
     try {
+      // Generate a random invite code for the chat system
+      const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+      // Save the room to Firestore with ALL required fields for the Chat UI
       const docRef = await addDoc(collection(db, 'rooms'), {
         name,
         description,
-        ownerId: auth.currentUser.uid,
+        type: "group", // 👈 This makes it show up in the sidebar!
+        createdBy: auth.currentUser.uid, // 👈 The old chat UI uses this
+        ownerId: auth.currentUser.uid, // 👈 The new room page uses this
         members: [auth.currentUser.uid],
+        admins: [auth.currentUser.uid], // 👈 Gives you admin rights
+        moderators: [],
+        inviteCode, // 👈 Generates an invite link
+        pinnedMessages: [],
+        permissions: { whoCanPost: "everyone" },
         isPaid,
         price: isPaid ? price : 0,
         createdAt: serverTimestamp(),
       });
 
+      // Redirect to the newly created room!
       router.push(`/${locale}/rooms/${docRef.id}`);
+      
     } catch (error) {
       console.error("Error creating room:", error);
       alert("Failed to create room.");
@@ -46,7 +59,7 @@ export default function CreateRoomPage() {
     <main className="min-h-screen bg-[#0f172a] text-slate-200 pt-16 pb-24 px-4">
       <div className="max-w-lg mx-auto mt-8">
         
-        {/* 👇 NEW BACK BUTTON HEADER 👇 */}
+        {/* BACK BUTTON HEADER */}
         <div className="flex items-center gap-3 mb-6">
           <button 
             onClick={() => router.back()} 
@@ -62,7 +75,6 @@ export default function CreateRoomPage() {
             <p className="text-slate-400 text-sm">Host a Thajmaath (community space).</p>
           </div>
         </div>
-        {/* 👆 END OF BACK BUTTON HEADER 👆 */}
 
         <form onSubmit={handleCreate} className="space-y-4">
           <div>
@@ -113,7 +125,6 @@ export default function CreateRoomPage() {
             </div>
           )}
 
-          {/* 👇 ADDED CANCEL BUTTON NEXT TO CREATE 👇 */}
           <div className="flex gap-3 mt-6">
             <button 
               type="button"
