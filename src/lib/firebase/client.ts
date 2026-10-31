@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth, setPersistence, browserSessionPersistence, Auth } from 'firebase/auth';
+import { getAuth, setPersistence, indexedDBLocalPersistence, Auth } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 
@@ -60,10 +60,10 @@ try {
 }
 
 // ============================================================
-// Set persistence (browser session only)
+// Set persistence (local — survives tab close)
 // ============================================================
 if (typeof window !== 'undefined') {
-  setPersistence(auth, browserSessionPersistence).catch((err) => {
+  setPersistence(auth, indexedDBLocalPersistence).catch((err) => {
     console.error('Failed to set auth persistence:', err);
   });
 }

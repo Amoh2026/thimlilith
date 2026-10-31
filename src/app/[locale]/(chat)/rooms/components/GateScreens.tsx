@@ -3,46 +3,6 @@
 
 import React from 'react';
 
-// ─── Login Screen ────────────────────────────────────────────────────────
-interface LoginProps {
-  isLogin: boolean;
-  setIsLogin: (v: boolean) => void;
-  email: string;
-  setEmail: (v: string) => void;
-  password: string;
-  setPassword: (v: string) => void;
-  name: string;
-  setName: (v: string) => void;
-  error: string;
-  setError: (v: string) => void;
-  onSubmit: (e: React.FormEvent) => void;
-  onGoogle: () => void;
-}
-
-export function LoginScreen(p: LoginProps) {
-  return (
-    <div className="flex h-screen flex-col items-center justify-center bg-[#0f172a] text-white p-4">
-      <div className="w-full max-w-md bg-[#1e293b] p-8 rounded-2xl shadow-xl border border-slate-700">
-        <h1 className="text-3xl font-bold text-teal-400 mb-2 text-center">Thimlilith</h1>
-        <p className="text-center text-gray-400 mb-8">ⵜⵉⵎⵍⵉⵍⵉⵜ - Join the Thajmaath</p>
-        {p.error && <div className="bg-red-500/20 text-red-400 p-3 rounded mb-4 text-sm">{p.error}</div>}
-        <form onSubmit={p.onSubmit} className="flex flex-col gap-4">
-          {!p.isLogin && <input type="text" placeholder="Display Name" value={p.name} onChange={e => p.setName(e.target.value)} className="bg-[#0f172a] border border-slate-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:border-teal-500" required />}
-          <input type="email" placeholder="Email address" value={p.email} onChange={e => p.setEmail(e.target.value)} className="bg-[#0f172a] border border-slate-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:border-teal-500" required />
-          <input type="password" placeholder="Password" value={p.password} onChange={e => p.setPassword(e.target.value)} className="bg-[#0f172a] border border-slate-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:border-teal-500" required />
-          <button type="submit" className="bg-teal-600 hover:bg-teal-500 text-white font-bold py-3 rounded-lg mt-2">{p.isLogin ? "Login" : "Create Account"}</button>
-        </form>
-        <div className="flex items-center my-6"><div className="flex-1 border-t border-slate-700"></div><span className="px-4 text-sm text-gray-500">OR</span><div className="flex-1 border-t border-slate-700"></div></div>
-        <button onClick={p.onGoogle} className="w-full bg-white text-gray-900 font-bold py-3 rounded-lg">Continue with Google</button>
-        <p className="text-center text-sm text-gray-400 mt-6">
-          {p.isLogin ? "Don't have an account? " : "Already have an account? "}
-          <button onClick={() => { p.setIsLogin(!p.isLogin); p.setError(""); }} className="text-teal-400 hover:underline">{p.isLogin ? "Sign up" : "Log in"}</button>
-        </p>
-      </div>
-    </div>
-  );
-}
-
 // ─── Banned Screen ───────────────────────────────────────────────────────
 export function BannedScreen({ onLogout }: { onLogout: () => void }) {
   return (

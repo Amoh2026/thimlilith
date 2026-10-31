@@ -1,6 +1,6 @@
-// src/app/layout.tsx
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import { AuthProvider } from '@/components/auth/AuthProvider';   // ← NEW
 
 export const metadata: Metadata = {
   title: 'Thimlilith | ⵜⵉⵎⵍⵉⵍⵉⵜ',
@@ -19,7 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" dir="ltr">
       <body className="min-h-screen bg-[#0f172a]">
-        {children}
+        <AuthProvider>{children}</AuthProvider>   {/* ← NEW wrapper */}
       </body>
     </html>
   );
