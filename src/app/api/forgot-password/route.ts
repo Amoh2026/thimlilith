@@ -1,4 +1,3 @@
-// src/app/api/forgot-password/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { adminAuth } from '@/lib/firebase/admin';
 import { sendPasswordResetEmail } from '@/lib/email';
@@ -18,7 +17,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid email' }, { status: 400 });
     }
 
-    // SECURITY: always return { ok: true } — never reveal whether the email exists.
     let resetLink: string | null = null;
     let displayName: string | undefined;
 
@@ -31,36 +29,28 @@ export async function POST(req: NextRequest) {
         handleCodeInApp: false,
       });
     } catch (err: any) {
-      const code = err?.code || err?.errorInfo?.code || '';
-      // Silently succeed for "user not found" (anti-enumeration)
-      // Also silently succeed for Google-only accounts (no password to reset)
-      if (
-        code === 'auth/user-not-found' ||
-        code === 'auth/internal-error' ||
-        code === 'auth/invalid-email'
-      ) {
-        return NextResponse.json({ ok: true });
+      const code = err?.code || '';
+      if (code === 'auth/user-not-found' || code === 'auth/invalid-email') {
+        return NextResponse.json({ ok: true }); // Anti-enumeration
       }
-      console.error('[forgot-password] generatePasswordResetLink error:', err);
-      // Still return ok to avoid leaking state
+      console.error('[forgot-password] link error:', err);
       return NextResponse.json({ ok: true });
     }
 
     if (resetLink) {
       try {
         await sendPasswordResetEmail({ to: email, resetLink, displayName });
-      } catch (emailErr) {
-        // Log the send failure but don't leak to client
-        console.error('[forgot-password] Resend send failed:', emailErr);
+      } catch (emailErr: any) {
+        // THIS WILL NOW PRINT THE EXACT RESEND ERROR TO YOUR TERMINAL
+        console.error('[forgot-password] Resend error:', emailErr.message);
+        // We still return ok to the client to prevent email enumeration
+        return NextResponse.json({ ok: true });
       }
     }
 
     return NextResponse.json({ ok: true });
   } catch (err: any) {
-    console.error('[forgot-password] Unhandled error:', err);
-    return NextResponse.json(
-      { error: 'Unable to process request. Please try again.' },
-      { status: 500 }
-    );
+    console.error('[forgot-password] Unhandled:', err);
+    return NextResponse.json({ error: 'Unable to process request.' }, { status: 500 });
   }
 }

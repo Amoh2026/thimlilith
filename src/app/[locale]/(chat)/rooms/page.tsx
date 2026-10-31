@@ -9,6 +9,8 @@ import { signOut } from 'firebase/auth';
 import { containsBannedWords } from '@/lib/moderation/filter';
 import { saveToATK } from '@/lib/atk';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { RequireVerified } from '@/components/auth/RequireVerified';
+import { SSOButton } from '@/components/auth/SSOButton'; // 👈 NEW IMPORT
 
 // Components
 import PremiumModal, { type LimitType } from './components/PremiumModal';
@@ -103,13 +105,6 @@ export default function ThimlilithChatUI() {
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ─── EFFECTS ───
-
-  // Redirect unauthenticated users to the dedicated login page
-  useEffect(() => {
-    if (!loading && !user) {
-      router.replace(`/${locale}/account/login`);
-    }
-  }, [loading, user, router, locale]);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
@@ -817,132 +812,141 @@ export default function ThimlilithChatUI() {
   if (loading) {
     return <div className="flex h-screen items-center justify-center bg-[#0f172a] text-white">Loading...</div>;
   }
-  if (!user) {
-    return <div className="flex h-screen items-center justify-center bg-[#0f172a] text-white">Redirecting to login...</div>;
-  }
-  if (userDoc?.status === "banned") return <BannedScreen onLogout={handleLogout} />;
-  if (userDoc?.status === "muted") return <MutedScreen mutedUntil={userDoc.mutedUntil} onLogout={handleLogout} />;
-  if (!userDoc?.charterAccepted) return <CharterScreen onAccept={handleAcceptCharter} onLogout={handleLogout} />;
 
   return (
-   <div className="flex h-[100dvh] w-full bg-[#0f172a] text-gray-300 font-sans overflow-hidden pb-16 md:pb-0">
-      <WelcomeModal open={showWelcome} onClose={handleWelcomeDismiss} />
-      <PremiumModal open={premiumModal.open} type={premiumModal.type} onClose={() => setPremiumModal({ ...premiumModal, open: false })} />
+    <RequireVerified>
+      {userDoc?.status === "banned" ? (
+        <BannedScreen onLogout={handleLogout} />
+      ) : userDoc?.status === "muted" ? (
+        <MutedScreen mutedUntil={userDoc.mutedUntil} onLogout={handleLogout} />
+      ) : !userDoc?.charterAccepted ? (
+        <CharterScreen onAccept={handleAcceptCharter} onLogout={handleLogout} />
+      ) : (
+        <div className="flex h-[100dvh] w-full bg-[#0f172a] text-gray-300 font-sans overflow-hidden pb-16 md:pb-0 relative">
+          <WelcomeModal open={showWelcome} onClose={handleWelcomeDismiss} />
+          <PremiumModal open={premiumModal.open} type={premiumModal.type} onClose={() => setPremiumModal({ ...premiumModal, open: false })} />
 
-      <Sidebars
-        user={user} userDoc={userDoc} rooms={rooms} activeRoom={activeRoom}
-        sidebarTab={sidebarTab} setSidebarTab={setSidebarTab}
-        friendRequests={friendRequests} friendsList={friendsList} blockedUsersList={blockedUsersList}
-        searchQuery={searchQuery} setSearchQuery={setSearchQuery} searchResults={searchResults} isSearching={isSearching}
-        newRoomName={newRoomName} setNewRoomName={setNewRoomName} isCreatingRoom={isCreatingRoom} setIsCreatingRoom={setIsCreatingRoom}
-        getDMName={getDMName} handleSelectRoom={handleSelectRoom} handleCreateRoom={handleCreateRoom}
-        handleSearchUsers={handleSearchUsers} handleSendFriendRequest={handleSendFriendRequest}
-        handleAcceptRequest={handleAcceptRequest} handleRejectRequest={handleRejectRequest}
-        handleStartDM={handleStartDM} handleBlockUser={handleBlockUser} handleLogout={handleLogout}
-        isMobileSidebarOpen={isMobileSidebarOpen}
-        setIsMobileSidebarOpen={setIsMobileSidebarOpen}
-      />
+          <Sidebars
+            user={user!} userDoc={userDoc} rooms={rooms} activeRoom={activeRoom}
+            sidebarTab={sidebarTab} setSidebarTab={setSidebarTab}
+            friendRequests={friendRequests} friendsList={friendsList} blockedUsersList={blockedUsersList}
+            searchQuery={searchQuery} setSearchQuery={setSearchQuery} searchResults={searchResults} isSearching={isSearching}
+            newRoomName={newRoomName} setNewRoomName={setNewRoomName} isCreatingRoom={isCreatingRoom} setIsCreatingRoom={setIsCreatingRoom}
+            getDMName={getDMName} handleSelectRoom={handleSelectRoom} handleCreateRoom={handleCreateRoom}
+            handleSearchUsers={handleSearchUsers} handleSendFriendRequest={handleSendFriendRequest}
+            handleAcceptRequest={handleAcceptRequest} handleRejectRequest={handleRejectRequest}
+            handleStartDM={handleStartDM} handleBlockUser={handleBlockUser} handleLogout={handleLogout}
+            isMobileSidebarOpen={isMobileSidebarOpen}
+            setIsMobileSidebarOpen={setIsMobileSidebarOpen}
+          />
 
-      <ChatArea
-        user={user} userDoc={userDoc} activeRoom={activeRoom} filteredMessages={filteredMessages}
-        inputText={inputText} setInputText={setInputText}
-        uploading={uploading} isRecording={isRecording} isCheckingAI={isCheckingAI}
-        replyingTo={replyingTo} setReplyingTo={setReplyingTo}
-        activeReactionMenu={activeReactionMenu} setActiveReactionMenu={setActiveReactionMenu}
-        typingUsers={typingUsers}
-        messageSearchTerm={messageSearchTerm} setMessageSearchTerm={setMessageSearchTerm}
-        messageSearchDate={messageSearchDate} setMessageSearchDate={setMessageSearchDate}
-        isSearchExpanded={isSearchExpanded} setIsSearchExpanded={setIsSearchExpanded}
-        messagesEndRef={messagesEndRef} fileInputRef={fileInputRef}
-        isDMPartnerBlocked={isDMPartnerBlocked} dmPartnerUid={dmPartnerUid} getDMName={getDMName}
-        handleSendText={handleSendText} handleEditMessage={handleEditMessage} handleDeleteMessage={handleDeleteMessage}
-        handleReaction={handleReaction} handlePinMessage={handlePinMessage} handleUnpinMessage={handleUnpinMessage}
-        handleBlockUser={handleBlockUser} handleReportUser={handleReportUser} handleCopyInviteLink={handleCopyInviteLink}
-        handleTyping={handleTyping} handleFileUpload={handleFileUpload}
-        startRecording={startRecording} stopRecording={stopRecording}
-        setShowAddMemberModal={setShowAddMemberModal} setShowPinnedModal={setShowPinnedModal}
-        openMembersModal={openMembersModal}
-        showRightSidebar={showRightSidebar}
-        setShowRightSidebar={setShowRightSidebar}
-        isMobileSidebarOpen={isMobileSidebarOpen}
-        setIsMobileSidebarOpen={setIsMobileSidebarOpen}
-        onVideo={async () => {
-          try {
-            if (!user) return;
-            const token = await user.getIdToken();
-            const res = await fetch('/api/chat/livekit-token', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ roomName: activeRoom.id, participantName: user.displayName || 'Guest' }) });
-            const data = await res.json();
-            if (data.token) { sessionStorage.setItem('lk_token', data.token); window.location.href = `/room/${activeRoom.id}`; }
-          } catch {}
-        }}
-        onSaveToATK={handleSaveToATK}
-        onOpenSettings={() => setShowSettings(true)}
-        onForward={(msgId) => setForwardMsgId(msgId)}
-        onUpdateRoomSettings={handleUpdateRoomSettings}
-        onOpenUserAction={handleOpenUserAction}
-        onSaveMessage={handleSaveMessage}
-        savedCount={savedCount}
-        maxSaved={userDoc?.isPremium ? 10 : 6}
-        handleSendSticker={handleSendSticker}
-        onTranslate={handleTranslate}
-        onOpenTheme={() => {
-          if (activeRoom.type === "direct") {
-            const myDMTheme = userDoc?.dmThemes?.[activeRoom.id];
-            setThemeData(myDMTheme || { bgColor: "#0b1120", bgImage: "", poemText: "" });
-          } else {
-            setThemeData(activeRoom.customization || { bgColor: "#0b1120", bgImage: "", poemText: "" });
-          }
-          setShowThemeModal(true);
-        }}
-      />
+          <ChatArea
+            user={user!} userDoc={userDoc} activeRoom={activeRoom} filteredMessages={filteredMessages}
+            inputText={inputText} setInputText={setInputText}
+            uploading={uploading} isRecording={isRecording} isCheckingAI={isCheckingAI}
+            replyingTo={replyingTo} setReplyingTo={setReplyingTo}
+            activeReactionMenu={activeReactionMenu} setActiveReactionMenu={setActiveReactionMenu}
+            typingUsers={typingUsers}
+            messageSearchTerm={messageSearchTerm} setMessageSearchTerm={setMessageSearchTerm}
+            messageSearchDate={messageSearchDate} setMessageSearchDate={setMessageSearchDate}
+            isSearchExpanded={isSearchExpanded} setIsSearchExpanded={setIsSearchExpanded}
+            messagesEndRef={messagesEndRef} fileInputRef={fileInputRef}
+            isDMPartnerBlocked={isDMPartnerBlocked} dmPartnerUid={dmPartnerUid} getDMName={getDMName}
+            handleSendText={handleSendText} handleEditMessage={handleEditMessage} handleDeleteMessage={handleDeleteMessage}
+            handleReaction={handleReaction} handlePinMessage={handlePinMessage} handleUnpinMessage={handleUnpinMessage}
+            handleBlockUser={handleBlockUser} handleReportUser={handleReportUser} handleCopyInviteLink={handleCopyInviteLink}
+            handleTyping={handleTyping} handleFileUpload={handleFileUpload}
+            startRecording={startRecording} stopRecording={stopRecording}
+            setShowAddMemberModal={setShowAddMemberModal} setShowPinnedModal={setShowPinnedModal}
+            openMembersModal={openMembersModal}
+            showRightSidebar={showRightSidebar}
+            setShowRightSidebar={setShowRightSidebar}
+            isMobileSidebarOpen={isMobileSidebarOpen}
+            setIsMobileSidebarOpen={setIsMobileSidebarOpen}
+            onVideo={async () => {
+              try {
+                if (!user) return;
+                const token = await user.getIdToken();
+                const res = await fetch('/api/chat/livekit-token', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ roomName: activeRoom.id, participantName: user.displayName || 'Guest' }) });
+                const data = await res.json();
+                if (data.token) { sessionStorage.setItem('lk_token', data.token); window.location.href = `/room/${activeRoom.id}`; }
+              } catch {}
+            }}
+            onSaveToATK={handleSaveToATK}
+            onOpenSettings={() => setShowSettings(true)}
+            onForward={(msgId) => setForwardMsgId(msgId)}
+            onUpdateRoomSettings={handleUpdateRoomSettings}
+            onOpenUserAction={handleOpenUserAction}
+            onSaveMessage={handleSaveMessage}
+            savedCount={savedCount}
+            maxSaved={userDoc?.isPremium ? 10 : 6}
+            handleSendSticker={handleSendSticker}
+            onTranslate={handleTranslate}
+            onOpenTheme={() => {
+              if (activeRoom.type === "direct") {
+                const myDMTheme = userDoc?.dmThemes?.[activeRoom.id];
+                setThemeData(myDMTheme || { bgColor: "#0b1120", bgImage: "", poemText: "" });
+              } else {
+                setThemeData(activeRoom.customization || { bgColor: "#0b1120", bgImage: "", poemText: "" });
+              }
+              setShowThemeModal(true);
+            }}
+          />
 
-      {showRightSidebar && activeRoom && activeRoom.type !== "direct" && (
-        <RightSidebar
-          activeRoom={activeRoom}
-          user={user}
-          userDoc={userDoc}
-          showRightSidebar={showRightSidebar}
-          onKick={handleKickMember}
-          onPromote={handlePromote}
-          onDemote={handleDemote}
-          onClose={() => setShowRightSidebar(false)}
-          onOpenUserAction={handleOpenUserAction}
-        />
+          {showRightSidebar && activeRoom && activeRoom.type !== "direct" && (
+            <RightSidebar
+              activeRoom={activeRoom}
+              user={user!}
+              userDoc={userDoc}
+              showRightSidebar={showRightSidebar}
+              onKick={handleKickMember}
+              onPromote={handlePromote}
+              onDemote={handleDemote}
+              onClose={() => setShowRightSidebar(false)}
+              onOpenUserAction={handleOpenUserAction}
+            />
+          )}
+
+          <Modals
+            user={user!} activeRoom={activeRoom} messages={messages}
+            showReportModal={showReportModal} setShowReportModal={setShowReportModal}
+            reportTarget={reportTarget} reportReason={reportReason} setReportReason={setReportReason} submitReport={submitReport}
+            showAddMemberModal={showAddMemberModal} setShowAddMemberModal={setShowAddMemberModal}
+            memberSearchQuery={memberSearchQuery} setMemberSearchQuery={setMemberSearchQuery}
+            memberSearchResults={memberSearchResults} isSearchingMembers={isSearchingMembers}
+            handleSearchMembersToAdd={handleSearchMembersToAdd} addMemberToRoom={addMemberToRoom}
+            showMembersModal={showMembersModal} setShowMembersModal={setShowMembersModal}
+            roomMembersList={roomMembersList} handlePromote={handlePromote} handleDemote={handleDemote}
+            showPinnedModal={showPinnedModal} setShowPinnedModal={setShowPinnedModal} handleUnpinMessage={handleUnpinMessage}
+            showThemeModal={showThemeModal} setShowThemeModal={setShowThemeModal}
+            themeData={themeData} setThemeData={setThemeData} handleSaveTheme={handleSaveTheme}
+          />
+
+          <ForwardModal isOpen={!!forwardMsgId} onClose={() => setForwardMsgId(null)} rooms={rooms} getDMName={getDMName} onForward={handleExecuteForward} />
+          <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} userDoc={userDoc} onSave={handleSaveSettings} />
+
+          <VaultFullModal isOpen={showVaultModal} onClose={() => setShowVaultModal(false)} isPremium={userDoc?.isPremium || false} />
+
+          <UserActionModal
+            isOpen={!!actionUser}
+            onClose={() => setActionUser(null)}
+            targetUser={actionUser}
+            isFriend={actionIsFriend}
+            isSelf={actionUser?.id === user?.uid}
+            onSendDM={handleActionSendDM}
+            onAddFriend={handleActionAddFriend}
+            onBlock={handleActionBlock}
+            onReport={handleActionReport}
+          />
+
+          {/* 👇 FLOATING SSO BUTTON FOR EASY TESTING 👇 */}
+          <div className="fixed bottom-20 left-4 z-50 md:bottom-6 md:left-24">
+            <SSOButton target="atk" label="Go to ATK ⵣ" className="shadow-2xl shadow-indigo-500/50" />
+          </div>
+
+          <MobileBottomNav />
+        </div>
       )}
-
-      <Modals
-        user={user} activeRoom={activeRoom} messages={messages}
-        showReportModal={showReportModal} setShowReportModal={setShowReportModal}
-        reportTarget={reportTarget} reportReason={reportReason} setReportReason={setReportReason} submitReport={submitReport}
-        showAddMemberModal={showAddMemberModal} setShowAddMemberModal={setShowAddMemberModal}
-        memberSearchQuery={memberSearchQuery} setMemberSearchQuery={setMemberSearchQuery}
-        memberSearchResults={memberSearchResults} isSearchingMembers={isSearchingMembers}
-        handleSearchMembersToAdd={handleSearchMembersToAdd} addMemberToRoom={addMemberToRoom}
-        showMembersModal={showMembersModal} setShowMembersModal={setShowMembersModal}
-        roomMembersList={roomMembersList} handlePromote={handlePromote} handleDemote={handleDemote}
-        showPinnedModal={showPinnedModal} setShowPinnedModal={setShowPinnedModal} handleUnpinMessage={handleUnpinMessage}
-        showThemeModal={showThemeModal} setShowThemeModal={setShowThemeModal}
-        themeData={themeData} setThemeData={setThemeData} handleSaveTheme={handleSaveTheme}
-      />
-
-      <ForwardModal isOpen={!!forwardMsgId} onClose={() => setForwardMsgId(null)} rooms={rooms} getDMName={getDMName} onForward={handleExecuteForward} />
-      <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} userDoc={userDoc} onSave={handleSaveSettings} />
-
-      <VaultFullModal isOpen={showVaultModal} onClose={() => setShowVaultModal(false)} isPremium={userDoc?.isPremium || false} />
-
-      <UserActionModal
-        isOpen={!!actionUser}
-        onClose={() => setActionUser(null)}
-        targetUser={actionUser}
-        isFriend={actionIsFriend}
-        isSelf={actionUser?.id === user?.uid}
-        onSendDM={handleActionSendDM}
-        onAddFriend={handleActionAddFriend}
-        onBlock={handleActionBlock}
-        onReport={handleActionReport}
-      />
-
-      <MobileBottomNav />
-    </div>
+    </RequireVerified>
   );
 }

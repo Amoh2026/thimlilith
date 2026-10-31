@@ -1,7 +1,3 @@
-// src/lib/email.ts
-// Resend-powered email engine for Thimlilith.
-// Ported from SAFiMalmo (engine only — templates rewritten).
-
 import { Resend } from 'resend';
 
 const FROM = process.env.EMAIL_FROM || 'Thimlilith <noreply@thimlilith.com>';
@@ -15,6 +11,13 @@ function getResend(): Resend {
     _resend = new Resend(key);
   }
   return _resend;
+}
+
+// Helper to check for errors hidden inside the Resend response
+function checkResendError(response: any) {
+  if (response.error) {
+    throw new Error(`Resend API Error: ${response.error.message}`);
+  }
 }
 
 function wrapHtml(title: string, bodyHtml: string): string {
@@ -48,11 +51,7 @@ function ctaButton(href: string, label: string, color = '#14b8a6'): string {
   return `<table role="presentation" cellspacing="0" cellpadding="0" style="margin:32px auto;"><tr><td align="center" style="background:${color};border-radius:10px;"><a href="${href}" style="display:inline-block;padding:14px 32px;color:#0f172a;font-weight:700;font-size:15px;text-decoration:none;border-radius:10px;">${label}</a></td></tr></table>`;
 }
 
-export async function sendPasswordResetEmail(params: {
-  to: string;
-  resetLink: string;
-  displayName?: string;
-}): Promise<void> {
+export async function sendPasswordResetEmail(params: { to: string; resetLink: string; displayName?: string; }): Promise<void> {
   const greeting = params.displayName ? `Azul ${params.displayName},` : 'Azul,';
   const body = `
     <h2 style="color:#f1f5f9;font-size:20px;margin:0 0 16px;">Reset your password</h2>
@@ -62,14 +61,11 @@ export async function sendPasswordResetEmail(params: {
     ${ctaButton(params.resetLink, 'Reset my password')}
     <p style="color:#94a3b8;font-size:13px;line-height:1.6;margin:0;">If the button does not work, copy and paste this link into your browser:<br /><a href="${params.resetLink}" style="color:#14b8a6;word-break:break-all;">${params.resetLink}</a></p>
   `;
-  await getResend().emails.send({ from: FROM, to: params.to, subject: 'Reset your Thimlilith password', html: wrapHtml('Reset your Thimlilith password', body) });
+  const response = await getResend().emails.send({ from: FROM, to: params.to, subject: 'Reset your Thimlilith password', html: wrapHtml('Reset your Thimlilith password', body) });
+  checkResendError(response); // <-- NEW
 }
 
-export async function sendVerificationEmail(params: {
-  to: string;
-  verifyLink: string;
-  displayName?: string;
-}): Promise<void> {
+export async function sendVerificationEmail(params: { to: string; verifyLink: string; displayName?: string; }): Promise<void> {
   const greeting = params.displayName ? `Azul ${params.displayName},` : 'Azul,';
   const body = `
     <h2 style="color:#f1f5f9;font-size:20px;margin:0 0 16px;">Welcome to Thimlilith</h2>
@@ -78,13 +74,11 @@ export async function sendVerificationEmail(params: {
     ${ctaButton(params.verifyLink, 'Verify my email')}
     <p style="color:#94a3b8;font-size:13px;line-height:1.6;margin:0;">If the button does not work, copy and paste this link into your browser:<br /><a href="${params.verifyLink}" style="color:#14b8a6;word-break:break-all;">${params.verifyLink}</a></p>
   `;
-  await getResend().emails.send({ from: FROM, to: params.to, subject: 'Verify your Thimlilith email', html: wrapHtml('Verify your Thimlilith email', body) });
+  const response = await getResend().emails.send({ from: FROM, to: params.to, subject: 'Verify your Thimlilith email', html: wrapHtml('Verify your Thimlilith email', body) });
+  checkResendError(response); // <-- NEW
 }
 
-export async function sendWelcomeEmail(params: {
-  to: string;
-  displayName?: string;
-}): Promise<void> {
+export async function sendWelcomeEmail(params: { to: string; displayName?: string; }): Promise<void> {
   const greeting = params.displayName ? `Azul ${params.displayName},` : 'Azul,';
   const body = `
     <h2 style="color:#f1f5f9;font-size:20px;margin:0 0 16px;">Your account is ready</h2>
@@ -92,5 +86,6 @@ export async function sendWelcomeEmail(params: {
     <p style="color:#cbd5e1;font-size:15px;line-height:1.6;margin:0 0 12px;">Your email is verified. Welcome to the Thajmaath &mdash; the Gathering of the Kabyle community.</p>
     ${ctaButton(`${SITE_URL}/en/rooms`, 'Enter Thimlilith')}
   `;
-  await getResend().emails.send({ from: FROM, to: params.to, subject: 'Welcome to Thimlilith', html: wrapHtml('Welcome to Thimlilith', body) });
+  const response = await getResend().emails.send({ from: FROM, to: params.to, subject: 'Welcome to Thimlilith', html: wrapHtml('Welcome to Thimlilith', body) });
+  checkResendError(response); // <-- NEW
 }

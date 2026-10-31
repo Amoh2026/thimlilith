@@ -9,6 +9,7 @@ import { SavedMessagesView } from './SavedMessagesView';
 import React from 'react';
 import Link from 'next/link';
 import { User } from 'firebase/auth';
+import { SSOButton } from '@/components/auth/SSOButton';
 
 interface SidebarsProps {
   user: User;
@@ -83,8 +84,6 @@ export function Sidebars(p: SidebarsProps) {
         .filter((s: any) => s.createdAt && s.createdAt.toMillis() > twentyFourHoursAgo);
       
       setStoriesList(validStories);
-      
-      // Get unique UIDs of people who have active stories
       const uids = [...new Set(validStories.map((s: any) => s.authorId))] as string[];
       setActiveStoryUids(uids);
     });
@@ -105,7 +104,10 @@ export function Sidebars(p: SidebarsProps) {
           <button onClick={() => p.setSidebarTab('rooms')} className={`hover:text-teal-400 text-xl ${p.sidebarTab === 'rooms' ? 'text-teal-400' : ''}`} title="Chat">💬</button>
           <Link href="/feed" className="hover:text-teal-400 text-xl" title="Home">🏠</Link>
           <Link href="/discover" className="hover:text-teal-400 text-xl" title="Discover Communities">🧭</Link> 
-          <a href="https://apprendrethamazightkabyle.com" target="_blank" rel="noopener noreferrer" className="hover:text-teal-400 text-xl" title="Learn">📖</a>
+          
+          {/* 👇 SSO BUTTON WITH TIFINAGH 'YAL' (L for Learn) 👇 */}
+          <SSOButton target="atk" icon="ⵍ" label="Learn ATK" className="!text-slate-500" />
+          
           <button onClick={() => p.setSidebarTab('vault')} className={`hover:text-yellow-400 text-xl ${p.sidebarTab === 'vault' ? 'text-yellow-400' : ''}`} title="My Vault">⭐</button>
           <button onClick={() => p.setSidebarTab('friends')} className={`hover:text-teal-400 text-xl ${p.sidebarTab === 'friends' ? 'text-teal-400' : ''}`} title="Groups">👥</button>
           <button className="hover:text-teal-400 text-xl" title="Files">📁</button>
@@ -134,18 +136,25 @@ export function Sidebars(p: SidebarsProps) {
         
          {/* Mobile Quick Links */}
         <div className="flex gap-2 p-3 border-b border-slate-800 bg-[#1e293b]">
-          <Link href="/feed" className="...">
+          <Link href="/feed" className="flex flex-col items-center justify-center flex-1 py-1">
             <span className="text-xl font-bold text-teal-400">ⴼ</span>
             <span className="text-[10px] text-gray-300 mt-1">Feed</span>
           </Link>
-          <Link href="/discover" className="...">
+          <Link href="/discover" className="flex flex-col items-center justify-center flex-1 py-1">
             <span className="text-xl font-bold text-teal-400">ⴷ</span>
             <span className="text-[10px] text-gray-300 mt-1">Discover</span>
           </Link>
-          <a href="https://apprendrethamazightkabyle.com" className="...">
-            <span className="text-xl font-bold text-teal-400">ⵍ</span>
+          
+          {/* Mobile SSO Button with Tifinagh 'Yal' */}
+          <div className="flex flex-col items-center justify-center flex-1 py-1">
+            <SSOButton 
+              target="atk" 
+              icon="ⵍ" 
+              label="Learn" 
+              className="!text-teal-400 !text-xl" 
+            />
             <span className="text-[10px] text-gray-300 mt-1">Learn</span>
-          </a>
+          </div>
         </div>
 
         {/* TOP TABS */}
@@ -196,7 +205,6 @@ export function Sidebars(p: SidebarsProps) {
                   const lastMessageTime = room.lastMessageAt?.toMillis() || 0;
                   const isUnread = room.lastMessageSenderId !== p.user.uid && lastMessageTime > lastReadTime;
                   
-                  // 📸 STORY RING LOGIC
                   const partnerUid = isDM ? room.members?.find((uid: string) => uid !== p.user.uid) : null;
                   const hasStory = isDM && partnerUid && activeStoryUids.includes(partnerUid);
 
@@ -213,7 +221,7 @@ export function Sidebars(p: SidebarsProps) {
                         <div 
                           onClick={(e) => {
                             if (hasStory && partnerUid) {
-                              e.stopPropagation(); // Don't open the chat
+                              e.stopPropagation(); 
                               openStoryForUser(partnerUid);
                             }
                           }}
@@ -262,7 +270,6 @@ export function Sidebars(p: SidebarsProps) {
                 const friendId = f.senderId === p.user.uid ? f.receiverId : f.senderId;
                 const friendName = f.senderId === p.user.uid ? f.receiverName : f.senderName;
                 
-                // 📸 STORY RING LOGIC
                 const friendHasStory = activeStoryUids.includes(friendId);
 
                 return (

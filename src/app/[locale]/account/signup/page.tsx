@@ -8,6 +8,7 @@ import {
   updateProfile,
   GoogleAuthProvider,
   signInWithPopup,
+  // sendEmailVerification, // <-- REMOVED: We use our custom API route instead
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
 import { useAuth } from '@/components/auth/AuthProvider';
@@ -24,12 +25,17 @@ export default function SignupPage() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   
-  // NEW: Password visibility state
+  // Password visibility state
   const [showPassword, setShowPassword] = useState(false);
 
+  // Redirect logic handles unverified users properly
   useEffect(() => {
     if (!loading && user) {
-      router.replace(`/${locale}/rooms`);
+      if (!user.emailVerified) {
+        router.replace(`/${locale}/account/verify-email`);
+      } else {
+        router.replace(`/${locale}/rooms`);
+      }
     }
   }, [user, loading, router, locale]);
 
@@ -41,8 +47,18 @@ export default function SignupPage() {
       const res = await createUserWithEmailAndPassword(auth, email, password);
       const displayName = name.trim() || email.split('@')[0];
       await updateProfile(res.user, { displayName });
+      
+      // NEW: Call our custom API route to send the email via Resend
+      await fetch('/api/send-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, locale, displayName }),
+      });
+      
       await refreshUser();
-      router.replace(`/${locale}/rooms`);
+      
+      // Send them to the verify page instead of rooms
+      router.replace(`/${locale}/account/verify-email`);
     } catch (err: any) {
       setError(err.message.replace('Firebase: ', ''));
     } finally {
@@ -53,6 +69,7 @@ export default function SignupPage() {
   const handleGoogleSignup = async () => {
     setError('');
     try {
+      // Google accounts are inherently verified, so this goes straight to rooms
       await signInWithPopup(auth, new GoogleAuthProvider());
       router.replace(`/${locale}/rooms`);
     } catch (err: any) {
@@ -97,7 +114,7 @@ export default function SignupPage() {
             autoComplete="email"
           />
           
-          {/* NEW: Password input with toggle */}
+          {/* Password input with toggle */}
           <div className="relative">
             <input
               type={showPassword ? "text" : "password"}
