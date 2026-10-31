@@ -1,63 +1,91 @@
-// src/app/api/stripe/webhook/route.ts
+// src/app/api/stripe/checkout/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { adminDb } from '@/lib/firebase/admin';
-import { FieldValue } from 'firebase-admin/firestore';
+import { verifyChatUser, unauthorized } from '@/lib/chat/auth-server';
+
+const DIGITAL_SERVICES_TAX_CODE = 'txcd_10000000';
 
 export async function POST(req: NextRequest) {
-  // 👇 Stripe init MUST be inside the handler
   const stripeKey = process.env.STRIPE_SECRET_KEY;
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-  
-  if (!stripeKey || !webhookSecret) {
-    return new NextResponse('Stripe keys not configured', { status: 500 });
+  if (!stripeKey) {
+    return NextResponse.json({ error: "Stripe key not configured on server" }, { status: 500 });
   }
-  
   const stripe = new Stripe(stripeKey, { apiVersion: '2026-09-30.endive' });
-  
-  const body = await req.text();
-  const sig = req.headers.get('stripe-signature')!;
-  let event: Stripe.Event;
+
+  const user = await verifyChatUser(req);
+  if (!user) return unauthorized();
 
   try {
-    event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
-  } catch (err: any) {
-    return new NextResponse(`Webhook Error: ${err.message}`, { status: 400 });
-  }
+    const { type, plan, amount, roomId } = await req.json();
+    let lineItems = [];
+    let metadata: any = { uid: user.uid, type };
 
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object as Stripe.Checkout.Session;
-    const uid = session.client_reference_id;
-    const type = session.metadata?.type;
-    const plan = session.metadata?.plan;
-    const donationAmount = Number(session.metadata?.donationAmount || 0);
-
-    if (uid) {
-      const db = adminDb();
-      const userRef = db.collection('users').doc(uid);
-
-      if (type === 'room_join') {
-        const roomId = session.metadata?.roomId;
-        if (roomId && uid) {
-          await db.collection('rooms').doc(roomId).update({
-            members: FieldValue.arrayUnion(uid)
-          });
-        }
-      } else if (type === 'donation') {
-        await userRef.set({
-          isDonator: true,
-          totalDonated: FieldValue.increment(donationAmount),
-        }, { merge: true });
-      } else if (plan) {
-        const now = Date.now();
-        let expiresAt = now + (plan === 'session' ? 24*60*60*1000 : plan === 'monthly' ? 30*24*60*60*1000 : 365*24*60*60*1000);
-        await userRef.set({
-          isPremium: true,
-          premiumPlan: plan,
-          premiumExpiresAt: expiresAt,
-        }, { merge: true });
-      }
+    if (type === 'room_join') {
+      if (!amount || amount < 1) return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
+      if (!roomId) return NextResponse.json({ error: "Missing room ID" }, { status: 400 });
+      
+      lineItems = [{
+        price_data: {
+          currency: 'eur',
+          product_data: { 
+            name: 'Premium Room Access', 
+            description: 'Monthly access to a private Thajmaath',
+            tax_code: DIGITAL_SERVICES_TAX_CODE
+          },
+          unit_amount: amount * 100,
+        },
+        quantity: 1,
+      }];
+      metadata.roomId = roomId;
+    } else if (type === 'donation') {
+      if (!amount || amount < 1) return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
+      lineItems = [{
+        price_data: {
+          currency: 'eur',
+          product_data: { 
+            name: 'Support Thimlilith ❤️', 
+            description: 'Thank you for preserving the Kabyle language!',
+            tax_code: DIGITAL_SERVICES_TAX_CODE
+          },
+          unit_amount: amount * 100,
+        },
+        quantity: 1,
+      }];
+      metadata.donationAmount = amount.toString();
+    } else {
+      const prices: Record<string, number> = { session: 199, monthly: 499, yearly: 3999 };
+      if (!prices[plan]) return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
+      lineItems = [{
+        price_data: {
+          currency: 'eur',
+          product_data: { 
+            name: plan === 'session' ? 'Session Pass (24h)' : plan === 'monthly' ? 'Monthly Premium' : 'Yearly Premium',
+            tax_code: DIGITAL_SERVICES_TAX_CODE
+          },
+          unit_amount: prices[plan],
+        },
+        quantity: 1,
+      }];
+      metadata.plan = plan;
     }
+
+    const session = await stripe.checkout.sessions.create({
+      line_items: lineItems,
+      mode: 'payment',
+      // 👇 FIX APPLIED HERE 👇
+      success_url: metadata.roomId 
+        ? `${req.headers.get('origin')}/en/rooms/${metadata.roomId}?payment=success`
+        : `${req.headers.get('origin')}/en/rooms?payment=success`,
+      cancel_url: metadata.roomId 
+        ? `${req.headers.get('origin')}/en/rooms/${metadata.roomId}?payment=cancelled`
+        : `${req.headers.get('origin')}/en/rooms?payment=cancelled`,
+      // 👆 END OF FIX 👆
+      client_reference_id: user.uid,
+      metadata: metadata,
+    });
+
+    return NextResponse.json({ url: session.url });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
-  return new NextResponse(null, { status: 200 });
 }

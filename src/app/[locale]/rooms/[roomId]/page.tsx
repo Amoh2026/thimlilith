@@ -16,6 +16,7 @@ export default function RoomPage() {
   const [room, setRoom] = useState<any>(null);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [checkingOut, setCheckingOut] = useState(false);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => setUser(u));
@@ -41,10 +42,35 @@ export default function RoomPage() {
     fetchRoom();
   }, [roomId]);
 
+  const handleCheckout = async () => {
+    if (!user || !room) return;
+    setCheckingOut(true);
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ 
+          type: 'room_join', // 👈 Matches your backend logic!
+          roomId: room.id, 
+          amount: room.price 
+        })
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert(data.error || 'Failed to start checkout');
+      }
+    } catch (err: any) {
+      alert("Failed to connect to Stripe: " + err.message);
+    } finally {
+      setCheckingOut(false);
+    }
+  };
+
   const handleVideoCall = () => {
     if (!room) return;
-    
-    // Check if user is premium or room is paid (Hybrid Logic)
     const isPremiumUser = false; // TODO: Wire to real auth premium check
     const res = resolveVideoCall({
       roomId: room.id,
@@ -98,10 +124,11 @@ export default function RoomPage() {
             <div className="bg-[#1e293b] border border-yellow-500/30 p-6 rounded-2xl text-center">
               <p className="text-slate-300 mb-4 text-sm">This is a premium Thajmaath. Join to unlock the community and video calls.</p>
               <button 
-                onClick={() => alert("Stripe Checkout coming next!")}
-                className="w-full bg-yellow-500 text-[#0f172a] font-bold py-3 rounded-xl active:scale-95 transition-transform"
+                onClick={handleCheckout}
+                disabled={checkingOut}
+                className="w-full bg-yellow-500 text-[#0f172a] font-bold py-3 rounded-xl active:scale-95 transition-transform disabled:opacity-50"
               >
-                Subscribe for €{room.price}/mo
+                {checkingOut ? 'Redirecting to Stripe...' : `Subscribe for €${room.price}/mo`}
               </button>
             </div>
           ) : (
@@ -114,7 +141,7 @@ export default function RoomPage() {
                 Video Call
               </button>
               <button 
-                onClick={() => alert("Live Stage coming in Phase 5")}
+                onClick={() => router.push(`/${locale}/live/live-${room.id}?host=true`)}
                 className="flex flex-col items-center justify-center p-4 rounded-2xl bg-[#1e293b] border border-white/10 text-slate-200 font-semibold active:scale-95 transition-transform"
               >
                 <span className="text-2xl mb-1">🔴</span>
