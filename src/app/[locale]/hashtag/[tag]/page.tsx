@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { db, auth } from '@/lib/firebase/client';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import MobileBottomNav from '@/components/MobileBottomNav';
+
 
 export default function HashtagPage() {
   const params = useParams();
@@ -84,7 +84,7 @@ export default function HashtagPage() {
           );
         })}
       </div>
-      <MobileBottomNav />
+      
     </div>
   );
 }

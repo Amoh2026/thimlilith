@@ -2,7 +2,7 @@
 "use client";
 
 import StoryViewer from '@/app/[locale]/(chat)/rooms/components/StoryViewer';
-import MobileBottomNav from '@/components/MobileBottomNav';
+
 import CommentModal from '@/app/[locale]/(chat)/rooms/components/CommentModal';
 import SharePostModal from '@/app/[locale]/(chat)/rooms/components/SharePostModal';
 import React, { useState, useEffect, useRef } from 'react';
@@ -401,7 +401,7 @@ export default function FeedPage() {
       {sharePost && <SharePostModal isOpen={!!sharePost} onClose={() => setSharePost(null)} post={sharePost} user={user} onShare={handleExecuteShare} />}
       {commentPost && <CommentModal isOpen={!!commentPost} onClose={() => setCommentPost(null)} post={commentPost} user={user} />}
       {activeStory && <StoryViewer story={activeStory} onClose={() => setActiveStory(null)} />}
-      <MobileBottomNav />
+      
     </div>
   );
 }

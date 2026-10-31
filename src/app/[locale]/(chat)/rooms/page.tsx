@@ -24,7 +24,7 @@ import { BannedScreen, MutedScreen, CharterScreen } from './components/GateScree
 import { Sidebars } from './components/Sidebars';
 import { ChatArea } from './components/ChatArea';
 import { Modals } from './components/Modals';
-import MobileBottomNav from '@/components/MobileBottomNav';
+
 
 export default function ThimlilithChatUI() {
   // ─── GLOBAL AUTH ──────────────────────────────────────────
@@ -950,7 +950,7 @@ export default function ThimlilithChatUI() {
             <SSOButton target="atk" label="Go to ATK ⵣ" className="shadow-2xl shadow-indigo-500/50" />
           </div>
 
-          <MobileBottomNav />
+          
         </div>
       )}
     </RequireVerified>

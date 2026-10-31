@@ -527,9 +527,6 @@ export function ChatArea(p: ChatAreaProps) {
         </form>
       </div>
 
-      {p.activeRoom.type === "group" && !p.showRightSidebar && (
-        <button onClick={() => p.setShowRightSidebar(true)} className="fixed right-4 bottom-24 z-[90] md:hidden bg-teal-600 hover:bg-teal-500 text-white w-12 h-12 rounded-full shadow-2xl flex items-center justify-center text-2xl border-2 border-slate-700" title="Show Members">👥</button>
-      )}
     </div>
   );
 }

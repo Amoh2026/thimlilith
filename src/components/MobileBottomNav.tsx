@@ -25,6 +25,9 @@ export default function MobileBottomNav() {
     return pathname === path && !currentTab;
   };
 
+  // Hide bottom nav on auth screens
+  if (pathname.includes('/account/') || pathname.includes('/sso')) return null;
+
   return (
     <div 
       className="md:hidden fixed bottom-0 left-0 right-0 z-[200] bg-[#0f172a]/95 backdrop-blur-md border-t border-slate-800 flex justify-around items-center h-16"
