@@ -10,7 +10,8 @@ import {
   signInWithPopup,
   // sendEmailVerification, // <-- REMOVED: We use our custom API route instead
 } from 'firebase/auth';
-import { auth } from '@/lib/firebase/client';
+import { auth, db } from '@/lib/firebase/client';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useAuth } from '@/components/auth/AuthProvider';
 
 export default function SignupPage() {
@@ -47,6 +48,17 @@ export default function SignupPage() {
       const res = await createUserWithEmailAndPassword(auth, email, password);
       const displayName = name.trim() || email.split('@')[0];
       await updateProfile(res.user, { displayName });
+
+      // Create user doc explicitly so hasSeenWelcome is deterministic
+      await setDoc(doc(db, 'users', res.user.uid), {
+        uid: res.user.uid,
+        name: displayName,
+        email: res.user.email || '',
+        photoURL: '',
+        hasSeenWelcome: false,
+        isPremium: false,
+        createdAt: serverTimestamp(),
+      }, { merge: true });
       
       // NEW: Call our custom API route to send the email via Resend
       await fetch('/api/send-verification', {

@@ -788,7 +788,11 @@ export default function ThimlilithChatUI() {
   const handleWelcomeDismiss = async () => {
     setShowWelcome(false);
     if (user) {
-      try { await updateDoc(doc(db, 'users', user.uid), { hasSeenWelcome: true }); } catch (err) {}
+      try {
+        await setDoc(doc(db, 'users', user.uid), { hasSeenWelcome: true }, { merge: true });
+      } catch (err) {
+        console.error('Failed to persist hasSeenWelcome:', err);
+      }
     }
   };
 
