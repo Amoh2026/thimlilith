@@ -21,26 +21,38 @@ export default function LiveRoom() {
   const [wsUrl, setWsUrl] = useState('');
   const [error, setError] = useState('');
 
-  // Fetch LiveKit Token
   useEffect(() => {
     if (!roomId) return;
 
+    // Wait for Firebase auth to load, then fetch the token
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (!user) return setError("You must be logged in.");
+      if (!user) {
+        setError("You must be logged in to join a live stream.");
+        return;
+      }
 
       try {
         const idToken = await user.getIdToken();
+
         const res = await fetch('/api/chat/livekit-token', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}`
+          },
           body: JSON.stringify({ roomId, isHost }),
         });
 
         const text = await res.text();
-        if (!text) throw new Error(`Server error (Status: ${res.status})`);
+        if (!text) {
+          throw new Error(`Server returned empty response (Status: ${res.status})`);
+        }
 
         const data = JSON.parse(text);
-        if (!res.ok) throw new Error(data.error || `Server error: ${res.status}`);
+        
+        if (!res.ok) {
+          throw new Error(data.error || `Server error: ${res.status}`);
+        }
 
         setToken(data.token);
         setWsUrl(data.url);
@@ -55,8 +67,8 @@ export default function LiveRoom() {
   if (error) {
     return (
       <div className="min-h-screen bg-[#0f172a] flex flex-col items-center justify-center text-red-400 p-4 text-center">
-        <p className="mb-4 text-sm bg-red-500/10 p-4 rounded-xl">{error}</p>
-        <button onClick={() => window.history.back()} className="text-teal-400 underline">Go Back</button>
+        <p className="mb-4 text-sm font-mono bg-red-500/10 p-4 rounded-xl border border-red-500/20">⚠️ {error}</p>
+        <button onClick={() => window.history.back()} className="text-teal-400 underline mt-2">Go Back</button>
       </div>
     );
   }
@@ -69,10 +81,11 @@ export default function LiveRoom() {
     );
   }
 
+  // Clean, simple LiveKit implementation
   return (
     <div className="min-h-screen bg-[#0f172a]" data-lk-theme="default">
       <LiveKitRoom
-        video={isHost} // Let LiveKit handle the camera natively
+        video={isHost} 
         audio={isHost} 
         token={token}
         serverUrl={wsUrl}
