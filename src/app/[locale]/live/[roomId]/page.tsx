@@ -21,7 +21,6 @@ export default function LiveRoom() {
   const [error, setError] = useState('');
   const [permissionsGranted, setPermissionsGranted] = useState(false);
 
-  // 1. Fetch LiveKit Token via Firebase Auth
   useEffect(() => {
     if (!roomId) return;
 
@@ -33,26 +32,17 @@ export default function LiveRoom() {
 
       try {
         const idToken = await user.getIdToken();
-
         const res = await fetch('/api/chat/livekit-token', {
           method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${idToken}`
-          },
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
           body: JSON.stringify({ roomId, isHost }),
         });
 
         const text = await res.text();
-        if (!text) {
-          throw new Error(`Server returned empty response (Status: ${res.status})`);
-        }
+        if (!text) throw new Error(`Server error (Status: ${res.status})`);
 
         const data = JSON.parse(text);
-        
-        if (!res.ok) {
-          throw new Error(data.error || `Server error: ${res.status}`);
-        }
+        if (!res.ok) throw new Error(data.error || `Server error: ${res.status}`);
 
         setToken(data.token);
       } catch (err: any) {
@@ -63,19 +53,41 @@ export default function LiveRoom() {
     return () => unsubscribe();
   }, [roomId, isHost]);
 
-  // 2. Handle Pre-Join Permissions
   const handleRequestPermissions = async () => {
     try {
-      // Force the browser to grab the camera and mic
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      let stream;
+      try {
+        // Try the default camera first
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      } catch (defaultErr: any) {
+        // If the default fails (lid closed), scan for ANY camera and use the first one
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(d => d.kind === 'videoinput');
+        if (videoDevices.length > 0) {
+          stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { deviceId: videoDevices[0].deviceId }, 
+            audio: true 
+          });
+        } else {
+          throw defaultErr;
+        }
+      }
       
-      // Immediately stop the stream to completely release the hardware lock
+      // Stop hardware lock, then allow LiveKit to mount
       stream.getTracks().forEach(track => track.stop());
-      
-      // Once safely released, allow LiveKit to mount
       setPermissionsGranted(true);
     } catch (err: any) {
-      alert("Could not access camera/mic. Please check your browser permissions.");
+      // Tell the user EXACTLY why it failed
+      console.error(err);
+      if (err.name === 'NotAllowedError') {
+        alert("Permission Denied!\n\nPlease click the Lock icon 🔒 in the URL bar and set Camera to 'Allow'.");
+      } else if (err.name === 'NotReadableError') {
+        alert("Camera is busy!\n\nAnother app (Zoom, Teams, PowerPoint) is using your camera. Close it and try again.");
+      } else if (err.name === 'NotFoundError') {
+        alert("No Camera Found!\n\nPlease plug in your USB camera.");
+      } else {
+        alert(`Error: ${err.message}`);
+      }
     }
   };
 
@@ -96,7 +108,6 @@ export default function LiveRoom() {
     );
   }
 
-  // 👇 THE FIX: Show a pre-join screen for the Host to clear old hardware locks 👇
   if (isHost && !permissionsGranted) {
     return (
       <div className="min-h-screen bg-[#0f172a] flex flex-col items-center justify-center p-4">
@@ -109,10 +120,7 @@ export default function LiveRoom() {
           >
             Turn On Camera & Mic
           </button>
-          <button 
-            onClick={() => window.history.back()} 
-            className="mt-4 text-sm text-slate-500 hover:text-white underline"
-          >
+          <button onClick={() => window.history.back()} className="mt-4 text-sm text-slate-500 hover:text-white underline">
             Cancel and go back
           </button>
         </div>
@@ -120,7 +128,6 @@ export default function LiveRoom() {
     );
   }
 
-  // 3. Mount LiveKit only after permission is granted
   return (
     <div className="min-h-screen bg-[#0f172a]" data-lk-theme="default">
       <LiveKitRoom
