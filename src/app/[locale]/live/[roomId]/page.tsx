@@ -8,6 +8,7 @@ import {
   RoomAudioRenderer,
 } from '@livekit/components-react';
 import '@livekit/components-styles';
+import { auth } from '@/lib/firebase/client'; // 👈 Import auth
 
 export default function LiveRoom() {
   const searchParams = useSearchParams();
@@ -24,13 +25,25 @@ export default function LiveRoom() {
     
     const fetchToken = async () => {
       try {
+        // 1. Check if user is logged in
+        if (!auth.currentUser) {
+          throw new Error("You must be logged in to join a live stream.");
+        }
+
+        // 2. Get the Firebase Auth Token
+        const idToken = await auth.currentUser.getIdToken();
+
+        // 3. Send the request WITH the Authorization header
         const res = await fetch('/api/chat/livekit-token', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}` // 👈 This fixes the 500 error!
+          },
           body: JSON.stringify({ roomId, isHost }),
         });
 
-        // 👇 SAFE JSON PARSING: Prevents "Unexpected end of JSON input" crash
+        // 4. Safe JSON parsing
         const text = await res.text();
         if (!text) {
           throw new Error(`Server returned empty response (Status: ${res.status})`);
@@ -61,7 +74,7 @@ export default function LiveRoom() {
     return (
       <div className="min-h-screen bg-[#0f172a] flex flex-col items-center justify-center text-red-400 p-4 text-center">
         <p className="mb-4 text-sm font-mono bg-red-500/10 p-4 rounded-xl border border-red-500/20">⚠️ {error}</p>
-        <button onClick={() => window.history.back()} className="text-teal-400 underline">Go Back</button>
+        <button onClick={() => window.history.back()} className="text-teal-400 underline mt-2">Go Back</button>
       </div>
     );
   }
