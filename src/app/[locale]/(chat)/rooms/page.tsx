@@ -708,7 +708,9 @@ export default function ThimlilithChatUI() {
   };
 
   useEffect(() => {
-    if (userDoc && !userDoc.hasSeenWelcome) setShowWelcome(true);
+    if (userDoc) {
+      setShowWelcome(!userDoc.hasSeenWelcome);
+    }
   }, [userDoc]);
 
   const handleExecuteForward = async (targetRoomId: string) => {
