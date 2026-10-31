@@ -24,7 +24,6 @@ export default function LiveRoom() {
     
     const fetchToken = async () => {
       try {
-        // ✅ POST REQUEST MATCHING YOUR NEW API
         const res = await fetch('/api/chat/livekit-token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -38,7 +37,7 @@ export default function LiveRoom() {
         }
 
         setToken(data.token);
-        setWsUrl(data.url); // Use the URL returned from the server
+        setWsUrl(data.url);
       } catch (err: any) {
         setError(err.message);
       }
@@ -74,10 +73,8 @@ export default function LiveRoom() {
         onDisconnected={() => window.history.back()}
         className="h-screen"
       >
-        <VideoConference 
-          chatMessageFormatter={undefined} 
-          settings={isHost} 
-        />
+        {/* Removed the invalid 'settings' and 'chatMessageFormatter' props */}
+        <VideoConference />
         <RoomAudioRenderer />
       </LiveKitRoom>
     </div>
