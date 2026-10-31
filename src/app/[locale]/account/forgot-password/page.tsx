@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { auth } from '@/lib/firebase/client';
+import { sendPasswordResetEmail } from 'firebase/auth';
 
 export default function ForgotPasswordPage() {
   const params = useParams();
@@ -18,24 +20,23 @@ export default function ForgotPasswordPage() {
     setError('');
     setSubmitting(true);
     try {
-      const res = await fetch('/api/forgot-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, locale }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || 'Something went wrong');
-      }
+      // 🚀 THIS IS THE MAGIC: It uses Google's servers, no Resend needed.
+      await sendPasswordResetEmail(auth, email);
       setSubmitted(true);
     } catch (err: any) {
-      setError(err.message || 'Something went wrong');
+      console.error(err);
+      if (err.code === 'auth/user-not-found') {
+        // For security, we pretend it succeeded so hackers can't guess emails
+        setSubmitted(true);
+      } else {
+        setError(err.message || 'Something went wrong');
+      }
     } finally {
       setSubmitting(false);
     }
   };
 
-  // ─── Success state — same message whether user exists or not ───
+  // ─── Success state ───
   if (submitted) {
     return (
       <div className="flex h-screen flex-col items-center justify-center bg-[#0f172a] text-white p-4">
