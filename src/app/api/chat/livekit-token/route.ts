@@ -1,15 +1,11 @@
 import { NextRequest } from 'next/server';
 import { AccessToken } from 'livekit-server-sdk';
 import { adminDb } from '@/lib/firebase/admin';
-import {
-  verifyChatUser,
-  unauthorized,
-  badRequest,
-} from '@/lib/chat/auth-server';
+import { verifyChatUser, unauthorized, badRequest } from '@/lib/chat/auth-server';
 
 export async function POST(req: NextRequest) {
   try {
-    // 👈 MOVED INSIDE TRY/CATCH
+    // 👈 EVERYTHING IS NOW INSIDE THE TRY BLOCK
     const user = await verifyChatUser(req);
     if (!user) return unauthorized();
 
@@ -19,9 +15,7 @@ export async function POST(req: NextRequest) {
 
     if (!apiKey || !apiSecret || !wsUrl) {
       return new Response(
-        JSON.stringify({
-          error: 'Video not configured yet. Add LIVEKIT_API_KEY, LIVEKIT_API_SECRET and NEXT_PUBLIC_LIVEKIT_URL.',
-        }),
+        JSON.stringify({ error: 'LiveKit keys missing on server' }),
         { status: 503, headers: { 'Content-Type': 'application/json' } }
       );
     }
@@ -33,7 +27,6 @@ export async function POST(req: NextRequest) {
     if (!roomId) return badRequest('roomId required');
 
     const isInstantLive = roomId.startsWith('live-');
-    
     const snap = await adminDb().collection('rooms').doc(roomId).get();
     
     if (!snap.exists && !isInstantLive) {
@@ -60,8 +53,8 @@ export async function POST(req: NextRequest) {
     at.addGrant({
       roomJoin: true,
       room: roomName,
-      canPublish: isHost, 
-      canSubscribe: true, 
+      canPublish: isHost,
+      canSubscribe: true,
       canPublishData: true,
     });
 
@@ -76,8 +69,7 @@ export async function POST(req: NextRequest) {
     
   } catch (err: any) {
     console.error('POST /api/chat/livekit-token error:', err);
-    
-    // 🛡️ THIS WILL NOW CATCH FIREBASE AUTH ERRORS
+    // 🛡️ This will now catch Firebase crashes and send the error to the frontend
     return new Response(
       JSON.stringify({ error: err?.message || 'Internal Server Error' }), 
       { status: 500, headers: { 'Content-Type': 'application/json' } }
