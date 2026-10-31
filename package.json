@@ -20,6 +20,7 @@
     "next": "16.4.3",
     "react": "19.3.0",
     "react-dom": "19.3.0",
+    "recharts": "^3.10.1",
     "resend": "^6.37.0",
     "safetygates": "^0.2.0",
     "stripe": "^23.0.1",

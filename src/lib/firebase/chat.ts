@@ -123,11 +123,15 @@ export function subscribeMessages(
     limit(max)
   );
   return onSnapshot(q, (snap) => {
-    const msgs: ChatMessage[] = snap.docs.map((d) => ({
-      id: d.id,
-      roomId,
-      ...(d.data() as Omit<ChatMessage, 'id' | 'roomId'>),
-    }));
+    const msgs: ChatMessage[] = snap.docs.map((d) => {
+      const data = d.data() as Partial<ChatMessage>;
+      return {
+        ...data,
+        id: d.id,
+        roomId,
+        text: data.text ?? '',
+      };
+    });
     cb(msgs);
   });
 }

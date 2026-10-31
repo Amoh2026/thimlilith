@@ -1,0 +1,187 @@
+﻿
+============================================================
+0. PROJECT SNAPSHOT
+============================================================
+Root: C:\Users\mohan\Desktop\thimlilith\web
+Date: 2026-10-31 15:48:18
+
+--- git log (last 10) ---
+  c972a23 fix(rules): add follows + notifications Firestore rules; clean Storage rules
+  8c2627e feat: add environment-aware SSO bridge routing for local dev
+  799629a feat: unified auth infrastructure (Steps 1-5) & UI polish
+  d807451 fix(feed): add try/catch and loading state to follow button
+  10d41dd feat(social): add hashtags and suggested people widget
+  1f692fd style(feed): replace all header emojis with Tifinagh symbols
+  4059d7e feat(feed): implement Global vs Following tabs based on follow system
+  f31b2a5 fix(ui): add safety submenu to hide block/report in DM header
+  e94340a feat(social): implement follow/unfollow system on profiles
+  0b852a5 fix(ui): use Yam for Safety Moderation to maintain Tifinagh consistency
+
+--- git status --short (first 20) ---
+Source files: 58 .tsx / 54 .ts
+
+============================================================
+1. CRITICAL INFRA (SSO + Next.js 16 middleware)
+============================================================
+[OK]      SSO receiver at root (not [locale])
+[OK]      src/proxy.ts (Next.js 16 name)
+[OK-ABSENT] old src/middleware.ts (must NOT exist)
+[FOUND]   proxy.ts exports 'export function proxy'  (1 file)
+[FOUND]   proxy.ts bypasses /sso  (1 file)
+[FOUND]   lib/firebase/admin exists  (1 file)
+[FOUND]   lib/quota.ts (getAuthedUid)  (1 file)
+
+============================================================
+2. PHASE 1+2 FILES (should all exist)
+============================================================
+[OK]      rooms/page.tsx
+[OK]      ChatArea.tsx
+[OK]      Sidebars.tsx
+[OK]      RightSidebar.tsx
+[OK]      Modals.tsx
+[OK]      UserActionModal.tsx
+[OK]      ForwardModal.tsx
+[OK]      VaultFullModal.tsx
+[OK]      SettingsModal.tsx
+[OK]      WelcomeModal.tsx
+[OK]      SavedMessagesView.tsx
+[OK]      PremiumModal.tsx
+[FOUND]   @mentions marker  (1 file)
+[FOUND]   Disappearing timer  (1 file)
+[FOUND]   Saved Vault usage  (2 file)
+
+============================================================
+3. PHASE 3 FILES (should all exist — verified ✅)
+============================================================
+[OK]      feed/page.tsx
+[OK]      profile/[uid]/page.tsx
+[OK]      discover/page.tsx
+[OK]      hashtag/[tag]/page.tsx
+[OK]      StoryViewer.tsx
+[OK]      CommentModal.tsx
+[OK]      SharePostModal.tsx
+[FOUND]   Feed: follows collection used  (1 file)
+[FOUND]   Feed: 'Who to Follow' widget  (1 file)
+[FOUND]   Feed: suggestedUsers state  (1 file)
+[FOUND]   Feed: setDoc to follows  (1 file)
+[FOUND]   Feed: hashtags array-contains query  (1 file)
+[FOUND]   Feed: Global / Following tabs  (1 file)
+[FOUND]   Stories: client 24h filter  (1 file)
+
+============================================================
+4. PHASE 4 STATUS (should mostly be ABSENT — not built)
+============================================================
+[OK-ABSENT] dashboard route (Phase 4 — NOT yet built)
+[OK-ABSENT] reels route (Phase 5 — NOT yet built)
+[OK-ABSENT] videos route (Phase 5 — NOT yet built)
+[ABSENT]  isPaid / price on rooms (Phase 4)
+[ABSENT]  transactions collection (Phase 4)
+[ABSENT]  Stripe Connect (Phase 4 payouts)
+[ABSENT]  Creator dashboard references
+[ABSENT]  Tip Jar / tips (Phase 4)
+
+============================================================
+5. SECURITY FILES (should all exist)
+============================================================
+[OK]      lib/quota.ts
+[OK]      api/translate/route.ts
+[OK]      api/transcribe/route.ts
+[MISSING] api/contribute/route.ts
+[MISSING] TurnstileWidget.tsx
+[FOUND]   isPremiumActive checks expiry  (1 file)
+
+============================================================
+6. FIRESTORE RULES — collection blocks present?
+============================================================
+firestore.rules exists — checking blocks:
+[OK]      match /follows/
+[OK]      match /notifications/
+[OK]      match /stories/
+[OK]      match /posts/
+[OK]      match /rooms/
+[MISSING] match /savedMessages/
+[OK]      match /friend_requests/
+[OK]      match /reports/
+[OK]      match /audit_log/
+[OK]      match /users/
+
+Duplicate collection blocks?
+  follows : 1 block(s)
+  notifications : 1 block(s)
+  stories : 1 block(s)
+
+storage.rules: no file in repo (lives only in Firebase Console — expected)
+
+============================================================
+7. PACKAGE.JSON DEPENDENCIES
+============================================================
+[OK]      next  (dep 16.4.3)
+[OK]      react  (dep 19.3.0)
+[OK]      firebase  (dep ^13.1.0)
+[OK]      firebase-admin  (dep ^14.5.0)
+[OK]      stripe  (dep ^23.0.1)
+[OK]      @stripe/stripe-js  (dep ^10.2.0)
+[OK]      livekit-server-sdk  (dep ^2.19.2)
+[OK]      @livekit/components-react  (dep ^2.9.24)
+[MISSING] recharts
+[OK]      resend  (dep ^6.37.0)
+[MISSING] @marsidev/react-turnstile
+
+============================================================
+8. next.config.js — type-check setting
+============================================================
+Config: next.config.js
+[WARN]  ignoreBuildErrors: true  (TS errors don't block build)
+Config: next.config.ts
+[OK]    no ignoreBuildErrors flag found
+
+============================================================
+9. .env.local — KEYS ONLY (values hidden)
+============================================================
+  ADMIN_EMAIL
+  APP_URL
+  CRON_SECRET
+  FIREBASE_CLIENT_EMAIL
+  FIREBASE_PRIVATE_KEY
+  FIREBASE_PROJECT_ID
+  GOOGLE_AI_API_KEY
+  GROQ_API_KEY
+  HUGGINGFACE_API_TOKEN
+  LIVEKIT_API_KEY
+  LIVEKIT_API_SECRET
+  NEXT_PUBLIC_FIREBASE_API_KEY
+  NEXT_PUBLIC_FIREBASE_APP_ID
+  NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+  NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+  NEXT_PUBLIC_FIREBASE_PROJECT_ID
+  NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+  NEXT_PUBLIC_LIVEKIT_URL
+  NEXT_PUBLIC_SITE_URL
+  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+  OPENAI_API_KEY
+  RESEND_API_KEY
+  STRIPE_SECRET_KEY
+  STRIPE_WEBHOOK_SECRET
+
+Duplicate keys (should be 1 each):
+  [OK] no duplicates
+[MISSING] IP_HASH_SALT
+[MISSING] TURNSTILE_SECRET_KEY
+[OK]      CRON_SECRET present
+
+============================================================
+10. ROUTE FOLDERS UNDER src/app (top-level)
+============================================================
+  api/  ->  admin, auth, chat, cron, forgot-password, moderation, send-verification, stripe, transcribe, translate
+  sso/
+  [locale]/  ->  (chat), (classroom), (learn), (memorize), account, admin, discover, feed, hashtag, join, profile
+
+============================================================
+11. BACKUP CLUTTER (info only)
+============================================================
+Backup files in src: 20
+  2026-10-29 11:26  ChatArea.tsx.bak-disappear-122740
+  2026-10-29 11:22  ChatArea.tsx.bak-mentionfix-112531
+  2026-10-29 11:18  page.tsx.bak-disappear-122749
+  2026-10-29 11:18  ChatArea.tsx.bak-mentions-112241
+  2026-10-29 11:12  page.tsx.bak-forward-111824
