@@ -4,41 +4,56 @@ import { getAuth, type Auth } from 'firebase-admin/auth';
 
 function initApp(): App {
   const existingApps = getApps();
-  if (existingApps.length > 0) {
-    return existingApps[0];
-  }
+  if (existingApps.length > 0) return existingApps[0];
 
-  // Attempt to load credentials from the single JSON string variable first
-  const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-  let credential;
-
-  if (serviceAccountJson) {
+  const base64Key = process.env.FIREBASE_SERVICE_ACCOUNT_KEY_BASE64;
+  
+  if (base64Key) {
     try {
-      const serviceAccount = JSON.parse(serviceAccountJson);
-      credential = cert(serviceAccount);
-      console.log('✅ [Firebase Admin] Initializing with JSON string credentials.');
-    } catch (e) {
-      console.error('❌ [Firebase Admin] Failed to parse JSON string credentials:', e);
-      throw new Error('Could not parse FIREBASE_SERVICE_ACCOUNT_JSON');
-    }
-  } else {
-    // Fallback to separate variables (less reliable on Vercel)
-    const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID;
-    const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
-    const privateKeyRaw = process.env.FIREBASE_ADMIN_PRIVATE_KEY;
+      // 1. Strip ALL whitespace, hidden newlines, and quotes from the Base64 string
+      const cleanBase64 = base64Key.replace(/["'\s\n\r]/g, '');
+      
+      // 2. Decode to string and remove any BOM (Byte Order Mark) Windows might have added
+      let decoded = Buffer.from(cleanBase64, 'base64').toString('utf8');
+      decoded = decoded.replace(/^\uFEFF/, ''); // Remove BOM
+      
+      // 3. Parse JSON
+      const serviceAccount = JSON.parse(decoded);
 
-    if (!projectId || !clientEmail || !privateKeyRaw) {
-      console.error('❌ [Firebase Admin] Missing credentials environment variables.');
-      throw new Error('Missing Firebase Admin env vars');
-    }
+      // 4. Force perfect PEM formatting for the private key
+      if (serviceAccount.private_key) {
+        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n').trim();
+      }
 
-    // Correctly format the private key from a string
-    const privateKey = privateKeyRaw.replace(/\\n/g, '\n');
-    credential = cert({ projectId, clientEmail, privateKey });
-    console.log('✅ [Firebase Admin] Initializing with separate env variable credentials.');
+      // Debug log to see exactly what we are sending (First 30 and Last 30 chars)
+      const pk = serviceAccount.private_key || '';
+      console.log(`✅ [Firebase Admin] Project: ${serviceAccount.project_id}`);
+      console.log(`🔑 Key Start: ${pk.substring(0, 30)}...`);
+      console.log(`🔑 Key End: ...${pk.substring(pk.length - 30)}`);
+
+      return initializeApp({
+        credential: cert(serviceAccount),
+      });
+    } catch (error: any) {
+      console.error('❌ [Firebase Admin] Failed to parse Base64 JSON:', error.message);
+    }
   }
 
-  return initializeApp({ credential });
+  // Fallback to separate variables (shouldn't be needed if Base64 is working)
+  const projectId = process.env.FIREBASE_PROJECT_ID || process.env.FIREBASE_ADMIN_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL || process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
+  const rawKey = process.env.FIREBASE_PRIVATE_KEY || process.env.FIREBASE_ADMIN_PRIVATE_KEY;
+
+  if (!projectId || !clientEmail || !rawKey) {
+    throw new Error('Missing Firebase Admin env vars');
+  }
+
+  console.log(`✅ [Firebase Admin] Initializing with separate vars.`);
+  const privateKey = rawKey.replace(/^"|"$/g, '').replace(/\\n/g, '\n');
+
+  return initializeApp({
+    credential: cert({ projectId, clientEmail, privateKey }),
+  });
 }
 
 let _db: Firestore | null = null;
