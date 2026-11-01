@@ -6,33 +6,39 @@ function initApp(): App {
   const existingApps = getApps();
   if (existingApps.length > 0) return existingApps[0];
 
-  const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  const base64Key = process.env.FIREBASE_SERVICE_ACCOUNT_KEY_BASE64;
   
-  if (!serviceAccountJson) {
-    throw new Error('Missing FIREBASE_SERVICE_ACCOUNT_JSON');
+  if (!base64Key) {
+    console.error('❌ [Firebase Admin] FIREBASE_SERVICE_ACCOUNT_KEY_BASE64 is missing!');
+    throw new Error('Missing FIREBASE_SERVICE_ACCOUNT_KEY_BASE64');
   }
 
   try {
-    // Strip BOM and trim any hidden spaces
-    const cleanJson = serviceAccountJson.replace(/^\uFEFF/, '').trim();
+    // Strip any invisible characters Vercel might have added
+    const cleanBase64 = base64Key.replace(/[^A-Za-z0-9+/=]/g, '');
     
-    // Log the first 10 chars to verify it's clean
-    console.log(`🔍 [Debug] Raw JSON Start: [${cleanJson.substring(0, 10)}]`);
+    // Decode
+    let decoded = Buffer.from(cleanBase64, 'base64').toString('utf8');
+    decoded = decoded.replace(/^\uFEFF/, ''); // Remove BOM
+    
+    console.log(`🔍 [Debug] Decoded String Start: [${decoded.substring(0, 10)}]`);
 
-    const serviceAccount = JSON.parse(cleanJson);
+    // Parse the minified JSON
+    const serviceAccount = JSON.parse(decoded);
 
+    // Fix private key newlines
     if (serviceAccount.private_key) {
       serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
     }
 
-    console.log(`✅ [Firebase Admin] Initializing with JSON. Project: ${serviceAccount.project_id}`);
+    console.log(`✅ [Firebase Admin] Initializing with Minified Base64 JSON. Project: ${serviceAccount.project_id}`);
 
     return initializeApp({
       credential: cert(serviceAccount),
     });
   } catch (error: any) {
-    console.error('❌ [Firebase Admin] Failed to parse JSON:', error.message);
-    throw new Error('Failed to parse JSON');
+    console.error('❌ [Firebase Admin] Failed to parse:', error.message);
+    throw new Error('Failed to parse credentials');
   }
 }
 
