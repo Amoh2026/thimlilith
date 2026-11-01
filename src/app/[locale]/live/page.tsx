@@ -2,21 +2,46 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { db, auth } from '@/lib/firebase/client';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 export default function LiveLobby() {
   const [roomId, setRoomId] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const handleGoLive = (e: React.FormEvent) => {
+  const handleGoLive = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // If the user didn't type a room ID, generate a random one
+    const user = auth.currentUser;
+    if (!user) {
+      alert("You must be logged in to go live.");
+      setIsLoading(false);
+      return;
+    }
+
+    // Generate a room ID if the user didn't type one
     const finalRoomId = roomId.trim() || `live-${Math.floor(Math.random() * 10000)}`;
     
-    // Redirect to the Live Room we just built, passing ?host=true
-    router.push(`/en/live/${finalRoomId}?host=true`);
+    try {
+      // 🚨 THE FIX: Save the room to Firestore so the Egress API knows you are the host!
+      await setDoc(doc(db, 'rooms', finalRoomId), {
+        name: finalRoomId,
+        createdBy: user.uid,
+        createdAt: serverTimestamp(),
+        type: 'live',
+        isLive: false,
+        members: [user.uid]
+      }, { merge: true });
+
+      // Redirect to the Live Room
+      router.push(`/en/live/${finalRoomId}?host=true`);
+    } catch (error) {
+      console.error("Error creating room:", error);
+      alert("Failed to start broadcast. Check console.");
+      setIsLoading(false);
+    }
   };
 
   return (
