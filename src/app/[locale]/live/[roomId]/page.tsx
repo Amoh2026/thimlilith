@@ -47,10 +47,17 @@ export default function LiveRoom() {
           body: JSON.stringify({ roomId }),
         });
 
+        // 🚨 BETTER ERROR HANDLING
         const text = await res.text();
-        if (!text) throw new Error(`Server error (Status: ${res.status})`);
+        if (!text) throw new Error(`Server returned empty response (Status: ${res.status})`);
 
-        const data = JSON.parse(text);
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          throw new Error(`Invalid JSON from server: ${text.substring(0, 50)}...`);
+        }
+
         if (!res.ok) throw new Error(data.error || `Server error: ${res.status}`);
 
         if (data.type === 'hls') {
@@ -64,6 +71,7 @@ export default function LiveRoom() {
         }
 
       } catch (err: any) {
+        console.error("Token Fetch Error:", err);
         setError(err.message);
         setPlaybackType('error');
       }
