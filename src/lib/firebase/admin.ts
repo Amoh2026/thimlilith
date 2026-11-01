@@ -14,12 +14,17 @@ function initApp(): App {
   }
 
   try {
-    // 🚨 THE ULTIMATE CLEANER: Strip everything that isn't a valid Base64 character
-    const cleanBase64 = base64Key.replace(/[^A-Za-z0-9+/=]/g, '');
+    console.log(`🔍 [Debug] Vercel Base64 Length: ${base64Key.length} chars`);
+    
+    // Strip ALL whitespace, hidden newlines, and quotes
+    const cleanBase64 = base64Key.replace(/["'\s\n\r]/g, '');
+    console.log(`🔍 [Debug] Cleaned Base64 Length: ${cleanBase64.length} chars`);
     
     let decoded = Buffer.from(cleanBase64, 'base64').toString('utf8');
-    decoded = decoded.replace(/^\uFEFF/, ''); // Remove BOM if present
+    decoded = decoded.replace(/^\uFEFF/, ''); // Remove BOM
     
+    console.log(`🔍 [Debug] Decoded String Start: ${decoded.substring(0, 40)}...`);
+
     const serviceAccount = JSON.parse(decoded);
 
     if (serviceAccount.private_key) {
@@ -27,7 +32,7 @@ function initApp(): App {
     }
 
     console.log(`✅ [Firebase Admin] Initializing. Project: ${serviceAccount.project_id}`);
-    console.log(`🔑 Key Length: ${serviceAccount.private_key?.length} chars`);
+    console.log(`🔑 Private Key Length: ${serviceAccount.private_key?.length} chars`);
 
     return initializeApp({
       credential: cert(serviceAccount),
