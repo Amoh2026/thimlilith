@@ -5,7 +5,7 @@ import StoryViewer from './StoryViewer';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { useEffect, useState } from 'react';
-import { SavedMessagesView } from './SavedMessagesView';
+
 import React from 'react';
 import Link from 'next/link';
 import { User } from 'firebase/auth';

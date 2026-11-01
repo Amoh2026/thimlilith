@@ -12,7 +12,6 @@ export default function DesktopActionHub() {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Close when clicking outside
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -30,7 +29,6 @@ export default function DesktopActionHub() {
 
   return (
     <div className="relative" ref={menuRef}>
-      {/* Trigger Button */}
       <button 
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-slate-800 transition-colors text-slate-300"
@@ -39,7 +37,6 @@ export default function DesktopActionHub() {
         <span className="text-xl font-bold">ⵎ</span>
       </button>
 
-      {/* Dropdown Menu */}
       {isOpen && (
         <div className="absolute right-0 mt-2 w-56 bg-[#1e293b] border border-white/10 rounded-xl shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
           
@@ -61,7 +58,6 @@ export default function DesktopActionHub() {
 
           <div className="h-px bg-white/10 my-1"></div>
 
-          {/* 🚨 ADDED FROM YOUR REQUEST */}
           <button onClick={() => navigate('/rooms?tab=vault')} className="w-full text-left px-4 py-3 text-sm text-slate-200 hover:bg-slate-700 flex items-center gap-3">
             <span className="text-lg">ⵡ</span> My Vault
           </button>
@@ -76,7 +72,7 @@ export default function DesktopActionHub() {
             <span className="text-lg">ⵎ</span> Safety & Mods
           </button>
 
-          <div className="h-px bg-white/10 my-1"></button>
+          <div className="h-px bg-white/10 my-1"></div>
 
           <button onClick={() => { setIsOpen(false); signOut(auth); }} className="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 flex items-center gap-3">
             <span className="text-lg">🚪</span> Log Out
