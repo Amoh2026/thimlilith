@@ -3,54 +3,42 @@ import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 import { getAuth, type Auth } from 'firebase-admin/auth';
 
 function initApp(): App {
-  const existing = getApps();
-  if (existing.length > 0) return existing[0];
+  const existingApps = getApps();
+  if (existingApps.length > 0) {
+    return existingApps[0];
+  }
 
-  // 1. Try Base64 JSON (Ultimate Vercel fix)
-  const base64Key = process.env.FIREBASE_SERVICE_ACCOUNT_KEY_BASE64;
-  if (base64Key) {
+  // Attempt to load credentials from the single JSON string variable first
+  const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  let credential;
+
+  if (serviceAccountJson) {
     try {
-      const decoded = Buffer.from(base64Key, 'base64').toString('utf8');
-      const serviceAccount = JSON.parse(decoded);
-      console.log(`✅ [Firebase Admin] Initializing with Base64 JSON for project: ${serviceAccount.project_id}`);
-      return initializeApp({
-        credential: cert(serviceAccount),
-      });
-    } catch (error) {
-      console.error('❌ Failed to parse Base64 JSON:', error);
+      const serviceAccount = JSON.parse(serviceAccountJson);
+      credential = cert(serviceAccount);
+      console.log('✅ [Firebase Admin] Initializing with JSON string credentials.');
+    } catch (e) {
+      console.error('❌ [Firebase Admin] Failed to parse JSON string credentials:', e);
+      throw new Error('Could not parse FIREBASE_SERVICE_ACCOUNT_JSON');
     }
-  }
+  } else {
+    // Fallback to separate variables (less reliable on Vercel)
+    const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID;
+    const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
+    const privateKeyRaw = process.env.FIREBASE_ADMIN_PRIVATE_KEY;
 
-  // 2. Try plain JSON
-  const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-  if (serviceAccountKey) {
-    try {
-      const serviceAccount = JSON.parse(serviceAccountKey);
-      console.log(`✅ [Firebase Admin] Initializing with plain JSON for project: ${serviceAccount.project_id}`);
-      return initializeApp({
-        credential: cert(serviceAccount),
-      });
-    } catch (error) {
-      console.error('❌ Failed to parse plain JSON:', error);
+    if (!projectId || !clientEmail || !privateKeyRaw) {
+      console.error('❌ [Firebase Admin] Missing credentials environment variables.');
+      throw new Error('Missing Firebase Admin env vars');
     }
+
+    // Correctly format the private key from a string
+    const privateKey = privateKeyRaw.replace(/\\n/g, '\n');
+    credential = cert({ projectId, clientEmail, privateKey });
+    console.log('✅ [Firebase Admin] Initializing with separate env variable credentials.');
   }
 
-  // 3. Fallback to separate variables
-  const projectId = process.env.FIREBASE_PROJECT_ID || process.env.FIREBASE_ADMIN_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL || process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
-  const rawKey = process.env.FIREBASE_PRIVATE_KEY || process.env.FIREBASE_ADMIN_PRIVATE_KEY;
-
-  if (!projectId || !clientEmail || !rawKey) {
-    console.error('❌ [Firebase Admin] Missing env vars.');
-    throw new Error('Missing Firebase Admin env vars');
-  }
-
-  console.log(`✅ [Firebase Admin] Initializing with separate vars for project: ${projectId}`);
-  const privateKey = rawKey.replace(/^"|"$/g, '').replace(/\\n/g, '\n');
-
-  return initializeApp({
-    credential: cert({ projectId, clientEmail, privateKey }),
-  });
+  return initializeApp({ credential });
 }
 
 let _db: Firestore | null = null;
