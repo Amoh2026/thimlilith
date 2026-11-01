@@ -1,0 +1,10 @@
+{
+  "Nav": { "chats": "Chats", "feed": "Feed", "following": "Following", "communities": "Communities", "video": "Video", "more": "More" },
+  "Hub": {
+    "title": "Action Hub", "startChat": "Start a Chat", "startChatSub": "Message someone new",
+    "createRoom": "Create a Room", "createRoomSub": "Host a Thajmaath", "goLive": "Go Live", "goLiveSub": "Broadcast to your audience",
+    "videoCall": "Video Call", "videoCallSub": "LiveKit Stage", "myVault": "My Vault", "myVaultSub": "Saved messages",
+    "myProfile": "My Profile", "myProfileSub": "View your profile", "logout": "Log Out", "logoutSub": "Sign out of Thimlilith",
+    "safety": "Safety & Mods", "safetySub": "Report, block, & appeals"
+  }
+}

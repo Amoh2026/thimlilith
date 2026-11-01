@@ -1,0 +1,10 @@
+{
+  "Nav": { "chats": "Imsawalen", "feed": "Asfaylu", "following": "Iḍfaren", "communities": "Timɣiwin", "video": "Tavidyut", "more": "Ugar" },
+  "Hub": {
+    "title": "Amsedday n Tigawt", "startChat": "Bdu imsawalen", "startChatSub": "Azen izen i yiwen",
+    "createRoom": "Snulfu taxxamt", "createRoomSub": "Aqbal Thajmaath", "goLive": "Ddu s trusit", "goLiveSub": "Suffeɣ i imeɣriyen-ik",
+    "videoCall": "Asiwel s tvidyut", "videoCallSub": "LiveKit Stage", "myVault": "Tanfult-iw", "myVaultSub": "Izenen yettwaḥerzen",
+    "myProfile": "Aqemmus-iw", "myProfileSub": "Wali aqemmus-ik", "logout": "Ffeɣ", "logoutSub": "Ffeɣ seg Thimlilith",
+    "safety": "Tɣellist & Mods", "safetySub": "Azen, sewḥel"
+  }
+}

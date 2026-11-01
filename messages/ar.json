@@ -1,0 +1,10 @@
+{
+  "Nav": { "chats": "الدردشات", "feed": "الخلاصة", "following": "المتابعون", "communities": "المجتمعات", "video": "فيديو", "more": "المزيد" },
+  "Hub": {
+    "title": "مركز الإجراءات", "startChat": "بدء محادثة", "startChatSub": "راسل شخصاً جديداً",
+    "createRoom": "إنشاء غرفة", "createRoomSub": "استضف ثجمعث", "goLive": "البث المباشر", "goLiveSub": "بث لجمهورك",
+    "videoCall": "مكالمة فيديو", "videoCallSub": "منصة LiveKit", "myVault": "خزنتي", "myVaultSub": "الرسائل المحفوظة",
+    "myProfile": "ملفي الشخصي", "myProfileSub": "عرض ملفك", "logout": "تسجيل الخروج", "logoutSub": "الخروج من ثيمليلث",
+    "safety": "الأمان والإشراف", "safetySub": "إبلاغ، حظر"
+  }
+}
