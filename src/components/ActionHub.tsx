@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { auth } from '@/lib/firebase/client';
+import { signOut } from 'firebase/auth';
 
 type Props = { open: boolean; onClose: () => void; locale: string };
 
@@ -9,8 +11,12 @@ const ACTIONS = [
   { key: 'chat',  icon: '💬', label: 'Start a Chat',  sub: 'Message someone new' },
   { key: 'room',  icon: '🚪', label: 'Create a Room', sub: 'Host a Thajmaath' },
   { key: 'live',  icon: '🔴', label: 'Go Live',       sub: 'Broadcast to your audience' },
-  { key: 'video', icon: 'ⴽ', label: 'Video Call',    sub: 'Hybrid: free or premium' },
+  { key: 'video', icon: 'ⴽ', label: 'Video Call',    sub: 'LiveKit Stage' },
   { key: 'safety', icon: 'ⵎ', label: 'Safety & Mods', sub: 'Report, block, & appeals' },
+  // Added these from your request
+  { key: 'vault', icon: 'ⵡ', label: 'My Vault',       sub: 'Saved messages' },
+  { key: 'profile', icon: 'ⵓ', label: 'My Profile',   sub: 'View your profile' },
+  { key: 'logout', icon: '🚪', label: 'Log Out',      sub: 'Sign out of Thimlilith' },
 ] as const;
 
 export default function ActionHub({ open, onClose, locale }: Props) {
@@ -43,6 +49,9 @@ export default function ActionHub({ open, onClose, locale }: Props) {
       case 'live': router.push(`/${locale}/live`); break;
       case 'video': router.push(`/${locale}/video`); break;
       case 'safety': router.push(`/${locale}/moderation`); break;
+      case 'vault': router.push(`/${locale}/rooms?tab=vault`); break;
+      case 'profile': router.push(`/${locale}/profile`); break;
+      case 'logout': signOut(auth); break;
     }
   };
 
@@ -57,10 +66,10 @@ export default function ActionHub({ open, onClose, locale }: Props) {
           <h2 className="text-slate-300 text-sm font-medium mb-3 px-1">Action Hub</h2>
           <div className="grid grid-cols-2 gap-3">
             {ACTIONS.map((a) => (
-              <button key={a.key} type="button" onClick={() => handle(a.key)} className="flex flex-col items-start justify-between gap-2 min-h-24 p-4 rounded-2xl bg-[#0f172a]/80 border border-white/10 text-left active:scale-95 transition-transform hover:border-teal-400/40">
+              <button key={a.key} type="button" onClick={() => handle(a.key)} className={`flex flex-col items-start justify-between gap-2 min-h-24 p-4 rounded-2xl bg-[#0f172a]/80 border text-left active:scale-95 transition-transform hover:border-teal-400/40 ${a.key === 'logout' ? 'border-red-500/30' : 'border-white/10'}`}>
                 <span className="text-2xl" aria-hidden>{a.icon}</span>
                 <span>
-                  <span className="block text-slate-100 font-medium text-sm">{a.label}</span>
+                  <span className={`block font-medium text-sm ${a.key === 'logout' ? 'text-red-400' : 'text-slate-100'}`}>{a.label}</span>
                   <span className="block text-slate-400 text-[11px] mt-0.5">{a.sub}</span>
                 </span>
               </button>

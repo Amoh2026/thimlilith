@@ -485,8 +485,8 @@ export function ChatArea(p: ChatAreaProps) {
           
           <div className="flex items-center relative flex-shrink-0" ref={pickerRef}>
             <button type="button" onClick={() => { setShowMentionMenu(!showMentionMenu); setShowEmojiPicker(false); setShowStickerPicker(false); }} className="text-gray-400 hover:text-white p-2 text-lg font-bold" title="Mention">@</button>
-            <button type="button" onClick={() => { setShowEmojiPicker(!showEmojiPicker); setShowStickerPicker(false); setShowMentionMenu(false); }} className="text-gray-400 hover:text-white p-2 text-xl hidden sm:block">😊</button>
-            <button type="button" onClick={() => { setShowStickerPicker(!showStickerPicker); setShowEmojiPicker(false); setShowMentionMenu(false); }} className="text-gray-400 hover:text-white p-2 text-xl hidden sm:block" title="Kabyle Stickers">🎨</button>
+            <button type="button" onClick={() => { setShowEmojiPicker(!showEmojiPicker); setShowStickerPicker(false); setShowMentionMenu(false); }} className="text-gray-400 hover:text-white p-2 text-xl">😊</button>
+            <button type="button" onClick={() => { setShowStickerPicker(!showStickerPicker); setShowEmojiPicker(false); setShowMentionMenu(false); }} className="text-gray-400 hover:text-white p-2 text-xl" title="Kabyle Stickers">🎨</button>
             
             {/* MENTION MENU */}
             {showMentionMenu && p.activeRoom && (

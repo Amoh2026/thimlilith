@@ -87,7 +87,7 @@ export default function ThimlilithChatUI() {
   const [showMembersModal, setShowMembersModal] = useState(false);
   const [roomMembersList, setRoomMembersList] = useState<any[]>([]);
   const [showPinnedModal, setShowPinnedModal] = useState(false);
-  const [showRightSidebar, setShowRightSidebar] = useState(true);
+  const [showRightSidebar, setShowRightSidebar] = useState(false); // 🚨 Fixed: Closed by default
 
   // Theme State
   const [showThemeModal, setShowThemeModal] = useState(false);
