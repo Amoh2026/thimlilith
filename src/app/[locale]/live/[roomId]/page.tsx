@@ -128,7 +128,7 @@ export default function LiveRoom() {
       <div className="flex-1 h-[60vh] md:h-screen relative">
         
         {/* HOST EGRESS CONTROL PANEL */}
-        {isHostUrl && (
+        {isHostUrl && joined && (
           <div className="absolute top-4 right-4 z-50 flex flex-col items-end gap-2">
             <button
               onClick={toggleEgress}
