@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { auth } from '@/lib/firebase/client';
+import { signOut } from 'firebase/auth';
 
 export default function DesktopActionHub() {
   const router = useRouter();
@@ -58,9 +60,26 @@ export default function DesktopActionHub() {
           </button>
 
           <div className="h-px bg-white/10 my-1"></div>
+
+          {/* 🚨 ADDED FROM YOUR REQUEST */}
+          <button onClick={() => navigate('/rooms?tab=vault')} className="w-full text-left px-4 py-3 text-sm text-slate-200 hover:bg-slate-700 flex items-center gap-3">
+            <span className="text-lg">ⵡ</span> My Vault
+          </button>
+
+          <button onClick={() => navigate('/profile')} className="w-full text-left px-4 py-3 text-sm text-slate-200 hover:bg-slate-700 flex items-center gap-3">
+            <span className="text-lg">ⵓ</span> My Profile
+          </button>
+
+          <div className="h-px bg-white/10 my-1"></div>
           
           <button onClick={() => navigate('/moderation')} className="w-full text-left px-4 py-3 text-sm text-slate-400 hover:bg-slate-700 flex items-center gap-3">
             <span className="text-lg">ⵎ</span> Safety & Mods
+          </button>
+
+          <div className="h-px bg-white/10 my-1"></button>
+
+          <button onClick={() => { setIsOpen(false); signOut(auth); }} className="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 flex items-center gap-3">
+            <span className="text-lg">🚪</span> Log Out
           </button>
         </div>
       )}

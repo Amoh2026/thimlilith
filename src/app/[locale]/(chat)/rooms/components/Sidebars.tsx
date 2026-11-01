@@ -10,6 +10,7 @@ import React from 'react';
 import Link from 'next/link';
 import { User } from 'firebase/auth';
 import { SSOButton } from '@/components/auth/SSOButton';
+import DesktopActionHub from '@/components/DesktopActionHub'; // 👈 ADDED
 
 interface SidebarsProps {
   user: User;
@@ -49,21 +50,13 @@ interface SidebarsProps {
 
 export function Sidebars(p: SidebarsProps) {
   
-  // 💎 STRIPE CHECKOUT HANDLER
   const handleCheckout = async (type: 'premium' | 'donation', amount?: number) => {
     try {
       const token = await p.user.getIdToken();
       const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json', 
-          'Authorization': `Bearer ${token}` 
-        },
-        body: JSON.stringify({ 
-          type, 
-          plan: type === 'premium' ? 'monthly' : undefined, 
-          amount: amount 
-        })
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ type, plan: type === 'premium' ? 'monthly' : undefined, amount })
       });
       const data = await res.json();
       if (data.url) window.location.href = data.url;
@@ -73,7 +66,6 @@ export function Sidebars(p: SidebarsProps) {
     }
   };
 
-  // 📸 STORIES STATE & LOGIC
   const [activeStoryUids, setActiveStoryUids] = useState<string[]>([]);
   const [storiesList, setStoriesList] = useState<any[]>([]);
   const [viewingStory, setViewingStory] = useState<any>(null);
@@ -101,26 +93,43 @@ export function Sidebars(p: SidebarsProps) {
 
   return (
     <>
-      {/* Far Left Sidebar (Desktop Only) */}
+      {/* 🌟 FAR LEFT SIDEBAR (DESKTOP ONLY) - Matches Mobile Bottom Nav 🌟 */}
       <div className="hidden md:flex w-16 flex-col items-center py-4 bg-[#0b1120] border-r border-slate-800">
         <div className="w-10 h-10 bg-teal-500 rounded-xl mb-8 flex items-center justify-center text-white font-bold">T</div>
+        
         <div className="flex flex-col gap-6 text-slate-500">
-          <button onClick={() => p.setSidebarTab('rooms')} className={`hover:text-teal-400 text-xl ${p.sidebarTab === 'rooms' ? 'text-teal-400' : ''}`} title="Chat">ⵣ</button>
-          <Link href="/feed" className="hover:text-teal-400 text-xl" title="Home">ⴼ</Link>
-          <Link href="/discover" className="hover:text-teal-400 text-xl" title="Discover Communities">ⴷ</Link> 
+          {/* Chats */}
+          <button onClick={() => p.setSidebarTab('rooms')} className={`hover:text-teal-400 text-xl ${p.sidebarTab === 'rooms' ? 'text-teal-400' : ''}`} title="Chats">ⵣ</button>
           
-          {/* 👇 SSO BUTTON WITH TIFINAGH 'YAL' (L for Learn) 👇 */}
+          {/* Feed */}
+          <Link href="/feed" className="hover:text-teal-400 text-xl" title="Feed">ⴼ</Link>
+          
+          {/* Following */}
+          <Link href="/feed?tab=following" className="hover:text-teal-400 text-xl" title="Following">ⵏ</Link>
+          
+          {/* Communities */}
+          <Link href="/discover" className="hover:text-teal-400 text-xl" title="Communities">ⴳ</Link> 
+          
+          {/* Video */}
+          <Link href="/live" className="hover:text-teal-400 text-xl" title="Video">ⴽ</Link>
+
+          {/* Learn ATK */}
           <SSOButton target="atk" icon="ⴰ" label="Learn ATK" className="!text-slate-500" />
           
-          <button onClick={() => p.setSidebarTab('vault')} className={`hover:text-yellow-400 text-xl ${p.sidebarTab === 'vault' ? 'text-yellow-400' : ''}`} title="My Vault">ⵡ</button>
+          {/* Friends */}
           <button onClick={() => p.setSidebarTab('friends')} className={`hover:text-teal-400 text-xl ${p.sidebarTab === 'friends' ? 'text-teal-400' : ''}`} title="Friends">ⵗ</button>
-          <button className="hover:text-teal-400 text-xl" title="Files">📁</button>
         </div>
+
         <div className="mt-auto flex flex-col items-center gap-4 pb-4">
-          {p.user.photoURL
-            ? <img src={p.user.photoURL} alt="User" className="w-8 h-8 rounded-full border-2 border-teal-500" />
-            : <div className="w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center text-white font-bold text-xs">{(p.user.displayName || p.user.email)?.[0].toUpperCase()}</div>}
-          <button onClick={p.handleLogout} className="text-[10px] text-red-400 hover:text-red-300 font-medium">Logout</button>
+          {/* Action Hub (More) */}
+          <DesktopActionHub />
+
+          {/* Profile Avatar */}
+          <Link href={`/profile/${p.user.uid}`} title="My Profile">
+            {p.user.photoURL
+              ? <img src={p.user.photoURL} alt="User" className="w-8 h-8 rounded-full border-2 border-teal-500 hover:opacity-80" />
+              : <div className="w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center text-white font-bold text-xs hover:opacity-80">{(p.user.displayName || p.user.email)?.[0].toUpperCase()}</div>}
+          </Link>
         </div>
       </div>
 
@@ -132,14 +141,13 @@ export function Sidebars(p: SidebarsProps) {
       {/* Chat List Sidebar */}
       <div className={`fixed inset-y-0 left-0 z-[100] w-80 bg-[#0f172a] border-r border-slate-800 flex flex-col transform transition-transform duration-300 md:relative md:translate-x-0 ${p.isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         
-        {/* Mobile close button */}
         <div className="md:hidden flex items-center justify-between p-4 border-b border-slate-800">
           <span className="text-white font-bold text-lg">Thajmaathin</span>
           <button onClick={() => p.setIsMobileSidebarOpen(false)} className="text-gray-400 hover:text-white text-2xl">×</button>
         </div>
         
          {/* Mobile Quick Links */}
-        <div className="flex gap-2 p-3 border-b border-slate-800 bg-[#1e293b]">
+        <div className="flex gap-2 p-3 border-b border-slate-800 bg-[#1e293b] md:hidden">
           <Link href="/feed" className="flex flex-col items-center justify-center flex-1 py-1">
             <span className="text-xl font-bold text-teal-400">ⴼ</span>
             <span className="text-[10px] text-gray-300 mt-1">Feed</span>
@@ -148,20 +156,13 @@ export function Sidebars(p: SidebarsProps) {
             <span className="text-xl font-bold text-teal-400">ⴷ</span>
             <span className="text-[10px] text-gray-300 mt-1">Discover</span>
           </Link>
-          
-          {/* Mobile SSO Button with Tifinagh 'Yal' */}
           <div className="flex flex-col items-center justify-center flex-1 py-1">
-            <SSOButton 
-              target="atk" 
-              icon="ⵍ" 
-              label="Learn" 
-              className="!text-teal-400 !text-xl" 
-            />
+            <SSOButton target="atk" icon="ⵍ" label="Learn" className="!text-teal-400 !text-xl" />
             <span className="text-[10px] text-gray-300 mt-1">Learn</span>
           </div>
         </div>
 
-        {/* TOP TABS */}
+        {/* TOP TABS - VAULT REMOVED */}
         <div className="flex border-b border-slate-800">
           <button onClick={() => p.setSidebarTab('rooms')} className={`flex-1 py-3 px-1 text-xs md:text-sm font-medium ${p.sidebarTab === 'rooms' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500'}`}>Thajmaathin</button>
           <button onClick={() => p.setSidebarTab('friends')} className={`flex-1 py-3 px-1 text-xs md:text-sm font-medium relative ${p.sidebarTab === 'friends' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500'}`}>
@@ -169,7 +170,6 @@ export function Sidebars(p: SidebarsProps) {
             {p.friendRequests.length > 0 && <span className="absolute top-2 right-1 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center">{p.friendRequests.length}</span>}
           </button>
           <button onClick={() => p.setSidebarTab('search')} className={`flex-1 py-3 px-1 text-xs md:text-sm font-medium ${p.sidebarTab === 'search' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500'}`}>Find</button>
-          <button onClick={() => p.setSidebarTab('vault')} className={`flex-1 py-3 px-1 text-xs md:text-sm font-bold ${p.sidebarTab === 'vault' ? 'text-yellow-400 border-b-2 border-yellow-400' : 'text-gray-500 hover:text-yellow-400'}`}>⭐ Vault</button>
         </div>
 
         {/* 1. ROOMS TAB */}
@@ -182,12 +182,10 @@ export function Sidebars(p: SidebarsProps) {
             {p.isCreatingRoom && (
               <form onSubmit={p.handleCreateRoom} className="p-3 bg-[#1e293b] border-y border-slate-700">
                 <input type="text" value={p.newRoomName} onChange={(e) => p.setNewRoomName(e.target.value)} placeholder="E.g. Paris..." className="w-full bg-[#0f172a] text-sm text-white rounded-lg px-3 py-2 mb-2 border border-slate-600" autoFocus />
-
                 <div className="flex items-center gap-2 mb-3">
                   <input type="checkbox" checked={p.isPaidRoom} onChange={(e) => p.setIsPaidRoom(e.target.checked)} id="paidRoomToggle" className="w-4 h-4 accent-teal-500" />
                   <label htmlFor="paidRoomToggle" className="text-xs text-gray-300 font-medium">Premium Room 🔒</label>
                 </div>
-
                 {p.isPaidRoom && (
                   <div className="flex items-center gap-2 mb-3">
                     <span className="text-xs text-gray-300">€</span>
@@ -195,7 +193,6 @@ export function Sidebars(p: SidebarsProps) {
                     <span className="text-xs text-gray-300">/mo</span>
                   </div>
                 )}
-
                 <div className="flex gap-2">
                   <button type="submit" className="flex-1 bg-teal-600 text-white text-xs py-1.5 rounded">Create</button>
                   <button type="button" onClick={() => p.setIsCreatingRoom(false)} className="flex-1 bg-slate-600 text-white text-xs py-1.5 rounded">Cancel</button>
@@ -211,9 +208,7 @@ export function Sidebars(p: SidebarsProps) {
                     const isBlocked = p.userDoc?.blockedUsers?.includes(partner);
                     return isMember && !isBlocked;
                   }
-                  if (room.type === "group") {
-                    return room.members?.includes(p.user?.uid);
-                  }
+                  if (room.type === "group") return room.members?.includes(p.user?.uid);
                   return false;
                 })
                 .map(room => {
@@ -222,31 +217,13 @@ export function Sidebars(p: SidebarsProps) {
                   const lastReadTime = p.userDoc?.lastRead?.[room.id] || 0;
                   const lastMessageTime = room.lastMessageAt?.toMillis() || 0;
                   const isUnread = room.lastMessageSenderId !== p.user.uid && lastMessageTime > lastReadTime;
-                  
                   const partnerUid = isDM ? room.members?.find((uid: string) => uid !== p.user.uid) : null;
                   const hasStory = isDM && partnerUid && activeStoryUids.includes(partnerUid);
 
                   return (
-                    <div 
-                      key={room.id} 
-                      onClick={() => {
-                        p.handleSelectRoom(room);
-                        p.setIsMobileSidebarOpen(false);
-                      }} 
-                      className={`flex items-center gap-3 p-3 cursor-pointer ${p.activeRoom?.id === room.id ? 'bg-[#1e293b] border-l-4 border-teal-500' : 'hover:bg-[#1e293b]'}`}
-                    >
+                    <div key={room.id} onClick={() => { p.handleSelectRoom(room); p.setIsMobileSidebarOpen(false); }} className={`flex items-center gap-3 p-3 cursor-pointer ${p.activeRoom?.id === room.id ? 'bg-[#1e293b] border-l-4 border-teal-500' : 'hover:bg-[#1e293b]'}`}>
                       <div className="relative">
-                        <div 
-                          onClick={(e) => {
-                            if (hasStory && partnerUid) {
-                              e.stopPropagation(); 
-                              openStoryForUser(partnerUid);
-                            }
-                          }}
-                          className={`w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center text-xl transition-all ${
-                            hasStory ? 'ring-2 ring-teal-500 ring-offset-2 ring-offset-[#0f172a] cursor-pointer hover:scale-105' : ''
-                          }`}
-                        >
+                        <div onClick={(e) => { if (hasStory && partnerUid) { e.stopPropagation(); openStoryForUser(partnerUid); } }} className={`w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center text-xl transition-all ${hasStory ? 'ring-2 ring-teal-500 ring-offset-2 ring-offset-[#0f172a] cursor-pointer hover:scale-105' : ''}`}>
                           {isDM ? '👤' : '👥'}
                         </div>
                       </div>
@@ -287,37 +264,18 @@ export function Sidebars(p: SidebarsProps) {
               {p.friendsList.map(f => {
                 const friendId = f.senderId === p.user.uid ? f.receiverId : f.senderId;
                 const friendName = f.senderId === p.user.uid ? f.receiverName : f.senderName;
-                
                 const friendHasStory = activeStoryUids.includes(friendId);
 
                 return (
                   <div key={f.id} className="flex items-center gap-3 p-3 bg-[#1e293b] rounded-lg border border-slate-700 mb-2">
-                    <div 
-                      onClick={(e) => {
-                        if (friendHasStory) {
-                          e.stopPropagation();
-                          openStoryForUser(friendId);
-                        }
-                      }}
-                      className={`w-10 h-10 rounded-full bg-teal-600 flex items-center justify-center text-white font-bold transition-all ${
-                        friendHasStory ? 'ring-2 ring-teal-500 ring-offset-2 ring-offset-[#0f172a] cursor-pointer hover:scale-105' : ''
-                      }`}
-                    >
+                    <div onClick={(e) => { if (friendHasStory) { e.stopPropagation(); openStoryForUser(friendId); } }} className={`w-10 h-10 rounded-full bg-teal-600 flex items-center justify-center text-white font-bold transition-all ${friendHasStory ? 'ring-2 ring-teal-500 ring-offset-2 ring-offset-[#0f172a] cursor-pointer hover:scale-105' : ''}`}>
                       {friendName?.[0].toUpperCase()}
                     </div>
                     <div className="flex-1 overflow-hidden">
                       <h4 className="text-white font-medium text-sm truncate">{friendName}</h4>
                       <p className="text-xs text-teal-400">Friend</p>
                     </div>
-                    <button 
-                      onClick={() => { 
-                        p.handleStartDM({ id: friendId, name: friendName }); 
-                        p.setIsMobileSidebarOpen(false);
-                      }} 
-                      className="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-lg text-xs"
-                    >
-                      Chat
-                    </button>
+                    <button onClick={() => { p.handleStartDM({ id: friendId, name: friendName }); p.setIsMobileSidebarOpen(false); }} className="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-lg text-xs">Chat</button>
                   </div>
                 );
               })}
@@ -353,27 +311,12 @@ export function Sidebars(p: SidebarsProps) {
                     <div className="flex-1 overflow-hidden"><h4 className="text-white font-medium text-sm truncate">{u.name}</h4></div>
                   </div>
                   <div className="flex gap-2">
-                    <button 
-                      onClick={() => { 
-                        p.handleStartDM(u); 
-                        p.setIsMobileSidebarOpen(false);
-                      }} 
-                      className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-1.5 rounded-lg text-xs"
-                    >
-                      Message
-                    </button>
+                    <button onClick={() => { p.handleStartDM(u); p.setIsMobileSidebarOpen(false); }} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-1.5 rounded-lg text-xs">Message</button>
                     <button onClick={() => p.handleSendFriendRequest(u)} className="flex-1 bg-teal-600 hover:bg-teal-500 text-white py-1.5 rounded-lg text-xs">Add Friend</button>
                   </div>
                 </div>
               ))}
             </div>
-          </div>
-        )}
-
-        {/* 4. VAULT TAB */}
-        {p.sidebarTab === 'vault' && (
-          <div className="flex-1 overflow-y-auto">
-            <SavedMessagesView user={p.user} />
           </div>
         )}
 
@@ -384,50 +327,31 @@ export function Sidebars(p: SidebarsProps) {
               [ Google AdSense Space ]<br/>Hide with Premium 💎
             </div>
           )}
-
           {!p.userDoc?.isPremium ? (
             <button onClick={() => handleCheckout('premium')} className="w-full bg-gradient-to-r from-yellow-500 to-amber-600 text-white font-bold py-2 rounded-lg mb-3 shadow-lg hover:scale-105 transition text-sm">💎 Go Premium (€4.99/mo)</button>
           ) : (
             <div className="w-full bg-gradient-to-r from-yellow-500 to-amber-600 text-white font-bold py-2 rounded-lg mb-3 text-center shadow-lg text-sm">👑 Premium Member</div>
           )}
-
           <div className="bg-[#1e293b] p-3 rounded-lg border border-slate-700 mb-2">
             <div className="flex items-center justify-between w-full mb-3 px-1">
               <p className="text-[11px] text-gray-400 leading-tight max-w-[150px]">Support the Kabyle language ❤️</p>
               <img src="/stickers/identity/13_pottery.png" alt="Kabyle Tip Jar" className="w-12 h-12 object-contain drop-shadow-md hover:scale-110 transition-transform cursor-pointer" />
             </div>
-            
             <div className="flex gap-1 justify-center mb-2 w-full">
               {[2, 5, 10].map(amt => (
                 <button key={amt} onClick={() => handleCheckout('donation', amt)} className="bg-slate-700 hover:bg-slate-600 text-white text-xs px-3 py-1 rounded flex-1">€{amt}</button>
               ))}
             </div>
-            
             <div className="flex gap-1 mt-1 w-full">
               <input type="number" id="custom-donation" placeholder="Custom €" min="1" className="w-full bg-[#0f172a] text-white text-xs px-2 py-1 rounded border border-slate-600 focus:outline-none focus:border-teal-500" />
-              <button 
-                onClick={() => {
-                  const input = document.getElementById('custom-donation') as HTMLInputElement;
-                  const amt = Number(input.value);
-                  if (amt >= 1) {
-                     if (confirm(`Are you sure you want to donate €${amt}? Thank you! ❤️`)) handleCheckout('donation', amt);
-                  } else {
-                    alert("Please enter an amount of €1 or more.");
-                  }
-                }}
-                className="bg-teal-600 hover:bg-teal-500 text-white text-xs px-3 py-1 rounded font-bold"
-              >
-                Tip
-              </button>
+              <button onClick={() => { const input = document.getElementById('custom-donation') as HTMLInputElement; const amt = Number(input.value); if (amt >= 1) { if (confirm(`Are you sure you want to donate €${amt}? Thank you! ❤️`)) handleCheckout('donation', amt); } else { alert("Please enter an amount of €1 or more."); } }} className="bg-teal-600 hover:bg-teal-500 text-white text-xs px-3 py-1 rounded font-bold">Tip</button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 👇 STORY VIEWER GOES HERE — OUTSIDE THE SIDEBAR DIV 👇 */}
-      {viewingStory && (
-        <StoryViewer story={viewingStory} onClose={() => setViewingStory(null)} />
-      )}
+      {/* STORY VIEWER */}
+      {viewingStory && <StoryViewer story={viewingStory} onClose={() => setViewingStory(null)} />}
     </>
   );
 }
