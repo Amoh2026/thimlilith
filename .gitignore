@@ -56,3 +56,4 @@ src_backup/
 firebase-admin*.json
 
 *.backup
+serviceAccount.json

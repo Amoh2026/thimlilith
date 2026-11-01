@@ -6,22 +6,36 @@ function initApp(): App {
   const existing = getApps();
   if (existing.length > 0) return existing[0];
 
-  // 1. Try using the full JSON string (Recommended for Vercel)
-  const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-
-  if (serviceAccountKey) {
+  // 1. Try Base64 JSON (Ultimate Vercel fix)
+  const base64Key = process.env.FIREBASE_SERVICE_ACCOUNT_KEY_BASE64;
+  if (base64Key) {
     try {
-      const serviceAccount = JSON.parse(serviceAccountKey);
-      console.log(`✅ [Firebase Admin] Initializing with Service Account JSON for project: ${serviceAccount.project_id}`);
+      const decoded = Buffer.from(base64Key, 'base64').toString('utf8');
+      const serviceAccount = JSON.parse(decoded);
+      console.log(`✅ [Firebase Admin] Initializing with Base64 JSON for project: ${serviceAccount.project_id}`);
       return initializeApp({
         credential: cert(serviceAccount),
       });
     } catch (error) {
-      console.error('❌ Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY:', error);
+      console.error('❌ Failed to parse Base64 JSON:', error);
     }
   }
 
-  // 2. Fallback to separate variables (for local development)
+  // 2. Try plain JSON
+  const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+  if (serviceAccountKey) {
+    try {
+      const serviceAccount = JSON.parse(serviceAccountKey);
+      console.log(`✅ [Firebase Admin] Initializing with plain JSON for project: ${serviceAccount.project_id}`);
+      return initializeApp({
+        credential: cert(serviceAccount),
+      });
+    } catch (error) {
+      console.error('❌ Failed to parse plain JSON:', error);
+    }
+  }
+
+  // 3. Fallback to separate variables
   const projectId = process.env.FIREBASE_PROJECT_ID || process.env.FIREBASE_ADMIN_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL || process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
   const rawKey = process.env.FIREBASE_PRIVATE_KEY || process.env.FIREBASE_ADMIN_PRIVATE_KEY;
@@ -32,9 +46,7 @@ function initApp(): App {
   }
 
   console.log(`✅ [Firebase Admin] Initializing with separate vars for project: ${projectId}`);
-  const privateKey = rawKey
-    .replace(/^"|"$/g, '')
-    .replace(/\\n/g, '\n');
+  const privateKey = rawKey.replace(/^"|"$/g, '').replace(/\\n/g, '\n');
 
   return initializeApp({
     credential: cert({ projectId, clientEmail, privateKey }),
