@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useSearchParams, useParams } from 'next/navigation';
+import { useSearchParams, useParams, useRouter } from 'next/navigation';
 import {
   LiveKitRoom,
   VideoConference,
@@ -17,6 +17,7 @@ import LiveRoomOverlay from '@/components/LiveRoomOverlay';
 export default function LiveRoom() {
   const searchParams = useSearchParams();
   const params = useParams();
+  const router = useRouter();
   const roomId = params?.roomId as string;
   const isHostUrl = searchParams?.get('host') === 'true';
   
@@ -47,17 +48,10 @@ export default function LiveRoom() {
           body: JSON.stringify({ roomId }),
         });
 
-        // 🚨 BETTER ERROR HANDLING
         const text = await res.text();
-        if (!text) throw new Error(`Server returned empty response (Status: ${res.status})`);
+        if (!text) throw new Error(`Server error (Status: ${res.status})`);
 
-        let data;
-        try {
-          data = JSON.parse(text);
-        } catch (e) {
-          throw new Error(`Invalid JSON from server: ${text.substring(0, 50)}...`);
-        }
-
+        const data = JSON.parse(text);
         if (!res.ok) throw new Error(data.error || `Server error: ${res.status}`);
 
         if (data.type === 'hls') {
@@ -71,7 +65,6 @@ export default function LiveRoom() {
         }
 
       } catch (err: any) {
-        console.error("Token Fetch Error:", err);
         setError(err.message);
         setPlaybackType('error');
       }
@@ -104,11 +97,19 @@ export default function LiveRoom() {
     }
   };
 
+  // 🚨 Custom Leave Logic
+  const handleLeave = async () => {
+    if (isStreaming) {
+      await toggleEgress(); // Stop the stream before leaving
+    }
+    router.push('/en/rooms'); // Send them back to the chat rooms
+  };
+
   if (playbackType === 'error') {
     return (
       <div className="min-h-screen bg-[#0f172a] flex flex-col items-center justify-center text-red-400 p-4 text-center">
         <p className="mb-4 text-sm bg-red-500/10 p-4 rounded-xl border border-red-500/20">{error}</p>
-        <button onClick={() => window.history.back()} className="text-teal-400 underline">Go Back</button>
+        <button onClick={() => router.push('/en/rooms')} className="text-teal-400 underline">Go Back</button>
       </div>
     );
   }
@@ -127,21 +128,28 @@ export default function LiveRoom() {
       {/* MAIN VIDEO AREA */}
       <div className="flex-1 h-[60vh] md:h-screen relative">
         
-        {/* HOST EGRESS CONTROL PANEL */}
+        {/* HOST CONTROLS (Broadcast & Leave) - Only shows AFTER joining */}
         {isHostUrl && joined && (
-          <div className="absolute top-4 right-4 z-50 flex flex-col items-end gap-2">
+          <div className="absolute top-4 right-4 z-50 flex items-center gap-3 bg-black/50 p-2 rounded-full backdrop-blur-md">
+            {streamError && <p className="text-red-400 text-xs">{streamError}</p>}
+            
             <button
               onClick={toggleEgress}
               className={`px-4 py-2 rounded-full font-bold text-sm shadow-lg transition-colors ${
                 isStreaming 
-                  ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse' 
+                  ? 'bg-teal-500 hover:bg-teal-600 text-white' 
                   : 'bg-teal-500 hover:bg-teal-600 text-white'
               }`}
             >
-              {isStreaming ? '🛑 Stop HLS Broadcast' : '🔴 Start HLS Broadcast'}
+              {isStreaming ? '🛑 Stop HLS' : '🔴 Start HLS'}
             </button>
-            {streamError && <p className="text-red-400 text-xs bg-black/50 p-2 rounded">{streamError}</p>}
-            {isStreaming && <p className="text-teal-400 text-xs bg-black/50 p-2 rounded">Streaming to Free Users</p>}
+
+            <button
+              onClick={handleLeave}
+              className="px-4 py-2 rounded-full font-bold text-sm bg-red-600 hover:bg-red-700 text-white shadow-lg transition-colors"
+            >
+              🚪 End & Leave
+            </button>
           </div>
         )}
 
@@ -153,7 +161,7 @@ export default function LiveRoom() {
             audio={isHostUrl} 
             token={token}
             serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL}
-            onDisconnected={() => window.history.back()}
+            onDisconnected={() => router.push('/en/rooms')}
             className="h-full"
             data-lk-theme="default"
           >
