@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { EgressClient } from 'livekit-server-sdk';
+import { EgressClient, StreamOutput, StreamProtocol } from 'livekit-server-sdk';
 import { adminDb, adminAuth } from '@/lib/firebase/admin';
 
 export const runtime = 'nodejs';
@@ -40,26 +40,25 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Initialize LiveKit Egress Client
-    // Note: The SDK requires the WebSocket URL (wss://...) not the HTTP one
     const wsUrl = livekitUrl.replace('https://', 'wss://').replace('http://', 'ws://');
     const egressClient = new EgressClient(wsUrl, apiKey, apiSecret);
 
     if (action === 'start') {
-      // NOTE: In production, this URL comes from your CDN provider (e.g., Cloudflare, Mux)
-      // They will give you an RTMP ingest URL, and they will output the .m3u8 HLS URL.
       const rtmpTarget = process.env.LIVEKIT_EGRESS_RTMP_URL || `rtmp://a.rtmp.youtube.com/live2/${roomId}`; 
 
-      // Start the Egress (Convert Room to HLS/RTMP)
+      // ✅ THE FIX: Use StreamOutput instance instead of a plain object
+      const streamOutput = new StreamOutput({
+        protocol: StreamProtocol.RTMP,
+        urls: [rtmpTarget],
+      });
+
       const info = await egressClient.startRoomCompositeEgress(roomId, {
-        stream: {
-          urls: [rtmpTarget],
-        }
+        stream: streamOutput, // Pass the StreamOutput instance
       }, {
-        layout: 'speaker', // Or 'grid' if you want all camera feeds side-by-side
+        layout: 'speaker',
         audioOnly: false,
       });
 
-      // (Optional) Save the egressId to Firestore so we can stop it later if needed
       await adminDb().collection('rooms').doc(roomId).update({
         activeEgressId: info.egressId,
         isLive: true
@@ -72,7 +71,6 @@ export async function POST(req: NextRequest) {
       });
 
     } else if (action === 'stop') {
-      // Fetch active egresses for this room and stop them
       const egresses = await egressClient.listEgress({ roomName: roomId, active: true });
       
       if (egresses.length > 0) {
