@@ -17,6 +17,7 @@
     "clsx": "^2.1.1",
     "firebase": "^13.1.0",
     "firebase-admin": "^14.5.0",
+    "hls.js": "^1.7.4",
     "livekit-client": "^2.23.0",
     "livekit-server-sdk": "^2.19.2",
     "lucide-react": "^1.61.0",

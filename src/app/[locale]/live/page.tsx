@@ -1,89 +1,65 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 export default function LiveLobby() {
+  const [roomId, setRoomId] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const params = useParams();
-  const locale = (params?.locale as string) || 'en';
-  const [roomName, setRoomName] = useState('');
-  
-  // TODO: Wire this to your actual AuthContext
-  const isPremiumUser = true; 
 
-  const handleStartLive = () => {
-    const id = roomName || `live-${Date.now()}`;
-    router.push(`/${locale}/live/${id}?host=true`);
-  };
+  const handleGoLive = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
 
-  const handleJoinLive = () => {
-    if (!roomName) return alert('Enter a Room ID to join');
-    router.push(`/${locale}/live/${roomName}?host=false`);
+    // If the user didn't type a room ID, generate a random one
+    const finalRoomId = roomId.trim() || `live-${Math.floor(Math.random() * 10000)}`;
+    
+    // Redirect to the Live Room we just built, passing ?host=true
+    router.push(`/en/live/${finalRoomId}?host=true`);
   };
 
   return (
-    <main className="min-h-screen bg-[#0f172a] text-slate-200 pt-16 pb-24 px-4">
-      <div className="max-w-lg mx-auto mt-8">
+    <div className="min-h-screen bg-[#0f172a] flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-[#1e293b] p-8 rounded-2xl border border-white/10 shadow-2xl">
         
-        {/* 👇 BACK BUTTON HEADER 👇 */}
         <div className="flex items-center gap-3 mb-6">
-          <button 
-            onClick={() => router.back()} 
-            className="text-slate-400 hover:text-white p-2 -ml-2 rounded-full hover:bg-slate-800 transition-colors flex items-center justify-center"
-            aria-label="Go back"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-          </button>
-          <div>
-            <h1 className="text-2xl font-semibold flex items-center gap-2">
-              <span className="text-red-500">🔴</span> Go Live
-            </h1>
-            <p className="text-slate-400 text-sm">Broadcast to your Thajmaath.</p>
-          </div>
+          <div className="w-4 h-4 rounded-full bg-red-500 animate-pulse"></div>
+          <h1 className="text-2xl font-bold text-white">Go Live</h1>
         </div>
-        {/* 👆 END OF BACK BUTTON HEADER 👆 */}
         
-        <div className="space-y-4">
-          <input 
-            type="text" 
-            placeholder="Stream Title or Room ID" 
-            value={roomName} 
-            onChange={(e) => setRoomName(e.target.value)} 
-            className="w-full bg-[#1e293b] border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-teal-400" 
-          />
-          
-          {isPremiumUser ? (
-            <button onClick={handleStartLive} className="w-full bg-teal-400 text-[#0f172a] font-semibold py-3 rounded-xl active:scale-95 transition-transform">
-              Start Broadcasting
-            </button>
-          ) : (
-            <div className="bg-[#1e293b] border border-red-500/30 p-4 rounded-xl text-center">
-              <p className="text-sm text-slate-300 mb-2">Only Premium creators can broadcast.</p>
-              <button className="text-teal-400 text-sm font-medium">Upgrade to Premium</button>
-            </div>
-          )}
+        <p className="text-gray-400 mb-8">Broadcast to your Thajmaath.</p>
 
-          <div className="relative flex py-4 items-center">
-            <div className="flex-grow border-t border-white/10"></div>
-            <span className="flex-shrink-0 mx-4 text-slate-500 text-xs">OR</span>
-            <div className="flex-grow border-t border-white/10"></div>
+        <form onSubmit={handleGoLive} className="flex flex-col gap-4">
+          <div>
+            <input
+              type="text"
+              value={roomId}
+              onChange={(e) => setRoomId(e.target.value)}
+              placeholder="Stream Title or Room ID (Optional)"
+              className="w-full bg-[#0f172a] text-white border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-teal-400"
+            />
           </div>
 
-          <button onClick={handleJoinLive} className="w-full bg-[#1e293b] border border-white/10 text-slate-200 font-medium py-3 rounded-xl active:scale-95 transition-transform">
-            Join as Viewer
-          </button>
-          
-          {/* 👇 CANCEL BUTTON 👇 */}
-          <button 
-            onClick={() => router.back()}
-            className="w-full mt-4 bg-transparent text-slate-400 font-medium py-2 rounded-xl hover:text-white transition-colors"
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full bg-teal-500 hover:bg-teal-600 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-xl transition-colors mt-2"
           >
-            Cancel
+            {isLoading ? 'Connecting...' : 'Start Broadcasting'}
+          </button>
+        </form>
+
+        <div className="mt-8 pt-6 border-t border-white/10">
+          <button
+            onClick={() => router.push('/en/rooms')}
+            className="text-teal-400 text-sm hover:underline"
+          >
+            ← Back to Rooms
           </button>
         </div>
-
+        
       </div>
-    </main>
+    </div>
   );
 }
