@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
   if (!stripeKey) {
     return NextResponse.json({ error: "Stripe key not configured on server" }, { status: 500 });
   }
-  const stripe = new Stripe(stripeKey, { apiVersion: '2026-09-30.endive' });
+  const stripe = new Stripe(stripeKey, { apiVersion: '2026-10-28.endive' });
 
   const user = await verifyChatUser(req);
   if (!user) return unauthorized();
