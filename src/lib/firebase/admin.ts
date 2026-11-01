@@ -6,28 +6,26 @@ function initApp(): App {
   const existingApps = getApps();
   if (existingApps.length > 0) return existingApps[0];
 
-  // 1. We are now looking for the Plain JSON variable
   const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
   
   if (!serviceAccountJson) {
-    console.error('❌ [Firebase Admin] FIREBASE_SERVICE_ACCOUNT_JSON is missing!');
     throw new Error('Missing FIREBASE_SERVICE_ACCOUNT_JSON');
   }
 
   try {
-    // 🚨 DEBUG: Print the exact first 10 characters to see hidden spaces/newlines
-    console.log(`🔍 [Debug] Raw String Start: [${serviceAccountJson.substring(0, 10)}]`);
+    // Strip BOM and trim any hidden spaces
+    const cleanJson = serviceAccountJson.replace(/^\uFEFF/, '').trim();
     
-    // Clean up any hidden newlines at the start/end just in case
-    const cleanJson = serviceAccountJson.trim();
-    
+    // Log the first 10 chars to verify it's clean
+    console.log(`🔍 [Debug] Raw JSON Start: [${cleanJson.substring(0, 10)}]`);
+
     const serviceAccount = JSON.parse(cleanJson);
 
     if (serviceAccount.private_key) {
       serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
     }
 
-    console.log(`✅ [Firebase Admin] Initializing with Plain JSON. Project: ${serviceAccount.project_id}`);
+    console.log(`✅ [Firebase Admin] Initializing with JSON. Project: ${serviceAccount.project_id}`);
 
     return initializeApp({
       credential: cert(serviceAccount),
