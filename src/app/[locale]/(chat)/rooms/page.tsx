@@ -10,7 +10,7 @@ import { containsBannedWords } from '@/lib/moderation/filter';
 import { saveToATK } from '@/lib/atk';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { RequireVerified } from '@/components/auth/RequireVerified';
-import { SSOButton } from '@/components/auth/SSOButton'; // 👈 NEW IMPORT
+import { SSOButton } from '@/components/auth/SSOButton';
 import DesktopActionHub from '@/components/DesktopActionHub';
 
 // Components
@@ -87,7 +87,7 @@ export default function ThimlilithChatUI() {
   const [showMembersModal, setShowMembersModal] = useState(false);
   const [roomMembersList, setRoomMembersList] = useState<any[]>([]);
   const [showPinnedModal, setShowPinnedModal] = useState(false);
-  const [showRightSidebar, setShowRightSidebar] = useState(false); // 🚨 Fixed: Closed by default
+  const [showRightSidebar, setShowRightSidebar] = useState(false); 
 
   // Theme State
   const [showThemeModal, setShowThemeModal] = useState(false);
@@ -109,14 +109,7 @@ export default function ThimlilithChatUI() {
 
   // ─── EFFECTS ───
 
-  useEffect(() => {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      if (Notification.permission === 'default') {
-        Notification.requestPermission();
-      }
-    }
-  }, []);
-
+  // 1. Unread Count (Fixed Syntax & Removed Popups)
   useEffect(() => {
     if (!user || rooms.length === 0) return;
     let unreadCount = 0;
@@ -131,21 +124,8 @@ export default function ThimlilithChatUI() {
     } else {
       document.title = 'Thimlilith';
     }
-
-    if (unreadCount > 0 && document.visibilityState === 'hidden') {
-      const lastNotified = sessionStorage.getItem('lastNotifiedCount');
-      if (lastNotified !== unreadCount.toString()) {
-        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-          new Notification('Thimlilith 💬', {
-            body: `You have ${unreadCount} unread message${unreadCount > 1 ? 's' : ''}!`,
-            icon: '/favicon.ico'
-          });
-          sessionStorage.setItem('lastNotifiedCount', unreadCount.toString());
-        }
-      }
-    } else {
-      sessionStorage.removeItem('lastNotifiedCount');
-    }
+    
+    // Removed the annoying browser popup notification logic here.
   }, [rooms, userDoc?.lastRead, user]);
 
   useEffect(() => {
@@ -191,7 +171,7 @@ export default function ThimlilithChatUI() {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('payment') === 'success') {
       const timer = setTimeout(() => {
-        window.location.href = `/${locale}/rooms`; // 👈 FIXED
+        window.location.href = `/${locale}/rooms`; 
       }, 2000);
       return () => clearTimeout(timer);
     }
@@ -274,7 +254,14 @@ export default function ThimlilithChatUI() {
   const handleSelectRoom = async (room: any) => {
     setActiveRoom(room);
     setReplyingTo(null); setIsSearchExpanded(false); setMessageSearchTerm(""); setMessageSearchDate("");
-    if (user) { try { await updateDoc(doc(db, "users", user.uid), { [`lastRead.${room.id}`]: Date.now() }); } catch {} }
+    if (user) { 
+      try { 
+        // FIXED: Add +5000 to ensure the read receipt is newer than the message
+        await updateDoc(doc(db, "users", user.uid), { [`lastRead.${room.id}`]: Date.now() + 5000 }); 
+      } catch (err) {
+        console.error(err);
+      } 
+    }
   };
 
   const handleSearchUsers = async (e: React.FormEvent) => {
@@ -472,7 +459,7 @@ export default function ThimlilithChatUI() {
 
   const handleCopyInviteLink = () => {
     if (!activeRoom?.inviteCode) { alert("This room doesn't have an invite code. Create a new room!"); return; }
-    const url = `${window.location.origin}/en/join/${activeRoom.inviteCode}`;
+    const url = `${window.location.origin}/${locale}/join/${activeRoom.inviteCode}`;
     navigator.clipboard.writeText(url);
     alert(`Invite link copied!\n\n${url}`);
   };
@@ -874,16 +861,11 @@ export default function ThimlilithChatUI() {
             setIsMobileSidebarOpen={setIsMobileSidebarOpen}
             onVideo={async () => {
               if (!user || !activeRoom) return;
-            
-              // Hybrid Logic: Free users use Jitsi, Premium users use LiveKit
               if (!userDoc?.isPremium && !activeRoom?.isPaid) {
                 const jitsiRoomName = `Thimlilith_Video_${activeRoom.id}`;
-                // 👈 FIXED: Redirect in the same tab so popup blockers don't stop it
                 window.location.href = `https://meet.jit.si/${jitsiRoomName}`;
                 return;
               }
-            
-              // PREMIUM FLOW: LiveKit
               try {
                 const token = await user.getIdToken();
                 const res = await fetch('/api/chat/livekit-token', { 
@@ -892,10 +874,8 @@ export default function ThimlilithChatUI() {
                   body: JSON.stringify({ roomName: activeRoom.id, participantName: user.displayName || 'Guest' }) 
                 });
                 const data = await res.json();
-                
                 if (data.token) { 
                   sessionStorage.setItem('lk_token', data.token); 
-                  // 👈 FIXED: Changed `/room/` to `/${locale}/live/`
                   window.location.href = `/${locale}/live/${activeRoom.id}`; 
                 }
               } catch (err) {
@@ -969,12 +949,6 @@ export default function ThimlilithChatUI() {
             onBlock={handleActionBlock}
             onReport={handleActionReport}
           />
-
-          {/* 👇 FLOATING SSO BUTTON FOR EASY TESTING 👇 */}
-          <div className="fixed bottom-20 left-4 z-50 md:bottom-6 md:left-24">
-          </div>
-
-          
         </div>
       )}
     </RequireVerified>
