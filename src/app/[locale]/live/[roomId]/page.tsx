@@ -1,3 +1,4 @@
+// src/app/[locale]/live/[roomId]/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -18,7 +19,9 @@ export default function LiveRoom() {
   const searchParams = useSearchParams();
   const params = useParams();
   const router = useRouter();
+  
   const roomId = params?.roomId as string;
+  const locale = (params?.locale as string) || 'en'; // 👈 Dynamic locale
   const isHostUrl = searchParams?.get('host') === 'true';
   
   const [playbackType, setPlaybackType] = useState<'loading' | 'webrtc' | 'hls' | 'error'>('loading');
@@ -97,19 +100,36 @@ export default function LiveRoom() {
     }
   };
 
-  // 🚨 Custom Leave Logic
+  // 🚨 Custom Leave Logic: Auto-stops egress and leaves the room
   const handleLeave = async () => {
-    if (isStreaming) {
-      await toggleEgress(); // Stop the stream before leaving
+    try {
+      // 1. If we are streaming, stop the HLS egress first
+      if (isStreaming) {
+        const user = auth.currentUser;
+        if (user) {
+          const idToken = await user.getIdToken();
+          await fetch('/api/livekit/egress', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+            body: JSON.stringify({ roomId, action: 'stop' }),
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Failed to stop stream on leave:", err);
     }
-    router.push('/en/rooms'); // Send them back to the chat rooms
+    
+    // 2. Redirect to the rooms page in the current language
+    router.push(`/${locale}/rooms`);
   };
 
   if (playbackType === 'error') {
     return (
       <div className="min-h-screen bg-[#0f172a] flex flex-col items-center justify-center text-red-400 p-4 text-center">
         <p className="mb-4 text-sm bg-red-500/10 p-4 rounded-xl border border-red-500/20">{error}</p>
-        <button onClick={() => router.push('/en/rooms')} className="text-teal-400 underline">Go Back</button>
+        <button onClick={() => router.push(`/${locale}/rooms`)} className="text-teal-400 underline">
+          Go Back
+        </button>
       </div>
     );
   }
@@ -131,7 +151,7 @@ export default function LiveRoom() {
         {/* HOST CONTROLS (Broadcast & Leave) - Only shows AFTER joining */}
         {isHostUrl && joined && (
           <div className="absolute top-4 right-4 z-50 flex items-center gap-3 bg-black/50 p-2 rounded-full backdrop-blur-md">
-            {streamError && <p className="text-red-400 text-xs">{streamError}</p>}
+            {streamError && <p className="text-red-400 text-xs mr-2">{streamError}</p>}
             
             <button
               onClick={toggleEgress}
@@ -146,7 +166,7 @@ export default function LiveRoom() {
 
             <button
               onClick={handleLeave}
-              className="px-4 py-2 rounded-full font-bold text-sm bg-red-600 hover:bg-red-700 text-white shadow-lg transition-colors"
+              className="px-4 py-2 rounded-full font-bold text-sm bg-red-600 hover:bg-red-700 text-white shadow-lg transition-colors flex items-center gap-2"
             >
               🚪 End & Leave
             </button>
@@ -161,7 +181,7 @@ export default function LiveRoom() {
             audio={isHostUrl} 
             token={token}
             serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL}
-            onDisconnected={() => router.push('/en/rooms')}
+            onDisconnected={() => router.push(`/${locale}/rooms`)} // 👈 Dynamic locale redirect
             className="h-full"
             data-lk-theme="default"
           >
