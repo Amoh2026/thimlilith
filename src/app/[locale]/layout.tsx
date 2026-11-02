@@ -5,6 +5,7 @@ import { getMessages } from 'next-intl/server';
 import '@/app/globals.css';
 import { AuthProvider } from '@/components/auth/AuthProvider';
 import { locales } from '@/lib/i18n';
+import MobileBottomNav from '@/components/MobileBottomNav'; // 👈 Make sure this is imported
 
 export const metadata: Metadata = {
   title: 'Thimlilith | ⵜⵉⵎⵍⵉⵍⵉⵜ',
@@ -43,7 +44,11 @@ export default async function LocaleLayout({
     <html lang={locale} dir={dir}>
       <body className="min-h-screen bg-[#0f172a]">
         <NextIntlClientProvider messages={messages} locale={locale}>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            {children}
+            {/* 👇 MOBILE BOTTOM NAV MUST BE HERE 👇 */}
+            <MobileBottomNav /> 
+          </AuthProvider>
         </NextIntlClientProvider>
       </body>
     </html>
