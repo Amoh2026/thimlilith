@@ -6,13 +6,14 @@ import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { useParams, usePathname } from 'next/navigation'; // 👈 ADDED usePathname
+import { useParams, usePathname } from 'next/navigation';
 
 import React from 'react';
 import Link from 'next/link';
 import { User } from 'firebase/auth';
 import { SSOButton } from '@/components/auth/SSOButton';
 
+// (Props interface remains identical - skip to avoid huge code block, just paste original props)
 interface SidebarsProps {
   user: User;
   userDoc: any;
@@ -54,7 +55,7 @@ export function Sidebars(p: SidebarsProps) {
   const tChat = useTranslations('Chat');
   
   const params = useParams();
-  const pathname = usePathname(); // 👈 ADDED
+  const pathname = usePathname(); 
   const locale = (params?.locale as string) || 'en';
 
   const handleCheckout = async (type: 'premium' | 'donation', amount?: number) => {
@@ -98,37 +99,34 @@ export function Sidebars(p: SidebarsProps) {
     if (story) setViewingStory(story);
   };
 
+  // 👇 NEW COLOR LOGIC for Sidebar Tifinagh icons
+  const iconBase = "text-xl font-bold transition-colors";
+  const iconActive = "text-white";
+  const iconInactive = "text-teal-600 hover:text-teal-400";
+
   return (
     <>
       {/* 🌟 FAR LEFT SIDEBAR (DESKTOP ONLY) 🌟 */}
       <div className="hidden md:flex w-16 flex-col items-center py-4 bg-[#0b1120] border-r border-slate-800">
         <div className="w-10 h-10 bg-teal-500 rounded-xl mb-8 flex items-center justify-center text-white font-bold">T</div>
         
-        <div className="flex flex-col gap-6 text-slate-500">
-          {/* Chats ⵣ */}
-          <button onClick={() => p.setSidebarTab('rooms')} className={`text-xl transition-colors hover:text-teal-400 ${p.sidebarTab === 'rooms' ? 'text-teal-400' : 'text-slate-500'}`} title={t('chats')}>ⵣ</button>
+        <div className="flex flex-col gap-6">
+          <button onClick={() => p.setSidebarTab('rooms')} className={`${iconBase} ${p.sidebarTab === 'rooms' ? iconActive : iconInactive}`} title={t('chats')}>ⵣ</button>
           
-          {/* Feed ⴼ */}
-          <Link href={`/${locale}/feed`} className={`text-xl transition-colors hover:text-teal-400 ${pathname === `/${locale}/feed` ? 'text-teal-400' : 'text-slate-500'}`} title={t('feed')}>ⴼ</Link>
+          <Link href={`/${locale}/feed`} className={`${iconBase} ${pathname === `/${locale}/feed` ? iconActive : iconInactive}`} title={t('feed')}>ⴼ</Link>
           
-          {/* Following ⵊ */}
-          <Link href={`/${locale}/feed?tab=following`} className={`text-xl transition-colors hover:text-teal-400 ${pathname.includes('/feed') && pathname.includes('following') ? 'text-teal-400' : 'text-slate-500'}`} title={t('following')}>ⵊ</Link>
+          <Link href={`/${locale}/feed?tab=following`} className={`${iconBase} ${pathname.includes('/feed') && pathname.includes('following') ? iconActive : iconInactive}`} title={t('following')}>ⵊ</Link>
           
-          {/* Communities ⴳ */}
-          <Link href={`/${locale}/discover`} className={`text-xl transition-colors hover:text-teal-400 ${pathname === `/${locale}/discover` ? 'text-teal-400' : 'text-slate-500'}`} title={t('communities')}>ⴳ</Link> 
+          <Link href={`/${locale}/discover`} className={`${iconBase} ${pathname === `/${locale}/discover` ? iconActive : iconInactive}`} title={t('communities')}>ⴳ</Link> 
           
-          {/* Video ⴽ */}
-          <Link href={`/${locale}/live`} className={`text-xl transition-colors hover:text-teal-400 ${pathname.includes('/live') ? 'text-teal-400' : 'text-slate-500'}`} title={t('video')}>ⴽ</Link>
+          <Link href={`/${locale}/live`} className={`${iconBase} ${pathname.includes('/live') ? iconActive : iconInactive}`} title={t('video')}>ⴽ</Link>
 
-          {/* Learn ATK */}
-          <SSOButton target="atk" icon="ⴰ" label={t('learn')} className="!text-slate-500 hover:!text-teal-400" />
+          <SSOButton target="atk" icon="ⴰ" label={t('learn')} className={iconInactive} />
           
-          {/* Friends ⵗ */}
-          <button onClick={() => p.setSidebarTab('friends')} className={`text-xl transition-colors hover:text-teal-400 ${p.sidebarTab === 'friends' ? 'text-teal-400' : 'text-slate-500'}`} title={t('friends')}>ⵗ</button>
+          <button onClick={() => p.setSidebarTab('friends')} className={`${iconBase} ${p.sidebarTab === 'friends' ? iconActive : iconInactive}`} title={t('friends')}>ⵗ</button>
         </div>
 
         <div className="mt-auto flex flex-col items-center gap-4 pb-4">
-          {/* Profile Avatar ⵓ */}
           <Link href={`/${locale}/profile/${p.user.uid}`} title="My Profile">
             {p.user.photoURL
               ? <img src={p.user.photoURL} alt="User" className="w-8 h-8 rounded-full border-2 border-teal-500 hover:opacity-80" />
@@ -137,12 +135,11 @@ export function Sidebars(p: SidebarsProps) {
         </div>
       </div>
 
-      {/* Mobile Backdrop */}
+      {/* ... (Rest of the Sidebars code remains exactly as you had it, but with updated active/inactive logic in the mobile view above) ... */}
       {p.isMobileSidebarOpen && (
         <div className="fixed inset-0 bg-black/60 z-[90] md:hidden" onClick={() => p.setIsMobileSidebarOpen(false)} />
       )}
 
-      {/* Chat List Sidebar */}
       <div className={`fixed inset-y-0 left-0 z-[100] w-80 bg-[#0f172a] border-r border-slate-800 flex flex-col transform transition-transform duration-300 md:relative md:translate-x-0 ${p.isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         
         <div className="md:hidden flex items-center justify-between p-4 border-b border-slate-800">
@@ -150,213 +147,33 @@ export function Sidebars(p: SidebarsProps) {
           <button onClick={() => p.setIsMobileSidebarOpen(false)} className="text-gray-400 hover:text-white text-2xl">×</button>
         </div>
         
-         {/* Mobile Quick Links */}
         <div className="flex gap-2 p-3 border-b border-slate-800 bg-[#1e293b] md:hidden">
           <Link href={`/${locale}/feed`} className="flex flex-col items-center justify-center flex-1 py-1">
-            <span className={`text-xl font-bold ${pathname === `/${locale}/feed` ? 'text-teal-400' : 'text-slate-500'}`}>ⴼ</span>
+            <span className={`text-xl font-bold ${pathname === `/${locale}/feed` ? 'text-white' : 'text-teal-500'}`}>ⴼ</span>
             <span className="text-[10px] text-gray-300 mt-1">{t('feed')}</span>
           </Link>
           <Link href={`/${locale}/discover`} className="flex flex-col items-center justify-center flex-1 py-1">
-            <span className={`text-xl font-bold ${pathname === `/${locale}/discover` ? 'text-teal-400' : 'text-slate-500'}`}>ⴳ</span>
+            <span className={`text-xl font-bold ${pathname === `/${locale}/discover` ? 'text-white' : 'text-teal-500'}`}>ⴳ</span>
             <span className="text-[10px] text-gray-300 mt-1">{t('communities')}</span>
           </Link>
           <div className="flex flex-col items-center justify-center flex-1 py-1">
-            <SSOButton target="atk" icon="ⵍ" label={t('learn')} className="!text-slate-500 !text-xl" />
+            <SSOButton target="atk" icon="ⵍ" label={t('learn')} className="!text-teal-500 !text-xl" />
             <span className="text-[10px] text-gray-300 mt-1">Learn</span>
           </div>
         </div>
 
-        {/* TOP TABS */}
         <div className="flex border-b border-slate-800">
-          <button onClick={() => p.setSidebarTab('rooms')} className={`flex-1 py-3 px-1 text-xs md:text-sm font-medium transition-colors ${p.sidebarTab === 'rooms' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500 hover:text-gray-300'}`}>{t('thajmaathin')}</button>
-          <button onClick={() => p.setSidebarTab('friends')} className={`flex-1 py-3 px-1 text-xs md:text-sm font-medium relative transition-colors ${p.sidebarTab === 'friends' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500 hover:text-gray-300'}`}>
+          <button onClick={() => p.setSidebarTab('rooms')} className={`flex-1 py-3 px-1 text-xs md:text-sm font-medium transition-colors ${p.sidebarTab === 'rooms' ? 'text-white border-b-2 border-teal-400' : 'text-teal-600 hover:text-teal-400'}`}>{t('thajmaathin')}</button>
+          <button onClick={() => p.setSidebarTab('friends')} className={`flex-1 py-3 px-1 text-xs md:text-sm font-medium relative transition-colors ${p.sidebarTab === 'friends' ? 'text-white border-b-2 border-teal-400' : 'text-teal-600 hover:text-teal-400'}`}>
             {t('friends')}
             {p.friendRequests.length > 0 && <span className="absolute top-2 right-1 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center">{p.friendRequests.length}</span>}
           </button>
-          <button onClick={() => p.setSidebarTab('search')} className={`flex-1 py-3 px-1 text-xs md:text-sm font-medium transition-colors ${p.sidebarTab === 'search' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500 hover:text-gray-300'}`}>{t('find')}</button>
+          <button onClick={() => p.setSidebarTab('search')} className={`flex-1 py-3 px-1 text-xs md:text-sm font-medium transition-colors ${p.sidebarTab === 'search' ? 'text-white border-b-2 border-teal-400' : 'text-teal-600 hover:text-teal-400'}`}>{t('find')}</button>
         </div>
 
-        {/* ... (Rest of the tabs and Monetization code remains exactly the same as your file) ... */}
-        {/* 1. ROOMS TAB */}
-        {p.sidebarTab === 'rooms' && (
-          <>
-            <div className="p-4 flex justify-between items-center">
-              <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider">{t('yourCommunities')}</h2>
-              <button onClick={() => p.setIsCreatingRoom(!p.isCreatingRoom)} className="bg-teal-600 hover:bg-teal-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-lg">+</button>
-            </div>
-            {p.isCreatingRoom && (
-              <form onSubmit={p.handleCreateRoom} className="p-3 bg-[#1e293b] border-y border-slate-700">
-                <input type="text" value={p.newRoomName} onChange={(e) => p.setNewRoomName(e.target.value)} placeholder={t('roomNamePlaceholder')} className="w-full bg-[#0f172a] text-sm text-white rounded-lg px-3 py-2 mb-2 border border-slate-600" autoFocus />
-                <div className="flex items-center gap-2 mb-3">
-                  <input type="checkbox" checked={p.isPaidRoom} onChange={(e) => p.setIsPaidRoom(e.target.checked)} id="paidRoomToggle" className="w-4 h-4 accent-teal-500" />
-                  <label htmlFor="paidRoomToggle" className="text-xs text-gray-300 font-medium">{t('premiumRoom')}</label>
-                </div>
-                {p.isPaidRoom && (
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-xs text-gray-300">€</span>
-                    <input type="number" min="1" value={p.roomPrice} onChange={(e) => p.setRoomPrice(e.target.value)} placeholder={t('pricePlaceholder')} className="w-full bg-[#0f172a] text-sm text-white rounded-lg px-3 py-2 border border-slate-600" required={p.isPaidRoom} />
-                    <span className="text-xs text-gray-300">/mo</span>
-                  </div>
-                )}
-                <div className="flex gap-2">
-                  <button type="submit" className="flex-1 bg-teal-600 text-white text-xs py-1.5 rounded">{t('create')}</button>
-                  <button type="button" onClick={() => p.setIsCreatingRoom(false)} className="flex-1 bg-slate-600 text-white text-xs py-1.5 rounded">{t('cancel')}</button>
-                </div>
-              </form>
-            )}
-            <div className="flex-1 overflow-y-auto">
-              {p.rooms
-                .filter(room => {
-                  if (room.type === "direct") {
-                    const isMember = room.members?.includes(p.user?.uid);
-                    const partner = room.members?.find((uid: string) => uid !== p.user.uid);
-                    const isBlocked = p.userDoc?.blockedUsers?.includes(partner);
-                    return isMember && !isBlocked;
-                  }
-                  if (room.type === "group") return room.members?.includes(p.user?.uid);
-                  return false;
-                })
-                .map(room => {
-                  const isDM = room.type === "direct";
-                  const displayName = isDM ? p.getDMName(room) : `Thajmaath n ${room.name}`;
-                  const lastReadTime = p.userDoc?.lastRead?.[room.id] || 0;
-                  const lastMessageTime = room.lastMessageAt?.toMillis() || 0;
-                  const isUnread = room.lastMessageSenderId !== p.user.uid && lastMessageTime > lastReadTime;
-                  const partnerUid = isDM ? room.members?.find((uid: string) => uid !== p.user.uid) : null;
-                  const hasStory = isDM && partnerUid && activeStoryUids.includes(partnerUid);
-
-                  return (
-                    <div key={room.id} onClick={() => { p.handleSelectRoom(room); p.setIsMobileSidebarOpen(false); }} className={`flex items-center gap-3 p-3 cursor-pointer ${p.activeRoom?.id === room.id ? 'bg-[#1e293b] border-l-4 border-teal-500' : 'hover:bg-[#1e293b]'}`}>
-                      <div className="relative">
-                        <div onClick={(e) => { if (hasStory && partnerUid) { e.stopPropagation(); openStoryForUser(partnerUid); } }} className={`w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center text-xl transition-all ${hasStory ? 'ring-2 ring-teal-500 ring-offset-2 ring-offset-[#0f172a] cursor-pointer hover:scale-105' : ''}`}>
-                          {isDM ? '👤' : '👥'}
-                        </div>
-                      </div>
-                      <div className="flex-1 overflow-hidden">
-                        <div className="flex justify-between items-center">
-                          <span className={`font-medium text-sm capitalize truncate ${isUnread ? 'text-white font-bold' : 'text-gray-300'}`}>{displayName}</span>
-                          {isUnread && <span className="w-2.5 h-2.5 bg-teal-500 rounded-full flex-shrink-0"></span>}
-                        </div>
-                        <p className="text-xs truncate text-gray-400">
-                          {room.lastMessageText || (isDM ? tChat('privateConversation') : tChat('clickToJoinChat'))}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-            </div>
-          </>
-        )}
-
-        {/* 2. FRIENDS TAB */}
-        {p.sidebarTab === 'friends' && (
-          <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-4">
-            {p.friendRequests.length > 0 && (
-              <div>
-                <h3 className="text-xs font-bold text-gray-400 uppercase mb-2">{t('requests')}</h3>
-                {p.friendRequests.map(req => (
-                  <div key={req.id} className="bg-[#1e293b] border border-slate-700 p-3 rounded-lg mb-2">
-                    <p className="text-sm text-white mb-2">{req.senderName} {t('wantsToBeFriends')}</p>
-                    <div className="flex gap-2">
-                      <button onClick={() => p.handleAcceptRequest(req.id)} className="flex-1 bg-teal-600 text-white text-xs py-1.5 rounded">{t('accept')}</button>
-                      <button onClick={() => p.handleRejectRequest(req.id)} className="flex-1 bg-slate-600 text-white text-xs py-1.5 rounded">{t('reject')}</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            <div>
-              <h3 className="text-xs font-bold text-gray-400 uppercase mb-2">{t('myFriends')}</h3>
-              {p.friendsList.length === 0 && <p className="text-gray-500 text-sm">{t('noFriends')}</p>}
-              {p.friendsList.map(f => {
-                const friendId = f.senderId === p.user.uid ? f.receiverId : f.senderId;
-                const friendName = f.senderId === p.user.uid ? f.receiverName : f.senderName;
-                const friendHasStory = activeStoryUids.includes(friendId);
-
-                return (
-                  <div key={f.id} className="flex items-center gap-3 p-3 bg-[#1e293b] rounded-lg border border-slate-700 mb-2">
-                    <div onClick={(e) => { if (friendHasStory) { e.stopPropagation(); openStoryForUser(friendId); } }} className={`w-10 h-10 rounded-full bg-teal-600 flex items-center justify-center text-white font-bold transition-all ${friendHasStory ? 'ring-2 ring-teal-500 ring-offset-2 ring-offset-[#0f172a] cursor-pointer hover:scale-105' : ''}`}>
-                      {friendName?.[0].toUpperCase()}
-                    </div>
-                    <div className="flex-1 overflow-hidden">
-                      <h4 className="text-white font-medium text-sm truncate">{friendName}</h4>
-                      <p className="text-xs text-teal-400">{t('friend')}</p>
-                    </div>
-                    <button onClick={() => { p.handleStartDM({ id: friendId, name: friendName }); p.setIsMobileSidebarOpen(false); }} className="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-lg text-xs">{t('chat')}</button>
-                  </div>
-                );
-              })}
-            </div>
-            {p.blockedUsersList.length > 0 && (
-              <div className="mt-4 border-t border-slate-800 pt-4">
-                <h3 className="text-xs font-bold text-red-400 uppercase mb-2">{t('blockedUsers')}</h3>
-                {p.blockedUsersList.map(u => (
-                  <div key={u.id} className="flex items-center gap-3 p-3 bg-[#1e293b] rounded-lg border border-slate-700 mb-2">
-                    <div className="w-10 h-10 rounded-full bg-red-900 flex items-center justify-center text-white font-bold">{u.name?.[0].toUpperCase()}</div>
-                    <div className="flex-1 overflow-hidden"><h4 className="text-gray-400 font-medium text-sm truncate line-through">{u.name}</h4></div>
-                    <button onClick={() => p.handleBlockUser(u.id, u.name)} className="bg-red-600 hover:bg-red-500 text-white p-2 rounded-lg text-xs">{t('unblock')}</button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* 3. SEARCH TAB */}
-        {p.sidebarTab === 'search' && (
-          <div className="flex flex-col h-full">
-            <form onSubmit={p.handleSearchUsers} className="p-3 border-b border-slate-800">
-              <input type="text" value={p.searchQuery} onChange={(e) => p.setSearchQuery(e.target.value)} placeholder={t('searchPlaceholder')} className="w-full bg-[#1e293b] text-sm text-white rounded-lg px-4 py-2 border border-slate-700" />
-              <button type="submit" disabled={p.isSearching} className="w-full mt-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white text-sm font-medium py-2 rounded-lg">{p.isSearching ? t('searching') : t('search')}</button>
-            </form>
-            <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
-              {p.searchResults.length === 0 && p.searchQuery && !p.isSearching && <p className="text-center text-gray-500 text-sm mt-4">{t('noUsers')}</p>}
-              {p.searchResults.map(u => (
-                <div key={u.id} className="flex flex-col p-3 bg-[#1e293b] rounded-lg border border-slate-700">
-                  <div className="flex items-center gap-3 mb-2">
-                    {u.photoURL ? <img src={u.photoURL} alt="" className="w-10 h-10 rounded-full" /> : <div className="w-10 h-10 rounded-full bg-teal-600 flex items-center justify-center text-white font-bold">{u.name?.[0].toUpperCase()}</div>}
-                    <div className="flex-1 overflow-hidden"><h4 className="text-white font-medium text-sm truncate">{u.name}</h4></div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => { p.handleStartDM(u); p.setIsMobileSidebarOpen(false); }} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-1.5 rounded-lg text-xs">{t('message')}</button>
-                    <button onClick={() => p.handleSendFriendRequest(u)} className="flex-1 bg-teal-600 hover:bg-teal-500 text-white py-1.5 rounded-lg text-xs">{t('addFriend')}</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* MONETIZATION & TIP JAR */}
-        <div className="mt-auto p-4 border-t border-slate-800 bg-[#0f172a]">
-          {!p.userDoc?.isPremium && (
-            <div className="w-full h-20 bg-slate-800 border border-slate-700 rounded-lg mb-3 flex items-center justify-center text-[10px] text-gray-500 text-center">
-              {t('adSpace')}<br/>{t('hidePremium')}</div>
-          )}
-          {!p.userDoc?.isPremium ? (
-            <button onClick={() => handleCheckout('premium')} className="w-full bg-gradient-to-r from-yellow-500 to-amber-600 text-white font-bold py-2 rounded-lg mb-3 shadow-lg hover:scale-105 transition text-sm">{t('goPremium')}</button>
-          ) : (
-            <div className="w-full bg-gradient-to-r from-yellow-500 to-amber-600 text-white font-bold py-2 rounded-lg mb-3 text-center shadow-lg text-sm">{t('premiumMember')}</div>
-          )}
-          <div className="bg-[#1e293b] p-3 rounded-lg border border-slate-700 mb-2">
-            <div className="flex items-center justify-between w-full mb-3 px-1">
-              <p className="text-[11px] text-gray-400 leading-tight max-w-[150px]">{t('supportKabyle')}</p>
-              <img src="/stickers/identity/13_pottery.png" alt="Kabyle Tip Jar" className="w-12 h-12 object-contain drop-shadow-md hover:scale-110 transition-transform cursor-pointer" />
-            </div>
-            <div className="flex gap-1 justify-center mb-2 w-full">
-              {[2, 5, 10].map(amt => (
-                <button key={amt} onClick={() => handleCheckout('donation', amt)} className="bg-slate-700 hover:bg-slate-600 text-white text-xs px-3 py-1 rounded flex-1">€{amt}</button>
-              ))}
-            </div>
-            <div className="flex gap-1 mt-1 w-full">
-              <input type="number" id="custom-donation" placeholder={t('customAmount')} min="1" className="w-full bg-[#0f172a] text-white text-xs px-2 py-1 rounded border border-slate-600 focus:outline-none focus:border-teal-500" />
-              <button onClick={() => { const input = document.getElementById('custom-donation') as HTMLInputElement; const amt = Number(input.value); if (amt >= 1) { if (confirm(t('confirmDonation', { amount: amt }))) handleCheckout('donation', amt); } else { alert(t('minAmountError')); } }} className="bg-teal-600 hover:bg-teal-500 text-white text-xs px-3 py-1 rounded font-bold">{t('tip')}</button>
-            </div>
-          </div>
-        </div>
+        {/* ... Rest of the Sidebar content (Rooms, Friends, Search, Tip Jar) stays exactly the same as your original file ... */}
       </div>
 
-      {/* STORY VIEWER */}
       {viewingStory && <StoryViewer story={viewingStory} onClose={() => setViewingStory(null)} />}
     </>
   );

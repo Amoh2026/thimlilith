@@ -152,17 +152,16 @@ export function ChatArea(p: ChatAreaProps) {
       ? "w-full text-left px-4 py-2.5 text-sm text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] hover:bg-white/10 active:bg-white/20 flex items-center gap-3 transition-colors"
       : "bg-[#1e293b] border border-slate-600 hover:bg-slate-700 text-gray-300 rounded-full w-8 h-8 flex-shrink-0 flex items-center justify-center text-sm shadow-lg transition-all";
 
-    // 👇 FIX: Added text-teal-400 to the Tifinagh icons to make them look active
-    const iconClass = isMobile ? "text-lg font-bold text-teal-400" : "font-bold text-base text-teal-400";
+    const iconClass = isMobile ? "text-lg font-bold text-teal-500" : "font-bold text-base text-teal-500";
 
     return (
       <>
         <button type="button" onClick={(e) => { e.stopPropagation(); p.setReplyingTo(msg); setMobileActionMenuId(null); }} className={baseClass} title={t('reply')}><span className={iconClass}>ⵔ</span> {isMobile && t('reply')}</button>
         <button type="button" onClick={(e) => { e.stopPropagation(); p.onForward(msg.id); setMobileActionMenuId(null); }} className={baseClass} title={t('forward')}><span className={iconClass}>ⵗ</span> {isMobile && t('forward')}</button>
-        <button type="button" onClick={(e) => { e.stopPropagation(); p.setActiveReactionMenu(isMenuOpen ? null : msg.id); setMobileActionMenuId(null); }} className={`${baseClass} ${isMenuOpen ? 'border-teal-500 text-teal-400' : ''}`} title={t('react')}><span className={iconClass}>😊</span> {isMobile && t('react')}</button>
+        <button type="button" onClick={(e) => { e.stopPropagation(); p.setActiveReactionMenu(isMenuOpen ? null : msg.id); setMobileActionMenuId(null); }} className={`${baseClass} ${isMenuOpen ? 'border-teal-500 text-white' : ''}`} title={t('react')}><span className={iconClass}>😊</span> {isMobile && t('react')}</button>
         
         {msg.type === 'text' && (
-          <button type="button" onClick={(e) => { e.stopPropagation(); setLangMenuId(langMenuId === msg.id ? null : msg.id); setMobileActionMenuId(null); }} className={`${baseClass} ${langMenuId === msg.id ? 'border-teal-500 text-teal-400' : ''}`} title={t('translate')}><span className={iconClass}>ⵜ</span> {isMobile && t('translate')}</button>
+          <button type="button" onClick={(e) => { e.stopPropagation(); setLangMenuId(langMenuId === msg.id ? null : msg.id); setMobileActionMenuId(null); }} className={`${baseClass} ${langMenuId === msg.id ? 'border-teal-500 text-white' : ''}`} title={t('translate')}><span className={iconClass}>ⵜ</span> {isMobile && t('translate')}</button>
         )}
 
         {(isMe || canDelete) && (
@@ -185,7 +184,6 @@ export function ChatArea(p: ChatAreaProps) {
       {/* Header */}
       <div className="h-16 border-b border-slate-800 flex items-center justify-between px-4 md:px-6 bg-[#0f172a] sticky top-0 z-50">
         
-        {/* LEFT SIDE: Title and Merged 👥 Toggle Button */}
         <div className="flex items-center gap-3">
           <button onClick={() => p.setIsMobileSidebarOpen(true)} className="md:hidden text-gray-400 hover:text-white text-2xl p-1">☰</button>
           
@@ -213,56 +211,47 @@ export function ChatArea(p: ChatAreaProps) {
           </div>
         </div>
 
-        {/* RIGHT SIDE: Dropdown Buttons ONLY */}
         <div className="flex gap-2 items-center relative">
-          
           <div className="hidden md:block">
             <LanguageSwitcher direction="down" />
           </div>
-
           <DesktopActionHub /> 
 
           {/* 3 Dots Menu */}
           <div className="relative header-menu-container">
-            {/* 👇 FIX: Added active state to the 3-dots button when menu is open */}
-            <button onClick={() => { setShowHeaderMenu(!showHeaderMenu); setActiveSubmenu('none'); }} className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl transition-colors border ${showHeaderMenu ? 'bg-teal-600 border-teal-500 text-white' : 'bg-[#1e293b] hover:bg-slate-700 border-slate-700 text-white'}`}>⋮</button>
+            {/* Active: White text + Teal bg | Inactive: Teal text */}
+            <button 
+              onClick={() => { setShowHeaderMenu(!showHeaderMenu); setActiveSubmenu('none'); }} 
+              className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl font-bold transition-colors border ${showHeaderMenu ? 'bg-teal-500/20 border-teal-500 text-white' : 'bg-[#1e293b] hover:bg-slate-700 border-slate-700 text-teal-500'}`}
+            >
+              ⋮
+            </button>
             
             {showHeaderMenu && (
               <>
-                {/* 👇 FIX: Added the caret arrow pointing to the 3-dots button */}
                 <div className="absolute -top-1.5 right-3.5 w-3 h-3 bg-[#1e293b] border-t border-l border-slate-700 rotate-45 transform origin-center z-10"></div>
                 
                 <div className="absolute right-0 top-12 bg-[#1e293b] border border-slate-700 rounded-xl shadow-2xl w-56 py-2 flex flex-col z-[100] max-h-[80vh] overflow-y-auto">
-                  
                   {activeSubmenu === 'none' && (
                     <>
-                      <button onClick={() => { p.setIsSearchExpanded(!p.isSearchExpanded); if (p.isSearchExpanded) { p.setMessageSearchTerm(""); p.setMessageSearchDate(""); } setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white flex justify-between"><span className="text-teal-400 mr-2">ⵔ</span> {t('searchMessages')}</button>
-                      <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowHeaderMenu(false); setTimeout(() => p.onOpenSettings(), 50); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white flex justify-between"><span className="text-teal-400 mr-2">ⵒ</span> {t('privacySettings')}</button>
-                      
+                      <button onClick={() => { p.setIsSearchExpanded(!p.isSearchExpanded); if (p.isSearchExpanded) { p.setMessageSearchTerm(""); p.setMessageSearchDate(""); } setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white flex justify-between"><span className="text-teal-500 mr-2 font-bold">ⵔ</span> {t('searchMessages')}</button>
+                      <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowHeaderMenu(false); setTimeout(() => p.onOpenSettings(), 50); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white flex justify-between"><span className="text-teal-500 mr-2 font-bold">ⵒ</span> {t('privacySettings')}</button>
                       <button onClick={() => { setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white flex justify-between items-center">
-                        <span className="flex items-center gap-2"><span className="text-teal-400">ⵡ</span> {t('myVault')}</span>
-                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${p.savedCount >= p.maxSaved ? 'bg-red-500/20 text-red-400' : 'bg-slate-700 text-teal-400'}`}>
-                          {p.savedCount} / {p.maxSaved}
-                        </span>
+                        <span className="flex items-center gap-2"><span className="text-teal-500 font-bold">ⵡ</span> {t('myVault')}</span>
+                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${p.savedCount >= p.maxSaved ? 'bg-red-500/20 text-red-400' : 'bg-slate-700 text-teal-400'}`}>{p.savedCount} / {p.maxSaved}</span>
                       </button>
-
-                      <button onClick={() => { p.onVideo(); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white flex justify-between"><span className="text-teal-400 mr-2">ⴽ</span> {t('videoCall')}</button>
-                      
+                      <button onClick={() => { p.onVideo(); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white flex justify-between"><span className="text-teal-500 mr-2 font-bold">ⴽ</span> {t('videoCall')}</button>
                       <div className="border-t border-slate-700 my-1"></div>
-
                       {p.activeRoom.type === "group" && (
-                        <button onClick={() => setActiveSubmenu('room')} className="text-left px-4 py-2 text-sm text-teal-300 hover:bg-slate-700 hover:text-white flex justify-between items-center">
-                          <span className="flex items-center gap-2"><span className="text-teal-400">ⵜ</span> {t('roomSettings')}</span>
-                          <span>▶</span>
+                        <button onClick={() => setActiveSubmenu('room')} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white flex justify-between items-center">
+                          <span className="flex items-center gap-2"><span className="text-teal-500 font-bold">ⵜ</span> {t('roomSettings')}</span><span>▶</span>
                         </button>
                       )}
-
-                         {p.activeRoom.type === "direct" && p.dmPartnerUid && (
+                      {p.activeRoom.type === "direct" && p.dmPartnerUid && (
                         <>
                           <div className="border-t border-slate-700 my-1"></div>
                           <button onClick={() => setActiveSubmenu('safety')} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white flex justify-between items-center">
-                            <span className="flex items-center gap-2"><span className="text-teal-400">ⴱ</span> {t('safetyModeration')}</span>
-                            <span>▶</span>
+                            <span className="flex items-center gap-2"><span className="text-teal-500 font-bold">ⴱ</span> {t('safetyModeration')}</span><span>▶</span>
                           </button>
                         </>
                       )}
@@ -271,32 +260,16 @@ export function ChatArea(p: ChatAreaProps) {
 
                   {activeSubmenu === 'room' && (
                     <>
-                      <button onClick={() => setActiveSubmenu('none')} className="text-left px-4 py-2 text-xs text-gray-400 hover:text-white font-bold flex items-center gap-2 border-b border-slate-700 mb-1">
-                        <span>◀</span> {t('backToMenu')}
-                      </button>
+                      <button onClick={() => setActiveSubmenu('none')} className="text-left px-4 py-2 text-xs text-gray-400 hover:text-white font-bold flex items-center gap-2 border-b border-slate-700 mb-1"><span>◀</span> {t('backToMenu')}</button>
                       <button onClick={() => { p.onOpenTheme(); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white"> {t('decorateRoom')}</button>
                       <button onClick={() => { p.setShowAddMemberModal(true); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white"> {t('addMember')}</button>
                       <button onClick={() => { p.handleCopyInviteLink(); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white"> {t('inviteLink')}</button>
                       <button onClick={() => { p.openMembersModal(); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white"> {t('manageRoles')}</button>
-                      
                       {p.activeRoom.createdBy === p.user.uid && (
                         <>
                           <div className="border-t border-slate-700 my-1"></div>
-                          <button onClick={() => { 
-                            const newRule = p.activeRoom.permissions?.whoCanPost === "moderators" ? "everyone" : "moderators";
-                            p.onUpdateRoomSettings({ permissions: { ...p.activeRoom.permissions, whoCanPost: newRule } }); 
-                            setShowHeaderMenu(false); 
-                          }} className="text-left px-4 py-2 text-sm text-yellow-300 hover:bg-slate-700 hover:text-white">
-                            {p.activeRoom.permissions?.whoCanPost === "moderators" ? t('unlockChat') : t('lockChat')}
-                          </button>
-
-                          <button onClick={() => { 
-                            const newTimer = p.activeRoom.disappearingTimer === 86400 ? 0 : 86400;
-                            p.onUpdateRoomSettings({ disappearingTimer: newTimer }); 
-                            setShowHeaderMenu(false); 
-                          }} className="text-left px-4 py-2 text-sm text-orange-300 hover:bg-slate-700 hover:text-white">
-                            {p.activeRoom.disappearingTimer ? t('disappearingOn') : t('disappearingOff')}
-                          </button>
+                          <button onClick={() => { const newRule = p.activeRoom.permissions?.whoCanPost === "moderators" ? "everyone" : "moderators"; p.onUpdateRoomSettings({ permissions: { ...p.activeRoom.permissions, whoCanPost: newRule } }); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-yellow-300 hover:bg-slate-700 hover:text-white">{p.activeRoom.permissions?.whoCanPost === "moderators" ? t('unlockChat') : t('lockChat')}</button>
+                          <button onClick={() => { const newTimer = p.activeRoom.disappearingTimer === 86400 ? 0 : 86400; p.onUpdateRoomSettings({ disappearingTimer: newTimer }); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-orange-300 hover:bg-slate-700 hover:text-white">{p.activeRoom.disappearingTimer ? t('disappearingOn') : t('disappearingOff')}</button>
                         </>
                       )}
                     </>
@@ -304,15 +277,9 @@ export function ChatArea(p: ChatAreaProps) {
 
                   {activeSubmenu === 'safety' && p.activeRoom.type === "direct" && p.dmPartnerUid && (
                     <>
-                      <button onClick={() => setActiveSubmenu('none')} className="text-left px-4 py-2 text-xs text-gray-400 hover:text-white font-bold flex items-center gap-2 border-b border-slate-700 mb-1">
-                        <span>◀</span> Back to Menu
-                      </button>
-                      <button onClick={() => { p.handleBlockUser(p.dmPartnerUid!, p.getDMName(p.activeRoom)); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700 hover:text-white">
-                        {p.isDMPartnerBlocked ? t('unblockUser') : t('blockUser')}
-                      </button>
-                      <button onClick={() => { p.handleReportUser(p.dmPartnerUid!, p.getDMName(p.activeRoom)); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-amber-400 hover:bg-slate-700 hover:text-white">
-                        ⚠️ Report User
-                      </button>
+                      <button onClick={() => setActiveSubmenu('none')} className="text-left px-4 py-2 text-xs text-gray-400 hover:text-white font-bold flex items-center gap-2 border-b border-slate-700 mb-1"><span>◀</span> Back to Menu</button>
+                      <button onClick={() => { p.handleBlockUser(p.dmPartnerUid!, p.getDMName(p.activeRoom)); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700 hover:text-white">{p.isDMPartnerBlocked ? t('unblockUser') : t('blockUser')}</button>
+                      <button onClick={() => { p.handleReportUser(p.dmPartnerUid!, p.getDMName(p.activeRoom)); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-amber-400 hover:bg-slate-700 hover:text-white">⚠️ Report User</button>
                     </>
                   )}
                 </div>
@@ -322,7 +289,7 @@ export function ChatArea(p: ChatAreaProps) {
         </div>
       </div>
 
-      {/* ... (Rest of the file remains exactly the same - Search Bar, Pinned Banner, Messages Container, Input) ... */}
+      {/* ... (Rest of ChatArea code is exactly the same as before, I've just omitted it here to save space. Copy the rest from your original file) ... */}
       {/* Search Bar */}
       {p.isSearchExpanded && (
         <div className="bg-[#1e293b] border-b border-slate-800 p-2 flex items-center justify-center gap-4">
@@ -382,7 +349,7 @@ export function ChatArea(p: ChatAreaProps) {
                   <div className="md:hidden relative mobile-action-menu">
                     <button 
                       onClick={() => setMobileActionMenuId(mobileActionMenuId === msg.id ? null : msg.id)} 
-                      className="text-gray-400 hover:text-white w-6 h-6 flex items-center justify-center text-base"
+                      className="text-teal-500 hover:text-white w-6 h-6 flex items-center justify-center text-base font-bold"
                       aria-label="Message actions"
                     >
                       ⋮
@@ -532,7 +499,6 @@ export function ChatArea(p: ChatAreaProps) {
           </button>
         </form>
       </div>
-
     </div>
   );
 }
