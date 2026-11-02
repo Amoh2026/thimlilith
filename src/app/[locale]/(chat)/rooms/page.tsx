@@ -256,7 +256,6 @@ export default function ThimlilithChatUI() {
     setReplyingTo(null); setIsSearchExpanded(false); setMessageSearchTerm(""); setMessageSearchDate("");
     if (user) { 
       try { 
-        // FIXED: Add +5000 to ensure the read receipt is newer than the message
         await updateDoc(doc(db, "users", user.uid), { [`lastRead.${room.id}`]: Date.now() + 5000 }); 
       } catch (err) {
         console.error(err);
@@ -860,12 +859,9 @@ export default function ThimlilithChatUI() {
             isMobileSidebarOpen={isMobileSidebarOpen}
             setIsMobileSidebarOpen={setIsMobileSidebarOpen}
             onVideo={async () => {
+              // 🚀 JITSI REMOVED: Now exclusively using LiveKit for all video calls
               if (!user || !activeRoom) return;
-              if (!userDoc?.isPremium && !activeRoom?.isPaid) {
-                const jitsiRoomName = `Thimlilith_Video_${activeRoom.id}`;
-                window.location.href = `https://meet.jit.si/${jitsiRoomName}`;
-                return;
-              }
+              
               try {
                 const token = await user.getIdToken();
                 const res = await fetch('/api/chat/livekit-token', { 
@@ -873,14 +869,22 @@ export default function ThimlilithChatUI() {
                   headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, 
                   body: JSON.stringify({ roomName: activeRoom.id, participantName: user.displayName || 'Guest' }) 
                 });
+                
+                if (!res.ok) {
+                  const errorData = await res.json();
+                  throw new Error(errorData.error || 'Failed to get video token');
+                }
+
                 const data = await res.json();
                 if (data.token) { 
                   sessionStorage.setItem('lk_token', data.token); 
                   window.location.href = `/${locale}/live/${activeRoom.id}`; 
+                } else {
+                  throw new Error('No token received from server');
                 }
-              } catch (err) {
+              } catch (err: any) {
                 console.error('LiveKit error:', err);
-                alert('Failed to start premium video call.');
+                alert(err.message || 'Failed to start video call.');
               }
             }}
             onSaveToATK={handleSaveToATK}

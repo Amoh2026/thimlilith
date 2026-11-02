@@ -34,14 +34,15 @@ export default function MobileBottomNav() {
     return pathname === fullPath && !currentTab;
   };
 
+  // Hide bottom nav on full-screen routes (added /video)
   if (
     pathname.includes('/account/') ||
     pathname.includes('/sso') ||
     pathname.includes('/live/') ||   
-    pathname.includes('/call')       
+    pathname.includes('/call') ||
+    pathname.includes('/video/')
   ) return null;
 
-  // Color Logic: Inactive = Teal, Active = White
   const baseClass = "flex flex-col items-center justify-center w-12 gap-0.5 transition-colors";
   const activeClass = "text-white font-bold";
   const inactiveClass = "text-teal-500 hover:text-teal-400";
@@ -56,7 +57,7 @@ export default function MobileBottomNav() {
           <span className="text-[10px] leading-tight">{t('chats')}</span>
         </Link>
 
-        {/* 2. FEED (Following is now a tab inside this page) */}
+        {/* 2. FEED */}
         <Link href={`/${locale}/feed`} className={`${baseClass} ${pathname.includes('/feed') ? activeClass : inactiveClass}`}>
           <span className="text-[22px] font-bold leading-none">ⴼ</span>
           <span className="text-[10px] leading-tight">{t('feed')}</span>
@@ -68,13 +69,13 @@ export default function MobileBottomNav() {
           <span className="text-[10px] leading-tight">{t('communities')}</span>
         </Link>
 
-        {/* 4. VIDEO */}
-        <Link href={`/${locale}/call`} className={`${baseClass} ${pathname.includes('/call') ? activeClass : inactiveClass}`}>
+        {/* 4. VIDEO (Fixed 404 by pointing to /video) */}
+        <Link href={`/${locale}/video`} className={`${baseClass} ${pathname.includes('/video') ? activeClass : inactiveClass}`}>
           <span className="text-[22px] font-bold leading-none">ⴽ</span>
           <span className="text-[10px] leading-tight">{t('video')}</span>
         </Link>
 
-        {/* 5. MORE (Action Hub) */}
+        {/* 5. MORE */}
         <button
           type="button"
           onClick={() => setHubOpen(true)}
