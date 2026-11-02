@@ -4,11 +4,17 @@ import Stripe from 'stripe';
 import { verifyChatUser, unauthorized } from '@/lib/chat/auth-server';
 import { adminDb } from '@/lib/firebase/admin';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-10-28.endive',
-});
-
 export async function POST(req: NextRequest) {
+  const stripeKey = process.env.STRIPE_SECRET_KEY;
+  if (!stripeKey) {
+    return NextResponse.json({ error: "Stripe key not configured" }, { status: 500 });
+  }
+
+  // Initialized inside the function to prevent Next.js build errors
+  const stripe = new Stripe(stripeKey, {
+    apiVersion: '2026-10-28.endive',
+  });
+
   const user = await verifyChatUser(req);
   if (!user) return unauthorized();
 
@@ -19,7 +25,6 @@ export async function POST(req: NextRequest) {
 
     let stripeAccountId = userData?.stripeAccountId;
 
-    // 1. Create a Stripe Express account if they don't have one
     if (!stripeAccountId) {
       const account = await stripe.accounts.create({
         type: 'express',
@@ -31,12 +36,9 @@ export async function POST(req: NextRequest) {
       });
 
       stripeAccountId = account.id;
-      
-      // Save it to Firestore
       await userDocRef.update({ stripeAccountId });
     }
 
-    // 2. Create an onboarding link
     const origin = req.headers.get('origin') || 'http://localhost:3000';
     
     const accountLink = await stripe.accountLinks.create({

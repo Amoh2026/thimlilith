@@ -3,14 +3,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { adminDb } from '@/lib/firebase/admin';
 
-// Force Node.js runtime for raw body parsing
 export const runtime = 'nodejs';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-10-28.endive',
-});
-
 export async function POST(req: NextRequest) {
+  const stripeKey = process.env.STRIPE_SECRET_KEY;
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  if (!stripeKey || !webhookSecret) {
+    console.error('❌ Missing Stripe environment variables');
+    return NextResponse.json({ error: 'Stripe configuration missing' }, { status: 500 });
+  }
+
+  const stripe = new Stripe(stripeKey, {
+    apiVersion: '2026-10-28.endive',
+  });
+
   const payload = await req.text();
   const sig = req.headers.get('stripe-signature');
 
@@ -21,24 +28,16 @@ export async function POST(req: NextRequest) {
   let event: Stripe.Event;
 
   try {
-    // Verify the webhook signature
-    event = stripe.webhooks.constructEvent(
-      payload,
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET!
-    );
+    event = stripe.webhooks.constructEvent(payload, sig, webhookSecret);
   } catch (err: any) {
     console.error(`❌ Webhook signature verification failed:`, err.message);
     return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
   }
 
-  // Handle the event
   try {
     switch (event.type) {
       case 'account.updated':
         const account = event.data.object as Stripe.Account;
-        
-        // Find the user by their Stripe Account ID
         const usersRef = adminDb().collection('users');
         const snapshot = await usersRef.where('stripeAccountId', '==', account.id).get();
 
@@ -47,7 +46,6 @@ export async function POST(req: NextRequest) {
           break;
         }
 
-        // Update the user's payout status
         const updatePromises = snapshot.docs.map((doc) => {
           return doc.ref.update({
             payoutsEnabled: account.payouts_enabled,
