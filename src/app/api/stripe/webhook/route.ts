@@ -1,91 +1,73 @@
-// src/app/api/stripe/checkout/route.ts
+// src/app/api/stripe/webhook/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { verifyChatUser, unauthorized } from '@/lib/chat/auth-server';
+import { adminDb } from '@/lib/firebase/admin';
 
-const DIGITAL_SERVICES_TAX_CODE = 'txcd_10000000';
+// Force Node.js runtime for raw body parsing
+export const runtime = 'nodejs';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2026-10-28.endive',
+});
 
 export async function POST(req: NextRequest) {
-  const stripeKey = process.env.STRIPE_SECRET_KEY;
-  if (!stripeKey) {
-    return NextResponse.json({ error: "Stripe key not configured on server" }, { status: 500 });
-  }
-  const stripe = new Stripe(stripeKey, { apiVersion: '2026-10-28.endive' });
+  const payload = await req.text();
+  const sig = req.headers.get('stripe-signature');
 
-  const user = await verifyChatUser(req);
-  if (!user) return unauthorized();
+  if (!sig) {
+    return NextResponse.json({ error: 'No signature provided' }, { status: 400 });
+  }
+
+  let event: Stripe.Event;
 
   try {
-    const { type, plan, amount, roomId } = await req.json();
-    let lineItems = [];
-    let metadata: any = { uid: user.uid, type };
+    // Verify the webhook signature
+    event = stripe.webhooks.constructEvent(
+      payload,
+      sig,
+      process.env.STRIPE_WEBHOOK_SECRET!
+    );
+  } catch (err: any) {
+    console.error(`❌ Webhook signature verification failed:`, err.message);
+    return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
+  }
 
-    if (type === 'room_join') {
-      if (!amount || amount < 1) return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
-      if (!roomId) return NextResponse.json({ error: "Missing room ID" }, { status: 400 });
-      
-      lineItems = [{
-        price_data: {
-          currency: 'eur',
-          product_data: { 
-            name: 'Premium Room Access', 
-            description: 'Monthly access to a private Thajmaath',
-            tax_code: DIGITAL_SERVICES_TAX_CODE
-          },
-          unit_amount: amount * 100,
-        },
-        quantity: 1,
-      }];
-      metadata.roomId = roomId;
-    } else if (type === 'donation') {
-      if (!amount || amount < 1) return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
-      lineItems = [{
-        price_data: {
-          currency: 'eur',
-          product_data: { 
-            name: 'Support Thimlilith ❤️', 
-            description: 'Thank you for preserving the Kabyle language!',
-            tax_code: DIGITAL_SERVICES_TAX_CODE
-          },
-          unit_amount: amount * 100,
-        },
-        quantity: 1,
-      }];
-      metadata.donationAmount = amount.toString();
-    } else {
-      const prices: Record<string, number> = { session: 199, monthly: 499, yearly: 3999 };
-      if (!prices[plan]) return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
-      lineItems = [{
-        price_data: {
-          currency: 'eur',
-          product_data: { 
-            name: plan === 'session' ? 'Session Pass (24h)' : plan === 'monthly' ? 'Monthly Premium' : 'Yearly Premium',
-            tax_code: DIGITAL_SERVICES_TAX_CODE
-          },
-          unit_amount: prices[plan],
-        },
-        quantity: 1,
-      }];
-      metadata.plan = plan;
+  // Handle the event
+  try {
+    switch (event.type) {
+      case 'account.updated':
+        const account = event.data.object as Stripe.Account;
+        
+        // Find the user by their Stripe Account ID
+        const usersRef = adminDb().collection('users');
+        const snapshot = await usersRef.where('stripeAccountId', '==', account.id).get();
+
+        if (snapshot.empty) {
+          console.warn(`⚠️ No user found with stripeAccountId: ${account.id}`);
+          break;
+        }
+
+        // Update the user's payout status
+        const updatePromises = snapshot.docs.map((doc) => {
+          return doc.ref.update({
+            payoutsEnabled: account.payouts_enabled,
+            chargesEnabled: account.charges_enabled,
+            detailsSubmitted: account.details_submitted,
+            updatedAt: new Date(),
+          });
+        });
+
+        await Promise.all(updatePromises);
+        console.log(`✅ Updated payout status for user(s) with Stripe ID: ${account.id}`);
+        break;
+
+      default:
+        console.log(`Unhandled event type ${event.type}`);
     }
 
-    const session = await stripe.checkout.sessions.create({
-      line_items: lineItems,
-      mode: 'payment',
-      // 👇 FIX APPLIED HERE 👇
-      success_url: metadata.roomId 
-        ? `${req.headers.get('origin')}/en/rooms/${metadata.roomId}?payment=success`
-        : `${req.headers.get('origin')}/en/rooms?payment=success`,
-      cancel_url: metadata.roomId 
-        ? `${req.headers.get('origin')}/en/rooms/${metadata.roomId}?payment=cancelled`
-        : `${req.headers.get('origin')}/en/rooms?payment=cancelled`,
-      // 👆 END OF FIX 👆
-      client_reference_id: user.uid,
-      metadata: metadata,
-    });
-
-    return NextResponse.json({ url: session.url });
+    return NextResponse.json({ received: true });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Webhook handler error:', error);
+    return NextResponse.json({ error: 'Webhook handler failed' }, { status: 500 });
   }
 }
