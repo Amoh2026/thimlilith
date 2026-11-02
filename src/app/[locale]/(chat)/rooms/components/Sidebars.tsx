@@ -6,6 +6,8 @@ import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { useParams } from 'next/navigation'; // 👈 ADDED
+
 import React from 'react';
 import Link from 'next/link';
 import { User } from 'firebase/auth';
@@ -49,7 +51,12 @@ interface SidebarsProps {
 
 export function Sidebars(p: SidebarsProps) {
   const t = useTranslations('Sidebar');
+  const tChat = useTranslations('Chat');
   
+  // 👇 ADDED: Get the current language
+  const params = useParams();
+  const locale = (params?.locale as string) || 'en';
+
   const handleCheckout = async (type: 'premium' | 'donation', amount?: number) => {
     try {
       const token = await p.user.getIdToken();
@@ -93,36 +100,36 @@ export function Sidebars(p: SidebarsProps) {
 
   return (
     <>
-      {/* 🌟 FAR LEFT SIDEBAR (DESKTOP ONLY) - Matches Mobile Bottom Nav 🌟 */}
+      {/* 🌟 FAR LEFT SIDEBAR (DESKTOP ONLY) 🌟 */}
       <div className="hidden md:flex w-16 flex-col items-center py-4 bg-[#0b1120] border-r border-slate-800">
         <div className="w-10 h-10 bg-teal-500 rounded-xl mb-8 flex items-center justify-center text-white font-bold">T</div>
         
         <div className="flex flex-col gap-6 text-slate-500">
-          {/* Chats */}
+          {/* Chats ⵣ */}
           <button onClick={() => p.setSidebarTab('rooms')} className={`hover:text-teal-400 text-xl ${p.sidebarTab === 'rooms' ? 'text-teal-400' : ''}`} title={t('chats')}>ⵣ</button>
           
-          {/* Feed */}
-          <Link href="/feed" className="hover:text-teal-400 text-xl" title={t('feed')}>ⴼ</Link>
+          {/* Feed ⴼ */}
+          <Link href={`/${locale}/feed`} className="hover:text-teal-400 text-xl" title={t('feed')}>ⴼ</Link>
           
-          {/* Following */}
-          <Link href="/feed?tab=following" className="hover:text-teal-400 text-xl" title={t('following')}>ⵏ</Link>
+          {/* Following ⵊ */}
+          <Link href={`/${locale}/feed?tab=following`} className="hover:text-teal-400 text-xl" title={t('following')}>ⵊ</Link>
           
-          {/* Communities */}
-          <Link href="/discover" className="hover:text-teal-400 text-xl" title={t('communities')}>ⴳ</Link> 
+          {/* Communities ⴳ */}
+          <Link href={`/${locale}/discover`} className="hover:text-teal-400 text-xl" title={t('communities')}>ⴳ</Link> 
           
-          {/* Video */}
-          <Link href="/live" className="hover:text-teal-400 text-xl" title={t('video')}>ⴽ</Link>
+          {/* Video ⴽ */}
+          <Link href={`/${locale}/live`} className="hover:text-teal-400 text-xl" title={t('video')}>ⴽ</Link>
 
           {/* Learn ATK */}
           <SSOButton target="atk" icon="ⴰ" label={t('learn')} className="!text-slate-500" />
           
-          {/* Friends */}
+          {/* Friends ⵗ */}
           <button onClick={() => p.setSidebarTab('friends')} className={`hover:text-teal-400 text-xl ${p.sidebarTab === 'friends' ? 'text-teal-400' : ''}`} title={t('friends')}>ⵗ</button>
         </div>
 
-         <div className="mt-auto flex flex-col items-center gap-4 pb-4">
-          {/* Profile Avatar */}
-          <Link href={`/profile/${p.user.uid}`} title="My Profile">
+        <div className="mt-auto flex flex-col items-center gap-4 pb-4">
+          {/* Profile Avatar ⵓ */}
+          <Link href={`/${locale}/profile/${p.user.uid}`} title="My Profile">
             {p.user.photoURL
               ? <img src={p.user.photoURL} alt="User" className="w-8 h-8 rounded-full border-2 border-teal-500 hover:opacity-80" />
               : <div className="w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center text-white font-bold text-xs hover:opacity-80">{(p.user.displayName || p.user.email)?.[0].toUpperCase()}</div>}
@@ -145,12 +152,12 @@ export function Sidebars(p: SidebarsProps) {
         
          {/* Mobile Quick Links */}
         <div className="flex gap-2 p-3 border-b border-slate-800 bg-[#1e293b] md:hidden">
-          <Link href="/feed" className="flex flex-col items-center justify-center flex-1 py-1">
+          <Link href={`/${locale}/feed`} className="flex flex-col items-center justify-center flex-1 py-1">
             <span className="text-xl font-bold text-teal-400">ⴼ</span>
             <span className="text-[10px] text-gray-300 mt-1">{t('feed')}</span>
           </Link>
-          <Link href="/discover" className="flex flex-col items-center justify-center flex-1 py-1">
-            <span className="text-xl font-bold text-teal-400">ⴷ</span>
+          <Link href={`/${locale}/discover`} className="flex flex-col items-center justify-center flex-1 py-1">
+            <span className="text-xl font-bold text-teal-400">ⴳ</span>
             <span className="text-[10px] text-gray-300 mt-1">{t('communities')}</span>
           </Link>
           <div className="flex flex-col items-center justify-center flex-1 py-1">
@@ -159,7 +166,7 @@ export function Sidebars(p: SidebarsProps) {
           </div>
         </div>
 
-        {/* TOP TABS - VAULT REMOVED */}
+        {/* TOP TABS */}
         <div className="flex border-b border-slate-800">
           <button onClick={() => p.setSidebarTab('rooms')} className={`flex-1 py-3 px-1 text-xs md:text-sm font-medium ${p.sidebarTab === 'rooms' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500'}`}>{t('thajmaathin')}</button>
           <button onClick={() => p.setSidebarTab('friends')} className={`flex-1 py-3 px-1 text-xs md:text-sm font-medium relative ${p.sidebarTab === 'friends' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500'}`}>
@@ -229,7 +236,9 @@ export function Sidebars(p: SidebarsProps) {
                           <span className={`font-medium text-sm capitalize truncate ${isUnread ? 'text-white font-bold' : 'text-gray-300'}`}>{displayName}</span>
                           {isUnread && <span className="w-2.5 h-2.5 bg-teal-500 rounded-full flex-shrink-0"></span>}
                         </div>
-                        <p className="text-xs truncate text-gray-400">{room.lastMessageText || (isDM ? 'Private conversation' : 'Click to join chat')}</p>
+                        <p className="text-xs truncate text-gray-400">
+                          {room.lastMessageText || (isDM ? tChat('privateConversation') : tChat('clickToJoinChat'))}
+                        </p>
                       </div>
                     </div>
                   );
@@ -246,7 +255,7 @@ export function Sidebars(p: SidebarsProps) {
                 <h3 className="text-xs font-bold text-gray-400 uppercase mb-2">{t('requests')}</h3>
                 {p.friendRequests.map(req => (
                   <div key={req.id} className="bg-[#1e293b] border border-slate-700 p-3 rounded-lg mb-2">
-                    <p className="text-sm text-white mb-2">{req.senderName} wants to be friends</p>
+                    <p className="text-sm text-white mb-2">{req.senderName} {t('wantsToBeFriends')}</p>
                     <div className="flex gap-2">
                       <button onClick={() => p.handleAcceptRequest(req.id)} className="flex-1 bg-teal-600 text-white text-xs py-1.5 rounded">{t('accept')}</button>
                       <button onClick={() => p.handleRejectRequest(req.id)} className="flex-1 bg-slate-600 text-white text-xs py-1.5 rounded">{t('reject')}</button>

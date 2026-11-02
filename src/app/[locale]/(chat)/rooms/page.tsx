@@ -187,15 +187,15 @@ export default function ThimlilithChatUI() {
     fetchBlocked();
   }, [userDoc?.blockedUsers]);
 
-  useEffect(() => {
+   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('payment') === 'success') {
       const timer = setTimeout(() => {
-        window.location.href = '/en/rooms';
+        window.location.href = `/${locale}/rooms`; // 👈 FIXED
       }, 2000);
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, [locale]);
 
   useEffect(() => {
     if (!user) return;
@@ -831,7 +831,7 @@ export default function ThimlilithChatUI() {
       ) : !userDoc?.charterAccepted ? (
         <CharterScreen onAccept={handleAcceptCharter} onLogout={handleLogout} />
       ) : (
-        <div className="flex h-[100dvh] w-full bg-[#0f172a] text-gray-300 font-sans overflow-hidden pb-16 md:pb-0 relative">
+        <div className="flex h-[100dvh] w-full bg-[#0f172a] text-gray-300 font-sans overflow-hidden relative">
           <WelcomeModal open={showWelcome} onClose={handleWelcomeDismiss} />
           <PremiumModal open={premiumModal.open} type={premiumModal.type} onClose={() => setPremiumModal({ ...premiumModal, open: false })} />
 

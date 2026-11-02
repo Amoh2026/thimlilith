@@ -262,7 +262,7 @@ export default function FeedPage() {
           ← {t('backToChat')}
         </Link>
         <h1 className="text-white font-bold text-lg flex items-center gap-2">
-          <span className="font-bold text-xl">ⵣ</span> {t('homeFeed')}
+          <span className="font-bold text-xl">ⴼ</span> {t('homeFeed')} {/* 👈 Changed to ⴼ */}
         </h1>
         <div className="w-20"></div>
       </div>
@@ -285,12 +285,12 @@ export default function FeedPage() {
       ) : (
         <>
           {/* 👇 TRANSLATED TABS 👇 */}
-          <div className="flex border-b border-slate-800 bg-[#0f172a] mt-2">
+            <div className="flex border-b border-slate-800 bg-[#0f172a] mt-2">
             <button onClick={() => setFeedTab('global')} className={`flex-1 py-3 text-center font-bold transition-colors flex items-center justify-center gap-2 ${feedTab === 'global' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500 hover:text-gray-300'}`}>
               <span className="text-lg font-bold">ⴰ</span> {t('global')}
             </button>
             <button onClick={() => setFeedTab('following')} className={`flex-1 py-3 text-center font-bold transition-colors flex items-center justify-center gap-2 ${feedTab === 'following' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500 hover:text-gray-300'}`}>
-              <span className="text-lg font-bold">ⴼ</span> {t('following')}
+              <span className="text-lg font-bold">ⵊ</span> {t('following')} {/* 👈 Changed to ⵊ */}
             </button>
           </div>
 
