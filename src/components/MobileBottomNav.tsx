@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams, useParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { auth } from '@/lib/firebase/client';
 import { onAuthStateChanged } from 'firebase/auth';
 import ActionHub from './ActionHub';
@@ -11,6 +12,7 @@ export default function MobileBottomNav() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const params = useParams();
+  const t = useTranslations('Nav');
   const locale = (params?.locale as string) || 'en';
   const currentTab = searchParams.get('tab');
   const [uid, setUid] = useState<string | null>(null);
@@ -43,31 +45,31 @@ export default function MobileBottomNav() {
         {/* CHATS */}
         <Link href="/rooms" className={`flex flex-col items-center justify-center w-12 gap-0.5 ${isActive('/rooms') || isActive('/en/rooms') || isActive('/fr/rooms') ? 'text-teal-400' : 'text-gray-400'}`}>
           <span className="text-[22px] font-bold leading-none">ⵣ</span>
-          <span className="text-[10px] leading-tight">Chats</span>
+          <span className="text-[10px] leading-tight">{t('chats')}</span>
         </Link>
 
         {/* FEED */}
         <Link href="/feed" className={`flex flex-col items-center justify-center w-12 gap-0.5 ${isActive('/feed') || pathname.includes('/feed') ? 'text-teal-400' : 'text-gray-400'}`}>
           <span className="text-[22px] font-bold leading-none">ⴼ</span>
-          <span className="text-[10px] leading-tight">Feed</span>
+          <span className="text-[10px] leading-tight">{t('feed')}</span>
         </Link>
 
         {/* FOLLOWING (Added from your request) */}
         <Link href="/feed?tab=following" className={`flex flex-col items-center justify-center w-12 gap-0.5 ${currentTab === 'following' ? 'text-teal-400' : 'text-gray-400'}`}>
           <span className="text-[22px] font-bold leading-none">ⵏ</span>
-          <span className="text-[10px] leading-tight">Following</span>
+          <span className="text-[10px] leading-tight">{t('following')}</span>
         </Link>
 
         {/* COMMUNITIES (Added from your request) */}
         <Link href="/discover" className={`flex flex-col items-center justify-center w-12 gap-0.5 ${pathname.includes('/discover') ? 'text-teal-400' : 'text-gray-400'}`}>
           <span className="text-[22px] font-bold leading-none">ⴳ</span>
-          <span className="text-[10px] leading-tight">Communities</span>
+          <span className="text-[10px] leading-tight">{t('communities')}</span>
         </Link>
 
         {/* VIDEO CALL (LiveKit) */}
         <Link href="/call" className={`flex flex-col items-center justify-center w-12 gap-0.5 ${pathname.includes('/call') ? 'text-teal-400' : 'text-gray-400'}`}>
           <span className="text-[22px] font-bold leading-none">ⴽ</span>
-          <span className="text-[10px] leading-tight">Video</span>
+          <span className="text-[10px] leading-tight">{t('video')}</span>
         </Link>
 
         {/* ACTION HUB TRIGGER (More) */}
@@ -80,7 +82,7 @@ export default function MobileBottomNav() {
           aria-expanded={hubOpen}
         >
           <span className="text-[22px] font-bold leading-none">ⵎ</span>
-          <span className="text-[10px] leading-tight">More</span>
+          <span className="text-[10px] leading-tight">{t('more')}</span>
         </button>
       </div>
 

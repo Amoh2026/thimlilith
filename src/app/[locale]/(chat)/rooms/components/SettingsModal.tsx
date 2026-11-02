@@ -1,6 +1,8 @@
-﻿'use client';
+﻿// src/app/[locale]/(chat)/rooms/components/SettingsModal.tsx
+'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl'; // 👈 Added import
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -10,6 +12,8 @@ interface SettingsModalProps {
 }
 
 export default function SettingsModal({ isOpen, onClose, userDoc, onSave }: SettingsModalProps) {
+  const t = useTranslations('Settings'); // 👈 Added hook
+  
   const [privacy, setPrivacy] = useState<string>('public');
   const [saving, setSaving] = useState(false);
 
@@ -38,23 +42,27 @@ export default function SettingsModal({ isOpen, onClose, userDoc, onSave }: Sett
       >
         <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white text-xl">✕</button>
         
-        <h2 className="text-2xl font-bold text-white mb-6">⚙️ Privacy Settings</h2>
+        {/* 👇 Translated Title 👇 */}
+        <h2 className="text-2xl font-bold text-white mb-6">⚙️ {t('title')}</h2>
 
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Who can find me in Search?
+              {/* 👇 Translated Label 👇 */}
+              {t('whoCanFindMe')}
             </label>
             <select 
               value={privacy} 
               onChange={(e) => setPrivacy(e.target.value)}
               className="w-full bg-[#0f172a] text-white border border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:border-teal-500"
             >
-              <option value="public">🌍 Public (Everyone can find me)</option>
-              <option value="private">🔒 Private (Hide me from user search)</option>
+              {/* 👇 Translated Options 👇 */}
+              <option value="public">{t('publicOption')}</option>
+              <option value="private">{t('privateOption')}</option>
             </select>
             <p className="text-xs text-gray-500 mt-2">
-              If set to Private, people can still message you if they already know your email or share a room with you.
+              {/* 👇 Translated Description 👇 */}
+              {t('privacyDescription')}
             </p>
           </div>
 
@@ -64,7 +72,8 @@ export default function SettingsModal({ isOpen, onClose, userDoc, onSave }: Sett
               disabled={saving}
               className="w-full py-3 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-semibold transition disabled:opacity-50"
             >
-              {saving ? 'Saving...' : 'Save Settings'}
+              {/* 👇 Translated Button Text 👇 */}
+              {saving ? t('saving') : t('save')}
             </button>
           </div>
         </div>

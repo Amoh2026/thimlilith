@@ -1,5 +1,9 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+import type { NextConfig } from 'next';
+import createNextIntlPlugin from 'next-intl/plugin';
+
+const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
+
+const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
@@ -14,6 +18,8 @@ const nextConfig = {
     'firebase-admin/app',
     'firebase-admin/auth',
     'firebase-admin/firestore',
+    'jwks-rsa',
+    'jose',
   ],
   async headers() {
     return [
@@ -29,4 +35,4 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+export default withNextIntl(nextConfig);

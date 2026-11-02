@@ -1,14 +1,19 @@
+// src/app/[locale]/live/page.tsx
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation'; // 👈 Added useParams
 import { db, auth } from '@/lib/firebase/client';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { useTranslations } from 'next-intl';
 
 export default function LiveLobby() {
+  const t = useTranslations('Live');
   const [roomId, setRoomId] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const params = useParams(); // 👈 Get current locale
+  const locale = (params?.locale as string) || 'en';
 
   const handleGoLive = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -16,7 +21,7 @@ export default function LiveLobby() {
 
     const user = auth.currentUser;
     if (!user) {
-      alert("You must be logged in to go live.");
+      alert(t('mustBeLoggedIn'));
       setIsLoading(false);
       return;
     }
@@ -35,11 +40,11 @@ export default function LiveLobby() {
         members: [user.uid]
       }, { merge: true });
 
-      // Redirect to the Live Room
-      router.push(`/en/live/${finalRoomId}?host=true`);
+      // 👈 FIXED: Use dynamic locale instead of hardcoded 'en'
+      router.push(`/${locale}/live/${finalRoomId}?host=true`);
     } catch (error) {
       console.error("Error creating room:", error);
-      alert("Failed to start broadcast. Check console.");
+      alert(t('failedToStart'));
       setIsLoading(false);
     }
   };
@@ -50,10 +55,10 @@ export default function LiveLobby() {
         
         <div className="flex items-center gap-3 mb-6">
           <div className="w-4 h-4 rounded-full bg-red-500 animate-pulse"></div>
-          <h1 className="text-2xl font-bold text-white">Go Live</h1>
+          <h1 className="text-2xl font-bold text-white">{t('title')}</h1>
         </div>
         
-        <p className="text-gray-400 mb-8">Broadcast to your Thajmaath.</p>
+        <p className="text-gray-400 mb-8">{t('broadcastTo')}</p>
 
         <form onSubmit={handleGoLive} className="flex flex-col gap-4">
           <div>
@@ -61,7 +66,7 @@ export default function LiveLobby() {
               type="text"
               value={roomId}
               onChange={(e) => setRoomId(e.target.value)}
-              placeholder="Stream Title or Room ID (Optional)"
+              placeholder={t('streamTitlePlaceholder')}
               className="w-full bg-[#0f172a] text-white border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-teal-400"
             />
           </div>
@@ -71,16 +76,17 @@ export default function LiveLobby() {
             disabled={isLoading}
             className="w-full bg-teal-500 hover:bg-teal-600 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-xl transition-colors mt-2"
           >
-            {isLoading ? 'Connecting...' : 'Start Broadcasting'}
+            {isLoading ? t('connecting') : t('startBroadcasting')}
           </button>
         </form>
 
         <div className="mt-8 pt-6 border-t border-white/10">
+          {/* 👈 FIXED: Added translation and dynamic locale */}
           <button
-            onClick={() => router.push('/en/rooms')}
+            onClick={() => router.push(`/${locale}/rooms`)}
             className="text-teal-400 text-sm hover:underline"
           >
-            ← Back to Rooms
+            {t('backToRooms')}
           </button>
         </div>
         

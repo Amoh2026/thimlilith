@@ -5,12 +5,11 @@ import StoryViewer from './StoryViewer';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { useEffect, useState } from 'react';
-
+import { useTranslations } from 'next-intl';
 import React from 'react';
 import Link from 'next/link';
 import { User } from 'firebase/auth';
 import { SSOButton } from '@/components/auth/SSOButton';
-import DesktopActionHub from '@/components/DesktopActionHub'; // 👈 ADDED
 
 interface SidebarsProps {
   user: User;
@@ -49,6 +48,7 @@ interface SidebarsProps {
 }
 
 export function Sidebars(p: SidebarsProps) {
+  const t = useTranslations('Sidebar');
   
   const handleCheckout = async (type: 'premium' | 'donation', amount?: number) => {
     try {
@@ -99,31 +99,28 @@ export function Sidebars(p: SidebarsProps) {
         
         <div className="flex flex-col gap-6 text-slate-500">
           {/* Chats */}
-          <button onClick={() => p.setSidebarTab('rooms')} className={`hover:text-teal-400 text-xl ${p.sidebarTab === 'rooms' ? 'text-teal-400' : ''}`} title="Chats">ⵣ</button>
+          <button onClick={() => p.setSidebarTab('rooms')} className={`hover:text-teal-400 text-xl ${p.sidebarTab === 'rooms' ? 'text-teal-400' : ''}`} title={t('chats')}>ⵣ</button>
           
           {/* Feed */}
-          <Link href="/feed" className="hover:text-teal-400 text-xl" title="Feed">ⴼ</Link>
+          <Link href="/feed" className="hover:text-teal-400 text-xl" title={t('feed')}>ⴼ</Link>
           
           {/* Following */}
-          <Link href="/feed?tab=following" className="hover:text-teal-400 text-xl" title="Following">ⵏ</Link>
+          <Link href="/feed?tab=following" className="hover:text-teal-400 text-xl" title={t('following')}>ⵏ</Link>
           
           {/* Communities */}
-          <Link href="/discover" className="hover:text-teal-400 text-xl" title="Communities">ⴳ</Link> 
+          <Link href="/discover" className="hover:text-teal-400 text-xl" title={t('communities')}>ⴳ</Link> 
           
           {/* Video */}
-          <Link href="/live" className="hover:text-teal-400 text-xl" title="Video">ⴽ</Link>
+          <Link href="/live" className="hover:text-teal-400 text-xl" title={t('video')}>ⴽ</Link>
 
           {/* Learn ATK */}
-          <SSOButton target="atk" icon="ⴰ" label="Learn ATK" className="!text-slate-500" />
+          <SSOButton target="atk" icon="ⴰ" label={t('learn')} className="!text-slate-500" />
           
           {/* Friends */}
-          <button onClick={() => p.setSidebarTab('friends')} className={`hover:text-teal-400 text-xl ${p.sidebarTab === 'friends' ? 'text-teal-400' : ''}`} title="Friends">ⵗ</button>
+          <button onClick={() => p.setSidebarTab('friends')} className={`hover:text-teal-400 text-xl ${p.sidebarTab === 'friends' ? 'text-teal-400' : ''}`} title={t('friends')}>ⵗ</button>
         </div>
 
-        <div className="mt-auto flex flex-col items-center gap-4 pb-4">
-          {/* Action Hub (More) */}
-          <DesktopActionHub />
-
+         <div className="mt-auto flex flex-col items-center gap-4 pb-4">
           {/* Profile Avatar */}
           <Link href={`/profile/${p.user.uid}`} title="My Profile">
             {p.user.photoURL
@@ -142,7 +139,7 @@ export function Sidebars(p: SidebarsProps) {
       <div className={`fixed inset-y-0 left-0 z-[100] w-80 bg-[#0f172a] border-r border-slate-800 flex flex-col transform transition-transform duration-300 md:relative md:translate-x-0 ${p.isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         
         <div className="md:hidden flex items-center justify-between p-4 border-b border-slate-800">
-          <span className="text-white font-bold text-lg">Thajmaathin</span>
+          <span className="text-white font-bold text-lg">{t('thajmaathin')}</span>
           <button onClick={() => p.setIsMobileSidebarOpen(false)} className="text-gray-400 hover:text-white text-2xl">×</button>
         </div>
         
@@ -150,52 +147,52 @@ export function Sidebars(p: SidebarsProps) {
         <div className="flex gap-2 p-3 border-b border-slate-800 bg-[#1e293b] md:hidden">
           <Link href="/feed" className="flex flex-col items-center justify-center flex-1 py-1">
             <span className="text-xl font-bold text-teal-400">ⴼ</span>
-            <span className="text-[10px] text-gray-300 mt-1">Feed</span>
+            <span className="text-[10px] text-gray-300 mt-1">{t('feed')}</span>
           </Link>
           <Link href="/discover" className="flex flex-col items-center justify-center flex-1 py-1">
             <span className="text-xl font-bold text-teal-400">ⴷ</span>
-            <span className="text-[10px] text-gray-300 mt-1">Discover</span>
+            <span className="text-[10px] text-gray-300 mt-1">{t('communities')}</span>
           </Link>
           <div className="flex flex-col items-center justify-center flex-1 py-1">
-            <SSOButton target="atk" icon="ⵍ" label="Learn" className="!text-teal-400 !text-xl" />
+            <SSOButton target="atk" icon="ⵍ" label={t('learn')} className="!text-teal-400 !text-xl" />
             <span className="text-[10px] text-gray-300 mt-1">Learn</span>
           </div>
         </div>
 
         {/* TOP TABS - VAULT REMOVED */}
         <div className="flex border-b border-slate-800">
-          <button onClick={() => p.setSidebarTab('rooms')} className={`flex-1 py-3 px-1 text-xs md:text-sm font-medium ${p.sidebarTab === 'rooms' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500'}`}>Thajmaathin</button>
+          <button onClick={() => p.setSidebarTab('rooms')} className={`flex-1 py-3 px-1 text-xs md:text-sm font-medium ${p.sidebarTab === 'rooms' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500'}`}>{t('thajmaathin')}</button>
           <button onClick={() => p.setSidebarTab('friends')} className={`flex-1 py-3 px-1 text-xs md:text-sm font-medium relative ${p.sidebarTab === 'friends' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500'}`}>
-            Friends
+            {t('friends')}
             {p.friendRequests.length > 0 && <span className="absolute top-2 right-1 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center">{p.friendRequests.length}</span>}
           </button>
-          <button onClick={() => p.setSidebarTab('search')} className={`flex-1 py-3 px-1 text-xs md:text-sm font-medium ${p.sidebarTab === 'search' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500'}`}>Find</button>
+          <button onClick={() => p.setSidebarTab('search')} className={`flex-1 py-3 px-1 text-xs md:text-sm font-medium ${p.sidebarTab === 'search' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500'}`}>{t('find')}</button>
         </div>
 
         {/* 1. ROOMS TAB */}
         {p.sidebarTab === 'rooms' && (
           <>
             <div className="p-4 flex justify-between items-center">
-              <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Your Communities</h2>
+              <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider">{t('yourCommunities')}</h2>
               <button onClick={() => p.setIsCreatingRoom(!p.isCreatingRoom)} className="bg-teal-600 hover:bg-teal-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-lg">+</button>
             </div>
             {p.isCreatingRoom && (
               <form onSubmit={p.handleCreateRoom} className="p-3 bg-[#1e293b] border-y border-slate-700">
-                <input type="text" value={p.newRoomName} onChange={(e) => p.setNewRoomName(e.target.value)} placeholder="E.g. Paris..." className="w-full bg-[#0f172a] text-sm text-white rounded-lg px-3 py-2 mb-2 border border-slate-600" autoFocus />
+                <input type="text" value={p.newRoomName} onChange={(e) => p.setNewRoomName(e.target.value)} placeholder={t('roomNamePlaceholder')} className="w-full bg-[#0f172a] text-sm text-white rounded-lg px-3 py-2 mb-2 border border-slate-600" autoFocus />
                 <div className="flex items-center gap-2 mb-3">
                   <input type="checkbox" checked={p.isPaidRoom} onChange={(e) => p.setIsPaidRoom(e.target.checked)} id="paidRoomToggle" className="w-4 h-4 accent-teal-500" />
-                  <label htmlFor="paidRoomToggle" className="text-xs text-gray-300 font-medium">Premium Room 🔒</label>
+                  <label htmlFor="paidRoomToggle" className="text-xs text-gray-300 font-medium">{t('premiumRoom')}</label>
                 </div>
                 {p.isPaidRoom && (
                   <div className="flex items-center gap-2 mb-3">
                     <span className="text-xs text-gray-300">€</span>
-                    <input type="number" min="1" value={p.roomPrice} onChange={(e) => p.setRoomPrice(e.target.value)} placeholder="Price (e.g. 5)" className="w-full bg-[#0f172a] text-sm text-white rounded-lg px-3 py-2 border border-slate-600" required={p.isPaidRoom} />
+                    <input type="number" min="1" value={p.roomPrice} onChange={(e) => p.setRoomPrice(e.target.value)} placeholder={t('pricePlaceholder')} className="w-full bg-[#0f172a] text-sm text-white rounded-lg px-3 py-2 border border-slate-600" required={p.isPaidRoom} />
                     <span className="text-xs text-gray-300">/mo</span>
                   </div>
                 )}
                 <div className="flex gap-2">
-                  <button type="submit" className="flex-1 bg-teal-600 text-white text-xs py-1.5 rounded">Create</button>
-                  <button type="button" onClick={() => p.setIsCreatingRoom(false)} className="flex-1 bg-slate-600 text-white text-xs py-1.5 rounded">Cancel</button>
+                  <button type="submit" className="flex-1 bg-teal-600 text-white text-xs py-1.5 rounded">{t('create')}</button>
+                  <button type="button" onClick={() => p.setIsCreatingRoom(false)} className="flex-1 bg-slate-600 text-white text-xs py-1.5 rounded">{t('cancel')}</button>
                 </div>
               </form>
             )}
@@ -246,21 +243,21 @@ export function Sidebars(p: SidebarsProps) {
           <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-4">
             {p.friendRequests.length > 0 && (
               <div>
-                <h3 className="text-xs font-bold text-gray-400 uppercase mb-2">Requests</h3>
+                <h3 className="text-xs font-bold text-gray-400 uppercase mb-2">{t('requests')}</h3>
                 {p.friendRequests.map(req => (
                   <div key={req.id} className="bg-[#1e293b] border border-slate-700 p-3 rounded-lg mb-2">
                     <p className="text-sm text-white mb-2">{req.senderName} wants to be friends</p>
                     <div className="flex gap-2">
-                      <button onClick={() => p.handleAcceptRequest(req.id)} className="flex-1 bg-teal-600 text-white text-xs py-1.5 rounded">Accept</button>
-                      <button onClick={() => p.handleRejectRequest(req.id)} className="flex-1 bg-slate-600 text-white text-xs py-1.5 rounded">Reject</button>
+                      <button onClick={() => p.handleAcceptRequest(req.id)} className="flex-1 bg-teal-600 text-white text-xs py-1.5 rounded">{t('accept')}</button>
+                      <button onClick={() => p.handleRejectRequest(req.id)} className="flex-1 bg-slate-600 text-white text-xs py-1.5 rounded">{t('reject')}</button>
                     </div>
                   </div>
                 ))}
               </div>
             )}
             <div>
-              <h3 className="text-xs font-bold text-gray-400 uppercase mb-2">My Friends</h3>
-              {p.friendsList.length === 0 && <p className="text-gray-500 text-sm">No friends yet.</p>}
+              <h3 className="text-xs font-bold text-gray-400 uppercase mb-2">{t('myFriends')}</h3>
+              {p.friendsList.length === 0 && <p className="text-gray-500 text-sm">{t('noFriends')}</p>}
               {p.friendsList.map(f => {
                 const friendId = f.senderId === p.user.uid ? f.receiverId : f.senderId;
                 const friendName = f.senderId === p.user.uid ? f.receiverName : f.senderName;
@@ -273,21 +270,21 @@ export function Sidebars(p: SidebarsProps) {
                     </div>
                     <div className="flex-1 overflow-hidden">
                       <h4 className="text-white font-medium text-sm truncate">{friendName}</h4>
-                      <p className="text-xs text-teal-400">Friend</p>
+                      <p className="text-xs text-teal-400">{t('friend')}</p>
                     </div>
-                    <button onClick={() => { p.handleStartDM({ id: friendId, name: friendName }); p.setIsMobileSidebarOpen(false); }} className="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-lg text-xs">Chat</button>
+                    <button onClick={() => { p.handleStartDM({ id: friendId, name: friendName }); p.setIsMobileSidebarOpen(false); }} className="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-lg text-xs">{t('chat')}</button>
                   </div>
                 );
               })}
             </div>
             {p.blockedUsersList.length > 0 && (
               <div className="mt-4 border-t border-slate-800 pt-4">
-                <h3 className="text-xs font-bold text-red-400 uppercase mb-2">Blocked Users</h3>
+                <h3 className="text-xs font-bold text-red-400 uppercase mb-2">{t('blockedUsers')}</h3>
                 {p.blockedUsersList.map(u => (
                   <div key={u.id} className="flex items-center gap-3 p-3 bg-[#1e293b] rounded-lg border border-slate-700 mb-2">
                     <div className="w-10 h-10 rounded-full bg-red-900 flex items-center justify-center text-white font-bold">{u.name?.[0].toUpperCase()}</div>
                     <div className="flex-1 overflow-hidden"><h4 className="text-gray-400 font-medium text-sm truncate line-through">{u.name}</h4></div>
-                    <button onClick={() => p.handleBlockUser(u.id, u.name)} className="bg-red-600 hover:bg-red-500 text-white p-2 rounded-lg text-xs">Unblock</button>
+                    <button onClick={() => p.handleBlockUser(u.id, u.name)} className="bg-red-600 hover:bg-red-500 text-white p-2 rounded-lg text-xs">{t('unblock')}</button>
                   </div>
                 ))}
               </div>
@@ -299,11 +296,11 @@ export function Sidebars(p: SidebarsProps) {
         {p.sidebarTab === 'search' && (
           <div className="flex flex-col h-full">
             <form onSubmit={p.handleSearchUsers} className="p-3 border-b border-slate-800">
-              <input type="text" value={p.searchQuery} onChange={(e) => p.setSearchQuery(e.target.value)} placeholder="Search by name..." className="w-full bg-[#1e293b] text-sm text-white rounded-lg px-4 py-2 border border-slate-700" />
-              <button type="submit" disabled={p.isSearching} className="w-full mt-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white text-sm font-medium py-2 rounded-lg">{p.isSearching ? 'Searching...' : 'Search'}</button>
+              <input type="text" value={p.searchQuery} onChange={(e) => p.setSearchQuery(e.target.value)} placeholder={t('searchPlaceholder')} className="w-full bg-[#1e293b] text-sm text-white rounded-lg px-4 py-2 border border-slate-700" />
+              <button type="submit" disabled={p.isSearching} className="w-full mt-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white text-sm font-medium py-2 rounded-lg">{p.isSearching ? t('searching') : t('search')}</button>
             </form>
             <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
-              {p.searchResults.length === 0 && p.searchQuery && !p.isSearching && <p className="text-center text-gray-500 text-sm mt-4">No users found.</p>}
+              {p.searchResults.length === 0 && p.searchQuery && !p.isSearching && <p className="text-center text-gray-500 text-sm mt-4">{t('noUsers')}</p>}
               {p.searchResults.map(u => (
                 <div key={u.id} className="flex flex-col p-3 bg-[#1e293b] rounded-lg border border-slate-700">
                   <div className="flex items-center gap-3 mb-2">
@@ -311,8 +308,8 @@ export function Sidebars(p: SidebarsProps) {
                     <div className="flex-1 overflow-hidden"><h4 className="text-white font-medium text-sm truncate">{u.name}</h4></div>
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => { p.handleStartDM(u); p.setIsMobileSidebarOpen(false); }} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-1.5 rounded-lg text-xs">Message</button>
-                    <button onClick={() => p.handleSendFriendRequest(u)} className="flex-1 bg-teal-600 hover:bg-teal-500 text-white py-1.5 rounded-lg text-xs">Add Friend</button>
+                    <button onClick={() => { p.handleStartDM(u); p.setIsMobileSidebarOpen(false); }} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-1.5 rounded-lg text-xs">{t('message')}</button>
+                    <button onClick={() => p.handleSendFriendRequest(u)} className="flex-1 bg-teal-600 hover:bg-teal-500 text-white py-1.5 rounded-lg text-xs">{t('addFriend')}</button>
                   </div>
                 </div>
               ))}
@@ -324,17 +321,16 @@ export function Sidebars(p: SidebarsProps) {
         <div className="mt-auto p-4 border-t border-slate-800 bg-[#0f172a]">
           {!p.userDoc?.isPremium && (
             <div className="w-full h-20 bg-slate-800 border border-slate-700 rounded-lg mb-3 flex items-center justify-center text-[10px] text-gray-500 text-center">
-              [ Google AdSense Space ]<br/>Hide with Premium 💎
-            </div>
+              {t('adSpace')}<br/>{t('hidePremium')}</div>
           )}
           {!p.userDoc?.isPremium ? (
-            <button onClick={() => handleCheckout('premium')} className="w-full bg-gradient-to-r from-yellow-500 to-amber-600 text-white font-bold py-2 rounded-lg mb-3 shadow-lg hover:scale-105 transition text-sm">💎 Go Premium (€4.99/mo)</button>
+            <button onClick={() => handleCheckout('premium')} className="w-full bg-gradient-to-r from-yellow-500 to-amber-600 text-white font-bold py-2 rounded-lg mb-3 shadow-lg hover:scale-105 transition text-sm">{t('goPremium')}</button>
           ) : (
-            <div className="w-full bg-gradient-to-r from-yellow-500 to-amber-600 text-white font-bold py-2 rounded-lg mb-3 text-center shadow-lg text-sm">👑 Premium Member</div>
+            <div className="w-full bg-gradient-to-r from-yellow-500 to-amber-600 text-white font-bold py-2 rounded-lg mb-3 text-center shadow-lg text-sm">{t('premiumMember')}</div>
           )}
           <div className="bg-[#1e293b] p-3 rounded-lg border border-slate-700 mb-2">
             <div className="flex items-center justify-between w-full mb-3 px-1">
-              <p className="text-[11px] text-gray-400 leading-tight max-w-[150px]">Support the Kabyle language ❤️</p>
+              <p className="text-[11px] text-gray-400 leading-tight max-w-[150px]">{t('supportKabyle')}</p>
               <img src="/stickers/identity/13_pottery.png" alt="Kabyle Tip Jar" className="w-12 h-12 object-contain drop-shadow-md hover:scale-110 transition-transform cursor-pointer" />
             </div>
             <div className="flex gap-1 justify-center mb-2 w-full">
@@ -343,8 +339,8 @@ export function Sidebars(p: SidebarsProps) {
               ))}
             </div>
             <div className="flex gap-1 mt-1 w-full">
-              <input type="number" id="custom-donation" placeholder="Custom €" min="1" className="w-full bg-[#0f172a] text-white text-xs px-2 py-1 rounded border border-slate-600 focus:outline-none focus:border-teal-500" />
-              <button onClick={() => { const input = document.getElementById('custom-donation') as HTMLInputElement; const amt = Number(input.value); if (amt >= 1) { if (confirm(`Are you sure you want to donate €${amt}? Thank you! ❤️`)) handleCheckout('donation', amt); } else { alert("Please enter an amount of €1 or more."); } }} className="bg-teal-600 hover:bg-teal-500 text-white text-xs px-3 py-1 rounded font-bold">Tip</button>
+              <input type="number" id="custom-donation" placeholder={t('customAmount')} min="1" className="w-full bg-[#0f172a] text-white text-xs px-2 py-1 rounded border border-slate-600 focus:outline-none focus:border-teal-500" />
+              <button onClick={() => { const input = document.getElementById('custom-donation') as HTMLInputElement; const amt = Number(input.value); if (amt >= 1) { if (confirm(t('confirmDonation', { amount: amt }))) handleCheckout('donation', amt); } else { alert(t('minAmountError')); } }} className="bg-teal-600 hover:bg-teal-500 text-white text-xs px-3 py-1 rounded font-bold">{t('tip')}</button>
             </div>
           </div>
         </div>

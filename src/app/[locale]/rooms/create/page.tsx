@@ -4,8 +4,10 @@ import { useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { db, auth } from '@/lib/firebase/client';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useTranslations } from 'next-intl';
 
 export default function CreateRoomPage() {
+  const t = useTranslations('CreateRoom');
   const router = useRouter();
   const params = useParams();
   const locale = (params?.locale as string) || 'en';
@@ -18,8 +20,8 @@ export default function CreateRoomPage() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth.currentUser) return alert("You must be logged in.");
-    if (!name) return alert("Room name is required.");
+    if (!auth.currentUser) return alert(t('mustBeLoggedIn'));
+    if (!name) return alert(t('roomRequired'));
 
     setLoading(true);
 
@@ -50,7 +52,7 @@ export default function CreateRoomPage() {
       
     } catch (error) {
       console.error("Error creating room:", error);
-      alert("Failed to create room.");
+      alert(t('failedToCreate'));
       setLoading(false);
     }
   };
@@ -72,28 +74,28 @@ export default function CreateRoomPage() {
             <h1 className="text-2xl font-semibold flex items-center gap-2">
               <span className="text-xl">🚪</span> Create a Room
             </h1>
-            <p className="text-slate-400 text-sm">Host a Thajmaath (community space).</p>
+            <p className="text-slate-400 text-sm">{t('subtitle')}</p>
           </div>
         </div>
 
         <form onSubmit={handleCreate} className="space-y-4">
           <div>
-            <label className="block text-sm text-slate-400 mb-1">Room Name</label>
+            <label className="block text-sm text-slate-400 mb-1">{t('roomName')}</label>
             <input 
               type="text" 
               value={name} 
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Kabyle Poetry Night"
+              placeholder={t('roomNamePlaceholder')}
               className="w-full bg-[#1e293b] border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-teal-400" 
             />
           </div>
 
           <div>
-            <label className="block text-sm text-slate-400 mb-1">Description</label>
+            <label className="block text-sm text-slate-400 mb-1">{t('description')}</label>
             <textarea 
               value={description} 
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="What is this room about?"
+              placeholder={t('descPlaceholder')}
               rows={3}
               className="w-full bg-[#1e293b] border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-teal-400" 
             />
@@ -114,7 +116,7 @@ export default function CreateRoomPage() {
 
           {isPaid && (
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Monthly Price (€)</label>
+              <label className="block text-sm text-slate-400 mb-1">{t('monthlyPrice')}</label>
               <input 
                 type="number" 
                 value={price} 
@@ -138,7 +140,7 @@ export default function CreateRoomPage() {
               disabled={loading}
               className="flex-[2] bg-teal-400 text-[#0f172a] font-semibold py-3 rounded-xl active:scale-95 transition-transform disabled:opacity-50"
             >
-              {loading ? 'Creating...' : 'Create Room'}
+              {loading ? t('creating') : t('createRoom')}
             </button>
           </div>
         </form>

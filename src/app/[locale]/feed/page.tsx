@@ -11,6 +11,7 @@ import { db, auth, storage } from '@/lib/firebase/client';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, updateDoc, doc, arrayUnion, arrayRemove, where, setDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { onAuthStateChanged, User } from 'firebase/auth';
+import { useTranslations } from 'next-intl';
 
 interface Post {
   id: string;
@@ -25,6 +26,8 @@ interface Post {
 }
 
 export default function FeedPage() {
+  const t = useTranslations('Feed');
+  const tAuth = useTranslations('Auth'); // 👈 Added for Loading text
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -43,7 +46,7 @@ export default function FeedPage() {
 
   // Feed & Follow State
   const [feedTab, setFeedTab] = useState<'global' | 'following'>(initialTab);
-  const [feedView, setFeedView] = useState<'posts' | 'reels'>('posts'); // 👈 NEW: TikTok toggle
+  const [feedView, setFeedView] = useState<'posts' | 'reels'>('posts');
   const [followingIds, setFollowingIds] = useState<string[]>([]);
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [followingLoad, setFollowingLoad] = useState<Record<string, boolean>>({});
@@ -165,7 +168,7 @@ export default function FeedPage() {
       await addDoc(collection(db, "stories"), {
         authorId: user.uid, authorName: user.displayName || user.email?.split('@')[0] || "User", authorPhotoURL: user.photoURL || null, imageUrl, createdAt: serverTimestamp()
       });
-      alert("Story uploaded! It will disappear in 24 hours.");
+      alert(t('storyUploaded') || "Story uploaded! It will disappear in 24 hours.");
     } catch (err: any) { alert("Failed: " + err.message); }
     setIsUploadingStory(false);
     if (storyInputRef.current) storyInputRef.current.value = '';
@@ -221,7 +224,7 @@ export default function FeedPage() {
         lastMessageSenderId: user.uid
       });
 
-      alert("Post shared to chat! ✨");
+      alert(t('postShared') || "Post shared to chat! ✨");
       setSharePost(null);
     } catch (err: any) {
       alert("Failed to share: " + err.message);
@@ -240,12 +243,11 @@ export default function FeedPage() {
     });
   };
 
-  if (loading) return <div className="min-h-screen bg-[#0f172a] text-white flex items-center justify-center">Loading Feed...</div>;
+  if (loading) return <div className="min-h-screen bg-[#0f172a] text-white flex items-center justify-center">{tAuth('loading')}</div>;
   if (!user) return null;
 
   const displayedPosts = feedTab === 'global' ? posts : posts.filter(post => followingIds.includes(post.authorId));
 
-  // 🚨 CHANGED: We now get 10 users for scrolling
   const suggestedUsers = allUsers
     .filter(u => u.id !== user.uid && !followingIds.includes(u.id))
     .sort(() => 0.5 - Math.random())
@@ -254,39 +256,41 @@ export default function FeedPage() {
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-300">
       
+      {/* 👇 TRANSLATED TOP BAR 👇 */}
       <div className="sticky top-0 z-50 bg-[#0f172a]/90 backdrop-blur border-b border-slate-800 px-4 py-3 flex items-center justify-between">
         <Link href={`/${locale}/rooms`} className="text-teal-400 hover:text-teal-300 font-medium text-sm flex items-center gap-2">
-          ← Back to Chat
+          ← {t('backToChat')}
         </Link>
         <h1 className="text-white font-bold text-lg flex items-center gap-2">
-          <span className="font-bold text-xl">ⵣ</span> Home Feed
+          <span className="font-bold text-xl">ⵣ</span> {t('homeFeed')}
         </h1>
         <div className="w-20"></div>
       </div>
 
-      {/* 🚨 NEW: Posts vs Reels Toggle */}
+      {/* 👇 TRANSLATED TOGGLE 👇 */}
       <div className="flex bg-[#1e293b] p-1 mx-4 mt-3 rounded-xl border border-slate-700">
         <button onClick={() => setFeedView('posts')} className={`flex-1 py-1.5 text-sm font-bold rounded-lg transition-colors ${feedView === 'posts' ? 'bg-teal-600 text-white' : 'text-gray-400 hover:text-white'}`}>
-          📝 Posts
+          📝 {t('posts')}
         </button>
         <button onClick={() => setFeedView('reels')} className={`flex-1 py-1.5 text-sm font-bold rounded-lg transition-colors ${feedView === 'reels' ? 'bg-teal-600 text-white' : 'text-gray-400 hover:text-white'}`}>
-          🎬 Reels (TikTok)
+          🎬 {t('reels')}
         </button>
       </div>
 
       {feedView === 'reels' ? (
         <div className="flex flex-col items-center justify-center h-[60vh] text-gray-400">
           <p className="text-4xl mb-4">🎬</p>
-          <p>Reels feed coming in Phase 5 (Next Build).</p>
+          <p>{t('reelsPhase5')}</p>
         </div>
       ) : (
         <>
+          {/* 👇 TRANSLATED TABS 👇 */}
           <div className="flex border-b border-slate-800 bg-[#0f172a] mt-2">
             <button onClick={() => setFeedTab('global')} className={`flex-1 py-3 text-center font-bold transition-colors flex items-center justify-center gap-2 ${feedTab === 'global' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500 hover:text-gray-300'}`}>
-              <span className="text-lg font-bold">ⴰ</span> Global
+              <span className="text-lg font-bold">ⴰ</span> {t('global')}
             </button>
             <button onClick={() => setFeedTab('following')} className={`flex-1 py-3 text-center font-bold transition-colors flex items-center justify-center gap-2 ${feedTab === 'following' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500 hover:text-gray-300'}`}>
-              <span className="text-lg font-bold">ⴼ</span> Following
+              <span className="text-lg font-bold">ⴼ</span> {t('following')}
             </button>
           </div>
 
@@ -298,7 +302,7 @@ export default function FeedPage() {
                 <div className="w-16 h-16 rounded-full bg-slate-800 border-2 border-teal-500 flex items-center justify-center relative overflow-hidden">
                   {isUploadingStory ? <span className="text-xs text-white">...</span> : <span className="text-2xl text-teal-400 font-bold">+</span>}
                 </div>
-                <span className="text-xs text-gray-400 font-medium">Create Story</span>
+                <span className="text-xs text-gray-400 font-medium">{t('createStory')}</span>
                 <input type="file" ref={storyInputRef} className="hidden" accept="image/*" onChange={handleCreateStory} />
               </div>
 
@@ -312,10 +316,10 @@ export default function FeedPage() {
               ))}
             </div>
 
-            {/* WHO TO FOLLOW WIDGET (NOW HORIZONTAL SCROLL) */}
+            {/* WHO TO FOLLOW WIDGET */}
             {suggestedUsers.length > 0 && (
               <div className="bg-[#1e293b] border border-slate-700 rounded-2xl p-4 shadow-lg">
-                <h3 className="text-sm font-bold text-gray-400 mb-3 uppercase tracking-wider">Who to follow</h3>
+                <h3 className="text-sm font-bold text-gray-400 mb-3 uppercase tracking-wider">{t('whoToFollow')}</h3>
                 <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar">
                   {suggestedUsers.map(u => (
                     <div key={u.id} className="flex flex-col items-center bg-[#0f172a] p-3 rounded-xl border border-slate-700 min-w-[120px]">
@@ -325,7 +329,7 @@ export default function FeedPage() {
                         </div>
                         <div className="text-center w-full">
                           <p className="text-white font-bold text-xs truncate">{u.name}</p>
-                          <p className="text-[10px] text-gray-500 truncate">New to Thimlilith</p>
+                          <p className="text-[10px] text-gray-500 truncate">{t('newToThimlilith')}</p>
                         </div>
                       </Link>
                       <button 
@@ -333,7 +337,7 @@ export default function FeedPage() {
                         disabled={followingLoad[u.id]}
                         className="bg-white text-black w-full py-1 rounded-full text-xs font-bold hover:bg-gray-200 transition disabled:opacity-50 flex justify-center"
                       >
-                        {followingLoad[u.id] ? '...' : 'Follow'}
+                        {followingLoad[u.id] ? '...' : t('follow')}
                       </button>
                     </div>
                   ))}
@@ -348,7 +352,7 @@ export default function FeedPage() {
                   {user.displayName?.[0].toUpperCase() || "U"}
                 </div>
                 <div className="flex-1">
-                  <textarea value={newPostText} onChange={(e) => setNewPostText(e.target.value)} placeholder="What's on your mind? Use #hashtags..." className="w-full bg-transparent text-white resize-none outline-none placeholder-gray-500 min-h-[60px]" rows={2} />
+                  <textarea value={newPostText} onChange={(e) => setNewPostText(e.target.value)} placeholder={t('whatsOnYourMind')} className="w-full bg-transparent text-white resize-none outline-none placeholder-gray-500 min-h-[60px]" rows={2} />
                   {newPostImage && (
                     <div className="mt-2 relative inline-block">
                       <img src={URL.createObjectURL(newPostImage)} alt="Preview" className="h-32 rounded-lg object-cover" />
@@ -357,12 +361,12 @@ export default function FeedPage() {
                   )}
                   <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-700">
                     <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => setNewPostImage(e.target.files?.[0] || null)} />
-                    <button onClick={() => fileInputRef.current?.click()} className="text-teal-400 hover:text-teal-300 text-sm font-medium flex items-center gap-1"><span className="font-bold text-base">ⵉ</span> Add Image</button>
+                    <button onClick={() => fileInputRef.current?.click()} className="text-teal-400 hover:text-teal-300 text-sm font-medium flex items-center gap-1">{t('addImage')}</button>
                     <div className="flex items-center gap-2">
                       {(newPostText.trim() || newPostImage) && (
-                        <button onClick={handleCancelPost} className="text-gray-400 hover:text-white px-3 py-1.5 text-sm transition">Cancel</button>
+                        <button onClick={handleCancelPost} className="text-gray-400 hover:text-white px-3 py-1.5 text-sm transition">{t('cancel')}</button>
                       )}
-                      <button onClick={handleCreatePost} disabled={isPosting || (!newPostText.trim() && !newPostImage)} className="bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white px-5 py-1.5 rounded-full text-sm font-bold transition">{isPosting ? 'Posting...' : 'Post'}</button>
+                      <button onClick={handleCreatePost} disabled={isPosting || (!newPostText.trim() && !newPostImage)} className="bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white px-5 py-1.5 rounded-full text-sm font-bold transition">{isPosting ? t('posting') : t('post')}</button>
                     </div>
                   </div>
                 </div>
@@ -373,7 +377,7 @@ export default function FeedPage() {
             {displayedPosts.length === 0 && (
               <div className="text-center text-gray-500 py-10">
                 <p className="text-4xl mb-2 font-bold text-teal-600">ⵍ</p>
-                <p>{feedTab === 'following' ? "You aren't following anyone yet, or they haven't posted." : "No posts yet. Be the first to share something!"}</p>
+                <p>{feedTab === 'following' ? t('emptyFollowing') : t('emptyGlobal')}</p>
               </div>
             )}
 
@@ -406,10 +410,10 @@ export default function FeedPage() {
                       {hasLiked ? '❤️' : '🤍'} {post.likes?.length || 0}
                     </button>
                     <button onClick={() => setCommentPost(post)} className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-teal-400 transition-colors">
-                      <span className="font-bold text-base">ⵎ</span> Comment
+                      {t('comment')}
                     </button>
                     <button onClick={() => setSharePost(post)} className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-teal-400 transition-colors">
-                      <span className="font-bold text-base">ⵙ</span> Share
+                      {t('share')}
                     </button>
                   </div>
                 </div>

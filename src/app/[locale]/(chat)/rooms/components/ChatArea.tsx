@@ -1,9 +1,11 @@
 // src/app/[locale]/(chat)/rooms/components/ChatArea.tsx
 "use client";
 import DesktopActionHub from '@/components/DesktopActionHub';
+import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
 import React, { RefObject, useState, useEffect, useRef } from 'react';
 import { User } from 'firebase/auth';
 import { getYouTubeID, renderTextWithLinks, REACTIONS } from './utils';
+import { useTranslations } from 'next-intl';
 
 interface ChatAreaProps {
   user: User;
@@ -66,6 +68,7 @@ interface ChatAreaProps {
 }
 
 export function ChatArea(p: ChatAreaProps) {
+  const t = useTranslations('Chat');
   const [stickers, setStickers] = useState<{ emotions: string[], identity: string[] }>({ emotions: [], identity: [] });
   const [langMenuId, setLangMenuId] = useState<string | null>(null);
   const [showHeaderMenu, setShowHeaderMenu] = useState(false);
@@ -75,7 +78,6 @@ export function ChatArea(p: ChatAreaProps) {
   const [showStickerPicker, setShowStickerPicker] = useState(false);
   const [showMentionMenu, setShowMentionMenu] = useState(false);
   const [translations, setTranslations] = useState<Record<string, string>>({});
-  const [translatingId, setTranslatingId] = useState<string | null>(null);
   const [showPinnedBanner, setShowPinnedBanner] = useState(false);
   const [mobileActionMenuId, setMobileActionMenuId] = useState<string | null>(null);
   
@@ -91,11 +93,8 @@ export function ChatArea(p: ChatAreaProps) {
   useEffect(() => {
     if (p.activeRoom?.pinnedMessages?.length > 0) {
       const dismissed = sessionStorage.getItem(`dismissed_pin_${p.activeRoom?.id}`);
-      if (!dismissed) {
-        setShowPinnedBanner(true);
-      } else {
-        setShowPinnedBanner(false);
-      }
+      if (!dismissed) setShowPinnedBanner(true);
+      else setShowPinnedBanner(false);
     } else {
       setShowPinnedBanner(false);
     }
@@ -109,15 +108,9 @@ export function ChatArea(p: ChatAreaProps) {
         setShowMentionMenu(false);
       }
       const target = event.target as HTMLElement;
-      if (!target.closest('.lang-menu-container')) {
-        setLangMenuId(null);
-      }
-      if (!target.closest('.header-menu-container')) {
-        setShowHeaderMenu(false);
-      }
-      if (!target.closest('.mobile-action-menu')) {
-        setMobileActionMenuId(null);
-      }
+      if (!target.closest('.lang-menu-container')) setLangMenuId(null);
+      if (!target.closest('.header-menu-container')) setShowHeaderMenu(false);
+      if (!target.closest('.mobile-action-menu')) setMobileActionMenuId(null);
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -126,7 +119,7 @@ export function ChatArea(p: ChatAreaProps) {
   if (!p.activeRoom) {
     return (
       <div className="flex-1 flex flex-col bg-[#0b1120]">
-        <div className="flex-1 flex items-center justify-center text-gray-500">Select or create a Thajmaath to start chatting.</div>
+        <div className="flex-1 flex items-center justify-center text-gray-500">{t('selectRoom')}</div>
       </div>
     );
   }
@@ -163,22 +156,22 @@ export function ChatArea(p: ChatAreaProps) {
 
     return (
       <>
-        <button type="button" onClick={(e) => { e.stopPropagation(); p.setReplyingTo(msg); setMobileActionMenuId(null); }} className={baseClass} title="Reply"><span className={iconClass}>ⵔ</span> {isMobile && "Reply"}</button>
-        <button type="button" onClick={(e) => { e.stopPropagation(); p.onForward(msg.id); setMobileActionMenuId(null); }} className={baseClass} title="Forward"><span className={iconClass}>ⵗ</span> {isMobile && "Forward"}</button>
-        <button type="button" onClick={(e) => { e.stopPropagation(); p.setActiveReactionMenu(isMenuOpen ? null : msg.id); setMobileActionMenuId(null); }} className={baseClass} title="React"><span className={iconClass}>😊</span> {isMobile && "React"}</button>
+        <button type="button" onClick={(e) => { e.stopPropagation(); p.setReplyingTo(msg); setMobileActionMenuId(null); }} className={baseClass} title={t('reply')}><span className={iconClass}>ⵔ</span> {isMobile && t('reply')}</button>
+        <button type="button" onClick={(e) => { e.stopPropagation(); p.onForward(msg.id); setMobileActionMenuId(null); }} className={baseClass} title={t('forward')}><span className={iconClass}>ⵗ</span> {isMobile && t('forward')}</button>
+        <button type="button" onClick={(e) => { e.stopPropagation(); p.setActiveReactionMenu(isMenuOpen ? null : msg.id); setMobileActionMenuId(null); }} className={baseClass} title={t('react')}><span className={iconClass}>😊</span> {isMobile && t('react')}</button>
         
         {msg.type === 'text' && (
-          <button type="button" onClick={(e) => { e.stopPropagation(); setLangMenuId(langMenuId === msg.id ? null : msg.id); setMobileActionMenuId(null); }} className={baseClass} title="Translate"><span className={iconClass}>ⵜ</span> {isMobile && "Translate"}</button>
+          <button type="button" onClick={(e) => { e.stopPropagation(); setLangMenuId(langMenuId === msg.id ? null : msg.id); setMobileActionMenuId(null); }} className={baseClass} title={t('translate')}><span className={iconClass}>ⵜ</span> {isMobile && t('translate')}</button>
         )}
 
         {(isMe || canDelete) && (
           <>
-            {isMe && <button type="button" onClick={(e) => { e.stopPropagation(); p.handleEditMessage(msg.id, msg.text); setMobileActionMenuId(null); }} className={baseClass} title="Edit"><span className={iconClass}>ⴻ</span> {isMobile && "Edit"}</button>}
-            <button type="button" onClick={(e) => { e.stopPropagation(); p.handleDeleteMessage(msg.id); setMobileActionMenuId(null); }} className={baseClass} title="Delete"><span className={iconClass}>ⵥ</span> {isMobile && "Delete"}</button>
-            {(isRoomAdmin || isRoomMod) && <button type="button" onClick={(e) => { e.stopPropagation(); p.activeRoom.pinnedMessages?.includes(msg.id) ? p.handleUnpinMessage(msg.id) : p.handlePinMessage(msg.id); setMobileActionMenuId(null); }} className={`${baseClass} ${p.activeRoom.pinnedMessages?.includes(msg.id) ? 'text-yellow-400 border-yellow-500' : ''}`} title="Pin"><span className={iconClass}>ⵒ</span> {isMobile && "Pin"}</button>}
+            {isMe && <button type="button" onClick={(e) => { e.stopPropagation(); p.handleEditMessage(msg.id, msg.text); setMobileActionMenuId(null); }} className={baseClass} title={t('edit')}><span className={iconClass}>ⴻ</span> {isMobile && t('edit')}</button>}
+            <button type="button" onClick={(e) => { e.stopPropagation(); p.handleDeleteMessage(msg.id); setMobileActionMenuId(null); }} className={baseClass} title={t('delete')}><span className={iconClass}>ⵥ</span> {isMobile && t('delete')}</button>
+            {(isRoomAdmin || isRoomMod) && <button type="button" onClick={(e) => { e.stopPropagation(); p.activeRoom.pinnedMessages?.includes(msg.id) ? p.handleUnpinMessage(msg.id) : p.handlePinMessage(msg.id); setMobileActionMenuId(null); }} className={`${baseClass} ${p.activeRoom.pinnedMessages?.includes(msg.id) ? 'text-yellow-400 border-yellow-500' : ''}`} title={t('pin')}><span className={iconClass}>ⵒ</span> {isMobile && t('pin')}</button>}
             
-            <button type="button" onClick={(e) => { e.stopPropagation(); p.onSaveMessage(msg); setMobileActionMenuId(null); }} className={`${baseClass} ${p.savedCount >= p.maxSaved ? 'text-red-400 border-red-500' : 'text-yellow-400'}`} title="Save to Vault">
-              <span className={iconClass}>{p.savedCount >= p.maxSaved ? '🔒' : 'ⵙ'}</span> {isMobile && "Save"}
+            <button type="button" onClick={(e) => { e.stopPropagation(); p.onSaveMessage(msg); setMobileActionMenuId(null); }} className={`${baseClass} ${p.savedCount >= p.maxSaved ? 'text-red-400 border-red-500' : 'text-yellow-400'}`} title={t('save')}>
+              <span className={iconClass}>{p.savedCount >= p.maxSaved ? '🔒' : 'ⵙ'}</span> {isMobile && t('save')}
             </button>
           </>
         )}
@@ -190,9 +183,24 @@ export function ChatArea(p: ChatAreaProps) {
     <div className="w-full flex-1 flex flex-col bg-[#0b1120] h-full overflow-hidden relative">
       {/* Header */}
       <div className="h-16 border-b border-slate-800 flex items-center justify-between px-4 md:px-6 bg-[#0f172a] sticky top-0 z-50">
+        
+        {/* 👇 LEFT SIDE: Title and Merged 👥 Toggle Button 👇 */}
         <div className="flex items-center gap-3">
           <button onClick={() => p.setIsMobileSidebarOpen(true)} className="md:hidden text-gray-400 hover:text-white text-2xl p-1">☰</button>
-          <div className="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center text-xl">{p.activeRoom.type === "direct" ? '👤' : '👥'}</div>
+          
+          {/* Merged Avatar & Toggle Button */}
+          <button 
+            onClick={() => { if (p.activeRoom.type === "group") p.setShowRightSidebar(!p.showRightSidebar); }}
+            className={`w-10 h-10 rounded-full flex items-center justify-center text-xl transition-all ${
+              p.activeRoom.type === "group" 
+                ? (p.showRightSidebar ? 'bg-teal-600 ring-2 ring-teal-400 ring-offset-2 ring-offset-[#0f172a]' : 'bg-slate-700 hover:bg-slate-600') 
+                : 'bg-slate-700 cursor-default'
+            }`}
+            title={p.activeRoom.type === "group" ? "Toggle Members List" : ""}
+          >
+            {p.activeRoom.type === "direct" ? '👤' : '👥'}
+          </button>
+
           <div>
             <div className="flex items-center gap-2">
               <h3 className={`text-white font-medium capitalize ${p.isDMPartnerBlocked ? 'line-through text-gray-500' : ''}`}>
@@ -200,19 +208,23 @@ export function ChatArea(p: ChatAreaProps) {
               </h3>
             </div>
             <p className={`text-xs ${p.isDMPartnerBlocked ? 'text-red-400' : 'text-teal-400'}`}>
-              {p.activeRoom.type === "direct" ? (p.isDMPartnerBlocked ? "Blocked User" : "Offline") : "Active community"}
+              {p.activeRoom.type === "direct" ? (p.isDMPartnerBlocked ? t('blockedUser') : t('offline')) : t('activeCommunity')}
             </p>
           </div>
         </div>
 
-            <div className="flex gap-2 items-center relative">
-          {p.activeRoom.type === "group" && (
-            <button onClick={() => p.setShowRightSidebar(!p.showRightSidebar)} className={`border w-10 h-10 rounded-lg flex items-center justify-center text-xl transition ${p.showRightSidebar ? 'bg-teal-600 border-teal-500 text-white' : 'bg-[#1e293b] hover:bg-slate-700 border-slate-700 text-gray-300'}`} title="Toggle Members List">👥</button>
-          )}
+        {/* 👇 RIGHT SIDE: Dropdown Buttons ONLY 👇 */}
+        <div className="flex gap-2 items-center relative">
+          
+          {/* 1. Language */}
+          <div className="hidden md:block">
+            <LanguageSwitcher direction="down" />
+          </div>
 
-          {/* 👇 DESKTOP ACTION HUB BUTTON 👇 */}
+          {/* 2. Action Hub */}
           <DesktopActionHub /> 
 
+          {/* 3. 3 Dots Menu */}
           <div className="relative header-menu-container">
             <button onClick={() => { setShowHeaderMenu(!showHeaderMenu); setActiveSubmenu('none'); }} className="bg-[#1e293b] hover:bg-slate-700 border border-slate-700 text-white w-10 h-10 rounded-lg flex items-center justify-center text-xl">⋮</button>
             
@@ -221,23 +233,23 @@ export function ChatArea(p: ChatAreaProps) {
                 
                 {activeSubmenu === 'none' && (
                   <>
-                    <button onClick={() => { p.setIsSearchExpanded(!p.isSearchExpanded); if (p.isSearchExpanded) { p.setMessageSearchTerm(""); p.setMessageSearchDate(""); } setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white flex justify-between"><span className="text-teal-400 mr-2">ⵔ</span> Search Messages</button>
-                    <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowHeaderMenu(false); setTimeout(() => p.onOpenSettings(), 50); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white flex justify-between"><span className="text-teal-400 mr-2">ⵒ</span> Privacy Settings</button>
+                    <button onClick={() => { p.setIsSearchExpanded(!p.isSearchExpanded); if (p.isSearchExpanded) { p.setMessageSearchTerm(""); p.setMessageSearchDate(""); } setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white flex justify-between"><span className="text-teal-400 mr-2">ⵔ</span> {t('searchMessages')}</button>
+                    <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowHeaderMenu(false); setTimeout(() => p.onOpenSettings(), 50); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white flex justify-between"><span className="text-teal-400 mr-2">ⵒ</span> {t('privacySettings')}</button>
                     
                     <button onClick={() => { setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white flex justify-between items-center">
-                      <span className="flex items-center gap-2"><span className="text-teal-400">ⵡ</span> My Vault</span>
+                      <span className="flex items-center gap-2"><span className="text-teal-400">ⵡ</span> {t('myVault')}</span>
                       <span className={`px-2 py-0.5 rounded text-xs font-bold ${p.savedCount >= p.maxSaved ? 'bg-red-500/20 text-red-400' : 'bg-slate-700 text-teal-400'}`}>
                         {p.savedCount} / {p.maxSaved}
                       </span>
                     </button>
 
-                    <button onClick={() => { p.onVideo(); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white flex justify-between"><span className="text-teal-400 mr-2">ⴽ</span> Video Call</button>
+                    <button onClick={() => { p.onVideo(); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white flex justify-between"><span className="text-teal-400 mr-2">ⴽ</span> {t('videoCall')}</button>
                     
                     <div className="border-t border-slate-700 my-1"></div>
 
                     {p.activeRoom.type === "group" && (
                       <button onClick={() => setActiveSubmenu('room')} className="text-left px-4 py-2 text-sm text-teal-300 hover:bg-slate-700 hover:text-white flex justify-between items-center">
-                        <span className="flex items-center gap-2"><span className="text-teal-400">ⵜ</span> Room Settings</span>
+                        <span className="flex items-center gap-2"><span className="text-teal-400">ⵜ</span> {t('roomSettings')}</span>
                         <span>▶</span>
                       </button>
                     )}
@@ -246,7 +258,7 @@ export function ChatArea(p: ChatAreaProps) {
                       <>
                         <div className="border-t border-slate-700 my-1"></div>
                         <button onClick={() => setActiveSubmenu('safety')} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white flex justify-between items-center">
-                          <span className="flex items-center gap-2"><span className="text-teal-400">ⴱ</span> Safety & Moderation</span>
+                          <span className="flex items-center gap-2"><span className="text-teal-400">ⴱ</span> {t('safetyModeration')}</span>
                           <span>▶</span>
                         </button>
                       </>
@@ -254,15 +266,15 @@ export function ChatArea(p: ChatAreaProps) {
                   </>
                 )}
 
-                    {activeSubmenu === 'room' && (
+                {activeSubmenu === 'room' && (
                   <>
                     <button onClick={() => setActiveSubmenu('none')} className="text-left px-4 py-2 text-xs text-gray-400 hover:text-white font-bold flex items-center gap-2 border-b border-slate-700 mb-1">
-                      <span>◀</span> Back to Menu
+                      <span>◀</span> {t('backToMenu')}
                     </button>
-                    <button onClick={() => { p.onOpenTheme(); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">🎨 Decorate Room</button>
-                    <button onClick={() => { p.setShowAddMemberModal(true); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">➕ Add Member</button>
-                    <button onClick={() => { p.handleCopyInviteLink(); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">🔗 Invite Link</button>
-                    <button onClick={() => { p.openMembersModal(); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white">👑 Manage Roles</button>
+                    <button onClick={() => { p.onOpenTheme(); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white"> {t('decorateRoom')}</button>
+                    <button onClick={() => { p.setShowAddMemberModal(true); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white"> {t('addMember')}</button>
+                    <button onClick={() => { p.handleCopyInviteLink(); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white"> {t('inviteLink')}</button>
+                    <button onClick={() => { p.openMembersModal(); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white"> {t('manageRoles')}</button>
                     
                     {p.activeRoom.createdBy === p.user.uid && (
                       <>
@@ -272,7 +284,7 @@ export function ChatArea(p: ChatAreaProps) {
                           p.onUpdateRoomSettings({ permissions: { ...p.activeRoom.permissions, whoCanPost: newRule } }); 
                           setShowHeaderMenu(false); 
                         }} className="text-left px-4 py-2 text-sm text-yellow-300 hover:bg-slate-700 hover:text-white">
-                          {p.activeRoom.permissions?.whoCanPost === "moderators" ? '🔓 Unlock Chat (Everyone)' : '🔒 Lock Chat (Mods Only)'}
+                          {p.activeRoom.permissions?.whoCanPost === "moderators" ? t('unlockChat') : t('lockChat')}
                         </button>
 
                         <button onClick={() => { 
@@ -280,29 +292,26 @@ export function ChatArea(p: ChatAreaProps) {
                           p.onUpdateRoomSettings({ disappearingTimer: newTimer }); 
                           setShowHeaderMenu(false); 
                         }} className="text-left px-4 py-2 text-sm text-orange-300 hover:bg-slate-700 hover:text-white">
-                          {p.activeRoom.disappearingTimer ? '⏳ Disappearing: ON (24h)' : '⏳ Disappearing: OFF'}
+                          {p.activeRoom.disappearingTimer ? t('disappearingOn') : t('disappearingOff')}
                         </button>
                       </>
                     )}
                   </>
                 )}
 
-                {/* 👇 NEW SAFETY SUBMENU 👇 */}
                 {activeSubmenu === 'safety' && p.activeRoom.type === "direct" && p.dmPartnerUid && (
                   <>
                     <button onClick={() => setActiveSubmenu('none')} className="text-left px-4 py-2 text-xs text-gray-400 hover:text-white font-bold flex items-center gap-2 border-b border-slate-700 mb-1">
                       <span>◀</span> Back to Menu
                     </button>
                     <button onClick={() => { p.handleBlockUser(p.dmPartnerUid!, p.getDMName(p.activeRoom)); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700 hover:text-white">
-                      {p.isDMPartnerBlocked ? '🚫 Unblock User' : '🚫 Block User'}
+                      {p.isDMPartnerBlocked ? t('unblockUser') : t('blockUser')}
                     </button>
                     <button onClick={() => { p.handleReportUser(p.dmPartnerUid!, p.getDMName(p.activeRoom)); setShowHeaderMenu(false); }} className="text-left px-4 py-2 text-sm text-amber-400 hover:bg-slate-700 hover:text-white">
                       ⚠️ Report User
                     </button>
                   </>
                 )}
-                {/* 👆 END OF SAFETY SUBMENU 👆 */}
-
               </div>
             )}
           </div>
@@ -312,9 +321,9 @@ export function ChatArea(p: ChatAreaProps) {
       {/* Search Bar */}
       {p.isSearchExpanded && (
         <div className="bg-[#1e293b] border-b border-slate-800 p-2 flex items-center justify-center gap-4">
-          <input type="text" placeholder="Search messages..." value={p.messageSearchTerm} onChange={(e) => p.setMessageSearchTerm(e.target.value)} className="bg-[#0f172a] text-sm text-white focus:outline-none rounded-lg px-3 py-1.5 w-64 border border-slate-700" />
+          <input type="text" placeholder={t('searchMessagesPlaceholder')} value={p.messageSearchTerm} onChange={(e) => p.setMessageSearchTerm(e.target.value)} className="bg-[#0f172a] text-sm text-white focus:outline-none rounded-lg px-3 py-1.5 w-64 border border-slate-700" />
           <input type="date" value={p.messageSearchDate} onChange={(e) => p.setMessageSearchDate(e.target.value)} className="bg-[#0f172a] text-sm text-gray-400 rounded-lg px-3 py-1.5 [color-scheme:dark] border border-slate-700" />
-          <button onClick={() => { p.setIsSearchExpanded(false); p.setMessageSearchTerm(""); p.setMessageSearchDate(""); }} className="text-xs text-red-400 font-bold hover:underline">Close Search</button>
+          <button onClick={() => { p.setIsSearchExpanded(false); p.setMessageSearchTerm(""); p.setMessageSearchDate(""); }} className="text-xs text-red-400 font-bold hover:underline">{t('closeSearch')}</button>
         </div>
       )}
 
@@ -323,8 +332,8 @@ export function ChatArea(p: ChatAreaProps) {
         <div className="bg-teal-900/30 border-b border-teal-500/50 p-2 px-4 flex justify-between items-center relative z-20">
           <div className="flex items-center gap-2 text-teal-300 text-sm font-medium cursor-pointer flex-1" onClick={() => { p.setShowPinnedModal(true); setShowPinnedBanner(false); if (p.activeRoom?.id) sessionStorage.setItem(`dismissed_pin_${p.activeRoom.id}`, 'true'); }}>
             <span>📌</span>
-            <span>{p.activeRoom.pinnedMessages.length} Pinned Message(s)</span>
-            <span className="text-xs text-teal-400 underline ml-2">Click to view</span>
+            <span>{t('pinnedMessages', { count: p.activeRoom.pinnedMessages.length })}</span>
+            <span className="text-xs text-teal-400 underline ml-2">{t('clickToView')}</span>
           </div>
           <button onClick={() => { setShowPinnedBanner(false); if (p.activeRoom?.id) sessionStorage.setItem(`dismissed_pin_${p.activeRoom.id}`, 'true'); }} className="text-teal-400 hover:text-white px-2 font-bold text-lg" title="Dismiss">×</button>
         </div>
@@ -340,10 +349,10 @@ export function ChatArea(p: ChatAreaProps) {
         )}
 
         <div className="relative z-10 flex flex-col gap-4 w-full h-full pb-4">
-          {p.filteredMessages.length === 0 && (<div className="text-center text-gray-500 mt-10">No messages yet. Say Azul to {p.activeRoom.type === "direct" ? p.getDMName(p.activeRoom) : `Thajmaath n ${p.activeRoom.name}`}!</div>)}
+          {p.filteredMessages.length === 0 && (<div className="text-center text-gray-500 mt-10">{t('noMessages', { name: p.activeRoom.type === "direct" ? p.getDMName(p.activeRoom) : `Thajmaath n ${p.activeRoom.name}` })}</div>)}
           
           {p.filteredMessages.map((msg, index) => {
-            if (p.userDoc?.blockedUsers?.includes(msg.senderId)) return <div key={msg.id || index} className="text-center text-xs text-gray-600 my-2">Message from a blocked user</div>;
+            if (p.userDoc?.blockedUsers?.includes(msg.senderId)) return <div key={msg.id || index} className="text-center text-xs text-gray-600 my-2">{t('msgFromBlocked')}</div>;
             const isMe = msg.senderId === p.user.uid;
             const isSelected = selectedMsgId === msg.id;
             const selectable = msg.type === 'text' && (msg.text || '').trim().length > 0;
@@ -354,10 +363,9 @@ export function ChatArea(p: ChatAreaProps) {
             return (
               <div key={msg.id || index} className={`relative w-full flex flex-col group my-2 ${isMe ? 'items-end' : 'items-start'}`}>
                 
-                {/* SENDER NAME + MOBILE 3-DOTS */}
                 <div className="flex items-center gap-2 mb-1 px-1">
                   <span className="text-xs text-gray-400 font-medium">
-                    {isMe ? "You" : (
+                    {isMe ? t('you') : (
                       <button onClick={() => p.onOpenUserAction(msg.senderId, msg.senderName)} className="hover:text-teal-400 hover:underline transition-colors" title="View Profile">
                         {msg.senderName}
                       </button>
@@ -382,15 +390,12 @@ export function ChatArea(p: ChatAreaProps) {
                   </div>
                 </div>
 
-                {/* MESSAGE BUBBLE ROW */}
                 <div className={`flex items-center w-full relative ${isMe ? 'justify-end' : 'justify-start'}`}>
                   
-                  {/* DESKTOP ACTIONS */}
                   <div className={`hidden md:flex absolute top-1/2 -translate-y-1/2 flex-col gap-1 transition-opacity duration-200 z-30 ${isMe ? 'left-0' : 'right-0'} opacity-0 group-hover:opacity-100`}>
                     {renderActionButtons(msg, isMe, false)}
                   </div>
 
-                  {/* BUBBLE */}
                   <div className={bubbleClass} onClick={selectable ? () => setSelectedMsgId(isSelected ? null : msg.id) : undefined}>
                     {msg.replyTo && (
                       <div className="bg-black/20 border-l-4 border-teal-300 p-2 rounded mb-2 text-sm">
@@ -414,7 +419,6 @@ export function ChatArea(p: ChatAreaProps) {
                   </div>
                 </div>
 
-                {/* REACTIONS MENU */}
                 {isMenuOpen && (
                   <div className={`absolute top-full mt-2 z-50 bg-[#1e293b] border border-teal-500 rounded-full px-2 py-1.5 flex gap-1 shadow-2xl ${isMe ? 'right-12' : 'left-12'}`}>
                     {REACTIONS.map(emoji => (
@@ -423,7 +427,6 @@ export function ChatArea(p: ChatAreaProps) {
                   </div>
                 )}
 
-                {/* REACTIONS DISPLAY */}
                 {msg.reactions && Object.keys(msg.reactions).length > 0 && (
                   <div className={`flex flex-wrap gap-1 mt-1 ${isMe ? 'justify-end pr-2' : 'justify-start pl-2'}`}>
                     {Object.entries(msg.reactions).map(([emoji, users]: [string, any]) => { 
@@ -438,10 +441,9 @@ export function ChatArea(p: ChatAreaProps) {
                   </div>
                 )}
 
-                {/* TIMESTAMP */}
                 <span className={`text-[10px] text-gray-500 mt-1 px-1 flex items-center gap-1 ${isMe ? 'justify-end' : 'justify-start'}`}>
-                  {msg.createdAt ? new Date(msg.createdAt.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Sending...'}
-                  {msg.editedAt && <span className="italic">(edited)</span>}
+                  {msg.createdAt ? new Date(msg.createdAt.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : t('sending')}
+                  {msg.editedAt && <span className="italic">({t('edited')})</span>}
                   {isMe && <span className="ml-1">{msg.readBy && msg.readBy.length > 0 ? <span className="text-teal-400 text-xs">✓✓</span> : <span className="text-gray-500 text-xs">✓</span>}</span>}
                 </span>
               </div>
@@ -463,7 +465,7 @@ export function ChatArea(p: ChatAreaProps) {
         {p.typingUsers.length > 0 && (<div className="text-xs text-teal-400 px-4 py-1 italic animate-pulse">{p.typingUsers.join(" and ")} {p.typingUsers.length === 1 ? 'is' : 'are'} typing...</div>)}
         {p.replyingTo && (
           <div className="bg-[#1e293b] border-l-4 border-teal-500 p-2 mb-2 rounded flex justify-between items-center">
-            <div><p className="text-xs text-teal-400 font-bold">Replying to {p.replyingTo.senderName}</p><p className="text-sm text-gray-300 truncate max-w-[300px]">{p.replyingTo.text || "📎 Media"}</p></div>
+            <div><p className="text-xs text-teal-400 font-bold">{t('replyingTo', { name: p.replyingTo.senderName })}</p><p className="text-sm text-gray-300 truncate max-w-[300px]">{p.replyingTo.text || "📎 Media"}</p></div>
             <button type="button" onClick={() => p.setReplyingTo(null)} className="text-gray-400 hover:text-white text-xl px-2">✕</button>
           </div>
         )}
@@ -478,7 +480,7 @@ export function ChatArea(p: ChatAreaProps) {
             value={p.inputText} 
             onChange={(e) => p.handleTyping(e.target.value)} 
             onFocus={() => { setShowEmojiPicker(false); setShowStickerPicker(false); setShowMentionMenu(false); }} 
-            placeholder={p.isCheckingAI ? "AI Scanning..." : p.uploading ? "Uploading..." : p.isRecording ? "Recording..." : p.replyingTo ? `Reply to ${p.replyingTo.senderName}...` : `Message...`} 
+            placeholder={p.isCheckingAI ? t('aiScanning') : p.uploading ? t('uploading') : p.isRecording ? t('recording') : p.replyingTo ? t('replyPlaceholder', { name: p.replyingTo.senderName }) : t('messagePlaceholder')} 
             disabled={p.uploading || p.isRecording || p.isCheckingAI || p.isDMPartnerBlocked} 
             className="flex-1 bg-transparent text-sm text-white focus:outline-none placeholder-gray-500 px-2 min-w-0" 
           />
@@ -488,10 +490,9 @@ export function ChatArea(p: ChatAreaProps) {
             <button type="button" onClick={() => { setShowEmojiPicker(!showEmojiPicker); setShowStickerPicker(false); setShowMentionMenu(false); }} className="text-gray-400 hover:text-white p-2 text-xl">😊</button>
             <button type="button" onClick={() => { setShowStickerPicker(!showStickerPicker); setShowEmojiPicker(false); setShowMentionMenu(false); }} className="text-gray-400 hover:text-white p-2 text-xl" title="Kabyle Stickers">🎨</button>
             
-            {/* MENTION MENU */}
             {showMentionMenu && p.activeRoom && (
               <div className="absolute bottom-12 right-0 bg-[#1e293b] border border-slate-600 p-2 rounded-xl shadow-2xl w-48 max-h-60 overflow-y-auto z-50">
-                <p className="text-xs text-gray-400 px-2 mb-2 uppercase font-bold">Mention Member</p>
+                <p className="text-xs text-gray-400 px-2 mb-2 uppercase font-bold">{t('mentionMember')}</p>
                 {(p.activeRoom.members || []).map((uid: string) => {
                   const name = p.activeRoom.memberNames?.[uid] || "User";
                   return (
@@ -501,24 +502,21 @@ export function ChatArea(p: ChatAreaProps) {
               </div>
             )}
 
-            {/* EMOJI MENU */}
             {showEmojiPicker && (
               <div className="absolute bottom-12 right-0 bg-[#1e293b] border border-slate-600 p-2 rounded-xl shadow-2xl grid grid-cols-6 gap-1 w-52 z-50">
                 {["😀","😂","❤️","👍","🔥","😮","😢","🙏","🎉","💯","😍","😎","🥰","😡","🤔","👋","💪","✨","🥳","👏","🤣","😭","💔","🍀"].map(emoji => (<button key={emoji} type="button" onClick={() => { p.setInputText(p.inputText + emoji); setShowEmojiPicker(false); }} className="hover:scale-125 hover:bg-slate-700 rounded text-xl p-1 transition-transform">{emoji}</button>))}
               </div>
             )}
 
-            {/* STICKER MENU */}
             {showStickerPicker && (
               <div className="absolute bottom-12 right-0 bg-[#1e293b] border border-slate-600 p-3 rounded-xl shadow-2xl w-80 h-96 overflow-y-auto z-50">
-                {stickers.emotions.length > 0 && (<><h4 className="text-xs text-teal-400 font-bold uppercase mb-2">Émotions ({stickers.emotions.length})</h4><div className="grid grid-cols-4 gap-2 mb-4">{stickers.emotions.map(s => (<button key={s} type="button" onClick={() => { p.handleSendSticker(`/stickers/emotions/${s}`); setShowStickerPicker(false); }} className="hover:scale-110 transition-transform"><img src={`/stickers/emotions/${s}`} alt={s} className="w-12 h-12 rounded-lg object-cover bg-black/20" /></button>))}</div></>)}
-                {stickers.identity.length > 0 && (<><h4 className="text-xs text-teal-400 font-bold uppercase mb-2">Identité & Fierté ({stickers.identity.length})</h4><div className="grid grid-cols-4 gap-2 mb-4">{stickers.identity.map(s => (<button key={s} type="button" onClick={() => { p.handleSendSticker(`/stickers/identity/${s}`); setShowStickerPicker(false); }} className="hover:scale-110 transition-transform"><img src={`/stickers/identity/${s}`} alt={s} className="w-12 h-12 rounded-lg object-cover bg-black/20" /></button>))}</div></>)}
-                {stickers.emotions.length === 0 && stickers.identity.length === 0 && (<p className="text-center text-gray-500 text-sm mt-10">No stickers found. Drop images in the public folder!</p>)}
+                {stickers.emotions.length > 0 && (<><h4 className="text-xs text-teal-400 font-bold uppercase mb-2">{t('emotions')} ({stickers.emotions.length})</h4><div className="grid grid-cols-4 gap-2 mb-4">{stickers.emotions.map(s => (<button key={s} type="button" onClick={() => { p.handleSendSticker(`/stickers/emotions/${s}`); setShowStickerPicker(false); }} className="hover:scale-110 transition-transform"><img src={`/stickers/emotions/${s}`} alt={s} className="w-12 h-12 rounded-lg object-cover bg-black/20" /></button>))}</div></>)}
+                {stickers.identity.length > 0 && (<><h4 className="text-xs text-teal-400 font-bold uppercase mb-2">{t('identity')} ({stickers.identity.length})</h4><div className="grid grid-cols-4 gap-2 mb-4">{stickers.identity.map(s => (<button key={s} type="button" onClick={() => { p.handleSendSticker(`/stickers/identity/${s}`); setShowStickerPicker(false); }} className="hover:scale-110 transition-transform"><img src={`/stickers/identity/${s}`} alt={s} className="w-12 h-12 rounded-lg object-cover bg-black/20" /></button>))}</div></>)}
+                {stickers.emotions.length === 0 && stickers.identity.length === 0 && (<p className="text-center text-gray-500 text-sm mt-10">{t('noStickers')}</p>)}
               </div>
             )}
           </div>
 
-          {/* SEND BUTTON */}
           <button 
             type="submit" 
             disabled={p.uploading || p.isRecording || p.isCheckingAI || !p.inputText.trim() || p.isDMPartnerBlocked} 

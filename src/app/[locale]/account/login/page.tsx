@@ -6,8 +6,10 @@ import Link from 'next/link';
 import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { useTranslations } from 'next-intl';
 
 export default function LoginPage() {
+  const t = useTranslations('Auth');
   const router = useRouter();
   const params = useParams();
   const locale = (params?.locale as string) || 'en';
@@ -63,7 +65,7 @@ export default function LoginPage() {
     <div className="flex h-screen flex-col items-center justify-center bg-[#0f172a] text-white p-4">
       <div className="w-full max-w-md bg-[#1e293b] p-8 rounded-2xl shadow-xl border border-slate-700">
         <h1 className="text-3xl font-bold text-teal-400 mb-2 text-center">Thimlilith</h1>
-        <p className="text-center text-gray-400 mb-8">ⵜⵉⵎⵍⵉⵍⵉⵜ — Join the Thajmaath</p>
+        <p className="text-center text-gray-400 mb-8">ⵜⵉⵎⵍⵉⵍⵉⵜ — {t('join')}</p>
 
         {error && (
           <div className="bg-red-500/20 text-red-400 p-3 rounded mb-4 text-sm">{error}</div>
@@ -72,7 +74,7 @@ export default function LoginPage() {
         <form onSubmit={handleEmailLogin} className="flex flex-col gap-4">
           <input
             type="email"
-            placeholder="Email address"
+            placeholder={t('email')}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="bg-[#0f172a] border border-slate-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:border-teal-500"
@@ -84,7 +86,7 @@ export default function LoginPage() {
           <div className="relative">
             <input
               type={showPassword ? "text" : "password"}
-              placeholder="Password"
+              placeholder={t('password')}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full bg-[#0f172a] border border-slate-700 text-white pl-4 pr-12 py-3 rounded-lg focus:outline-none focus:border-teal-500"

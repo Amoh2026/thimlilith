@@ -7,8 +7,10 @@ import Link from 'next/link';
 import { db, auth } from '@/lib/firebase/client';
 import { collection, query, where, onSnapshot, doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { onAuthStateChanged, User } from 'firebase/auth';
+import { useTranslations } from 'next-intl';
 
 export default function DiscoverPage() {
+  const t = useTranslations('Discover');
   const params = useParams();
   const router = useRouter();
   const locale = params?.locale || 'en';
@@ -81,17 +83,17 @@ export default function DiscoverPage() {
         <Link href={`/${locale}/rooms`} className="text-teal-400 hover:text-teal-300 font-medium text-sm flex items-center gap-2">
           ← Back to Chat
         </Link>
-        <h1 className="text-white font-bold text-lg">🧭 Discover</h1>
+        <h1 className="text-white font-bold text-lg">{t('discover')}</h1>
         <div className="w-20"></div>
       </div>
 
       <div className="max-w-2xl mx-auto p-4 space-y-4">
-        <p className="text-gray-400 text-sm mb-4">Find new Kabyle communities to join.</p>
+        <p className="text-gray-400 text-sm mb-4">{t('findCommunities')}</p>
         
         {rooms.length === 0 && (
           <div className="text-center text-gray-500 py-10">
             <p className="text-4xl mb-2">🏜️</p>
-            <p>No public communities found yet.</p>
+            <p>{t('noCommunities')}</p>
           </div>
         )}
 
@@ -106,7 +108,7 @@ export default function DiscoverPage() {
                 </div>
                 <div>
                   <h3 className="text-white font-bold capitalize">Thajmaath n {room.name}</h3>
-                  <p className="text-xs text-gray-400">{room.members?.length || 0} Members</p>
+                  <p className="text-xs text-gray-400">{t('members', { count: room.members?.length || 0 })}</p>
                 </div>
               </div>
 
@@ -123,7 +125,7 @@ export default function DiscoverPage() {
                   disabled={joiningId === room.id}
                   className={`px-4 py-2 rounded-lg text-sm font-bold transition disabled:opacity-50 ${room.isPaid ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-teal-600 hover:bg-teal-500 text-white'}`}
                 >
-                  {joiningId === room.id ? 'Processing...' : room.isPaid ? `🔒 €${room.price}/mo` : 'Join'}
+                  {joiningId === room.id ? t('processing') : room.isPaid ? `🔒 €${room.price}/mo` : t('join')}
                 </button>
               )}
             </div>
