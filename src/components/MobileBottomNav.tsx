@@ -41,41 +41,40 @@ export default function MobileBottomNav() {
     pathname.includes('/call')       
   ) return null;
 
-  // 👇 NEW COLOR LOGIC: Inactive = Teal, Active = White 👇
+  // Color Logic: Inactive = Teal, Active = White
   const baseClass = "flex flex-col items-center justify-center w-12 gap-0.5 transition-colors";
   const activeClass = "text-white font-bold";
   const inactiveClass = "text-teal-500 hover:text-teal-400";
 
   return (
     <>
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-[999] bg-[#0f172a]/95 backdrop-blur-md border-t border-slate-800 flex justify-between items-center px-1 pt-1 pb-[env(safe-area-inset-bottom)] h-[60px]">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-[999] bg-[#0f172a]/95 backdrop-blur-md border-t border-slate-800 flex justify-between items-center px-2 pt-1 pb-[env(safe-area-inset-bottom)] h-[60px]">
 
+        {/* 1. CHATS */}
         <Link href={`/${locale}/rooms`} className={`${baseClass} ${isActive('/rooms') ? activeClass : inactiveClass}`}>
           <span className="text-[22px] font-bold leading-none">ⵣ</span>
           <span className="text-[10px] leading-tight">{t('chats')}</span>
         </Link>
 
-        <Link href={`/${locale}/feed`} className={`${baseClass} ${pathname.includes('/feed') && !currentTab ? activeClass : inactiveClass}`}>
+        {/* 2. FEED (Following is now a tab inside this page) */}
+        <Link href={`/${locale}/feed`} className={`${baseClass} ${pathname.includes('/feed') ? activeClass : inactiveClass}`}>
           <span className="text-[22px] font-bold leading-none">ⴼ</span>
           <span className="text-[10px] leading-tight">{t('feed')}</span>
         </Link>
 
-        {/* 👇 Following is kept separate as you requested, styled correctly */}
-        <Link href={`/${locale}/feed?tab=following`} className={`${baseClass} ${currentTab === 'following' ? activeClass : inactiveClass}`}>
-          <span className="text-[22px] font-bold leading-none">ⵏ</span>
-          <span className="text-[10px] leading-tight">{t('following')}</span>
-        </Link>
-
+        {/* 3. COMMUNITIES */}
         <Link href={`/${locale}/discover`} className={`${baseClass} ${pathname.includes('/discover') ? activeClass : inactiveClass}`}>
           <span className="text-[22px] font-bold leading-none">ⴳ</span>
           <span className="text-[10px] leading-tight">{t('communities')}</span>
         </Link>
 
+        {/* 4. VIDEO */}
         <Link href={`/${locale}/call`} className={`${baseClass} ${pathname.includes('/call') ? activeClass : inactiveClass}`}>
           <span className="text-[22px] font-bold leading-none">ⴽ</span>
           <span className="text-[10px] leading-tight">{t('video')}</span>
         </Link>
 
+        {/* 5. MORE (Action Hub) */}
         <button
           type="button"
           onClick={() => setHubOpen(true)}

@@ -27,7 +27,7 @@ interface Post {
 
 export default function FeedPage() {
   const t = useTranslations('Feed');
-  const tAuth = useTranslations('Auth'); // 👈 Added for Loading text
+  const tAuth = useTranslations('Auth'); 
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -253,21 +253,26 @@ export default function FeedPage() {
     .sort(() => 0.5 - Math.random())
     .slice(0, 10);
 
+  // Color logic for tabs: Passive = Teal, Active = White + Teal background
+  const tabBase = "flex-1 py-3 text-center font-bold transition-colors flex items-center justify-center gap-2";
+  const tabActive = "text-white bg-teal-500/10 border-b-2 border-teal-400";
+  const tabInactive = "text-teal-500 hover:text-teal-400 hover:bg-slate-800/50";
+
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-300">
       
-      {/* 👇 TRANSLATED TOP BAR 👇 */}
+      {/* TOP BAR */}
       <div className="sticky top-0 z-50 bg-[#0f172a]/90 backdrop-blur border-b border-slate-800 px-4 py-3 flex items-center justify-between">
-        <Link href={`/${locale}/rooms`} className="text-teal-400 hover:text-teal-300 font-medium text-sm flex items-center gap-2">
+        <Link href={`/${locale}/rooms`} className="text-teal-500 hover:text-teal-400 font-medium text-sm flex items-center gap-2 transition-colors">
           ← {t('backToChat')}
         </Link>
         <h1 className="text-white font-bold text-lg flex items-center gap-2">
-          <span className="font-bold text-xl">ⴼ</span> {t('homeFeed')} {/* 👈 Changed to ⴼ */}
+          <span className="font-bold text-xl text-teal-500">ⴼ</span> {t('homeFeed')}
         </h1>
         <div className="w-20"></div>
       </div>
 
-      {/* 👇 TRANSLATED TOGGLE 👇 */}
+      {/* POSTS / REELS TOGGLE */}
       <div className="flex bg-[#1e293b] p-1 mx-4 mt-3 rounded-xl border border-slate-700">
         <button onClick={() => setFeedView('posts')} className={`flex-1 py-1.5 text-sm font-bold rounded-lg transition-colors ${feedView === 'posts' ? 'bg-teal-600 text-white' : 'text-gray-400 hover:text-white'}`}>
           📝 {t('posts')}
@@ -284,13 +289,13 @@ export default function FeedPage() {
         </div>
       ) : (
         <>
-          {/* 👇 TRANSLATED TABS 👇 */}
-            <div className="flex border-b border-slate-800 bg-[#0f172a] mt-2">
-            <button onClick={() => setFeedTab('global')} className={`flex-1 py-3 text-center font-bold transition-colors flex items-center justify-center gap-2 ${feedTab === 'global' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500 hover:text-gray-300'}`}>
+          {/* GLOBAL / FOLLOWING TABS */}
+          <div className="flex border-b border-slate-800 bg-[#0f172a] mt-2 max-w-2xl mx-auto">
+            <button onClick={() => setFeedTab('global')} className={`${tabBase} ${feedTab === 'global' ? tabActive : tabInactive}`}>
               <span className="text-lg font-bold">ⴰ</span> {t('global')}
             </button>
-            <button onClick={() => setFeedTab('following')} className={`flex-1 py-3 text-center font-bold transition-colors flex items-center justify-center gap-2 ${feedTab === 'following' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500 hover:text-gray-300'}`}>
-              <span className="text-lg font-bold">ⵊ</span> {t('following')} {/* 👈 Changed to ⵊ */}
+            <button onClick={() => setFeedTab('following')} className={`${tabBase} ${feedTab === 'following' ? tabActive : tabInactive}`}>
+              <span className="text-lg font-bold">ⵊ</span> {t('following')}
             </button>
           </div>
 
@@ -300,7 +305,7 @@ export default function FeedPage() {
             <div className="flex gap-4 overflow-x-auto pb-4 pt-2 px-1 no-scrollbar">
               <div className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer" onClick={() => storyInputRef.current?.click()}>
                 <div className="w-16 h-16 rounded-full bg-slate-800 border-2 border-teal-500 flex items-center justify-center relative overflow-hidden">
-                  {isUploadingStory ? <span className="text-xs text-white">...</span> : <span className="text-2xl text-teal-400 font-bold">+</span>}
+                  {isUploadingStory ? <span className="text-xs text-white">...</span> : <span className="text-2xl text-teal-500 font-bold">+</span>}
                 </div>
                 <span className="text-xs text-gray-400 font-medium">{t('createStory')}</span>
                 <input type="file" ref={storyInputRef} className="hidden" accept="image/*" onChange={handleCreateStory} />
@@ -361,7 +366,7 @@ export default function FeedPage() {
                   )}
                   <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-700">
                     <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => setNewPostImage(e.target.files?.[0] || null)} />
-                    <button onClick={() => fileInputRef.current?.click()} className="text-teal-400 hover:text-teal-300 text-sm font-medium flex items-center gap-1">{t('addImage')}</button>
+                    <button onClick={() => fileInputRef.current?.click()} className="text-teal-500 hover:text-teal-400 text-sm font-medium flex items-center gap-1 transition-colors">{t('addImage')}</button>
                     <div className="flex items-center gap-2">
                       {(newPostText.trim() || newPostImage) && (
                         <button onClick={handleCancelPost} className="text-gray-400 hover:text-white px-3 py-1.5 text-sm transition">{t('cancel')}</button>
