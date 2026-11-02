@@ -2,10 +2,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation'; // 👈 Added useParams
 import { db } from '@/lib/firebase/client';
 import { doc, getDoc, updateDoc, setDoc, deleteDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { User } from 'firebase/auth';
+import StripeConnectButton from '@/components/StripeConnectButton'; 
 
 interface ProfileViewProps {
   profileId: string;
@@ -16,6 +17,9 @@ interface ProfileViewProps {
 
 export function ProfileView({ profileId, currentUser, currentUserDoc, onClose }: ProfileViewProps) {
   const router = useRouter();
+  const params = useParams(); // 👈 Get current language
+  const locale = (params?.locale as string) || 'en';
+
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -147,7 +151,7 @@ export function ProfileView({ profileId, currentUser, currentUserDoc, onClose }:
                 </button>
 
                 {/* SEND MESSAGE BUTTON */}
-                <button onClick={() => { if (onClose) onClose(); router.push(`/en/rooms?dm=${profileId}`); }} className="bg-teal-600 hover:bg-teal-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+                <button onClick={() => { if (onClose) onClose(); router.push(`/${locale}/rooms?dm=${profileId}`); }} className="bg-teal-600 hover:bg-teal-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
                   💬 Send Message
                 </button>
               </>
@@ -199,6 +203,18 @@ export function ProfileView({ profileId, currentUser, currentUserDoc, onClose }:
             <p className="text-xs text-gray-400">Rooms</p>
           </div>
         </div>
+
+        {/* 👇 NEW: CREATOR PAYOUTS SECTION 👇 */}
+        {isMe && (
+          <div className="mt-8 bg-[#0f172a] p-5 rounded-xl border border-slate-700">
+            <h3 className="text-white font-bold mb-1">Creator Payouts</h3>
+            <p className="text-xs text-gray-400 mb-4">
+              Link your bank account to receive earnings from your Tip Jar, Premium Rooms, and Paid Subscriptions directly.
+            </p>
+            <StripeConnectButton />
+          </div>
+        )}
+        {/* 👆 END OF CREATOR PAYOUTS SECTION 👆 */}
 
         <div className="mt-6 text-center text-gray-500 text-sm py-8 border border-slate-700 border-dashed rounded-xl">
           Posts from {profile.name} will appear here in the next update.
