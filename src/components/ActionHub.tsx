@@ -1,3 +1,4 @@
+// src/components/ActionHub.tsx
 'use client';
 
 import { useEffect, useRef } from 'react';
@@ -69,7 +70,8 @@ export default function ActionHub({ open, onClose, locale }: Props) {
           <div className="grid grid-cols-2 gap-3">
             {ACTIONS.map((a) => (
               <button key={a.key} type="button" onClick={() => handle(a.key)} className={`flex flex-col items-start justify-between gap-2 min-h-24 p-4 rounded-2xl bg-[#0f172a]/80 border text-left active:scale-95 transition-transform hover:border-teal-400/40 ${a.key === 'logout' ? 'border-red-500/30' : 'border-white/10'}`}>
-                <span className="text-2xl" aria-hidden>{a.icon}</span>
+                {/* 👇 FIX: Made Tifinagh letters teal */}
+                <span className={`text-2xl ${['ⴵ','ⵎ','ⵡ','ⵓ'].includes(a.icon) ? 'text-teal-400 font-bold' : ''}`} aria-hidden>{a.icon}</span>
                 <span>
                   <span className={`block font-medium text-sm ${a.key === 'logout' ? 'text-red-400' : 'text-slate-100'}`}>{t(a.tKey)}</span>
                   <span className="block text-slate-400 text-[11px] mt-0.5">{t(a.tSub)}</span>

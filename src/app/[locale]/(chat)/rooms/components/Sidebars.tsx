@@ -6,7 +6,7 @@ import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { useParams } from 'next/navigation'; // 👈 ADDED
+import { useParams, usePathname } from 'next/navigation'; // 👈 ADDED usePathname
 
 import React from 'react';
 import Link from 'next/link';
@@ -53,8 +53,8 @@ export function Sidebars(p: SidebarsProps) {
   const t = useTranslations('Sidebar');
   const tChat = useTranslations('Chat');
   
-  // 👇 ADDED: Get the current language
   const params = useParams();
+  const pathname = usePathname(); // 👈 ADDED
   const locale = (params?.locale as string) || 'en';
 
   const handleCheckout = async (type: 'premium' | 'donation', amount?: number) => {
@@ -106,25 +106,25 @@ export function Sidebars(p: SidebarsProps) {
         
         <div className="flex flex-col gap-6 text-slate-500">
           {/* Chats ⵣ */}
-          <button onClick={() => p.setSidebarTab('rooms')} className={`hover:text-teal-400 text-xl ${p.sidebarTab === 'rooms' ? 'text-teal-400' : ''}`} title={t('chats')}>ⵣ</button>
+          <button onClick={() => p.setSidebarTab('rooms')} className={`text-xl transition-colors hover:text-teal-400 ${p.sidebarTab === 'rooms' ? 'text-teal-400' : 'text-slate-500'}`} title={t('chats')}>ⵣ</button>
           
           {/* Feed ⴼ */}
-          <Link href={`/${locale}/feed`} className="hover:text-teal-400 text-xl" title={t('feed')}>ⴼ</Link>
+          <Link href={`/${locale}/feed`} className={`text-xl transition-colors hover:text-teal-400 ${pathname === `/${locale}/feed` ? 'text-teal-400' : 'text-slate-500'}`} title={t('feed')}>ⴼ</Link>
           
           {/* Following ⵊ */}
-          <Link href={`/${locale}/feed?tab=following`} className="hover:text-teal-400 text-xl" title={t('following')}>ⵊ</Link>
+          <Link href={`/${locale}/feed?tab=following`} className={`text-xl transition-colors hover:text-teal-400 ${pathname.includes('/feed') && pathname.includes('following') ? 'text-teal-400' : 'text-slate-500'}`} title={t('following')}>ⵊ</Link>
           
           {/* Communities ⴳ */}
-          <Link href={`/${locale}/discover`} className="hover:text-teal-400 text-xl" title={t('communities')}>ⴳ</Link> 
+          <Link href={`/${locale}/discover`} className={`text-xl transition-colors hover:text-teal-400 ${pathname === `/${locale}/discover` ? 'text-teal-400' : 'text-slate-500'}`} title={t('communities')}>ⴳ</Link> 
           
           {/* Video ⴽ */}
-          <Link href={`/${locale}/live`} className="hover:text-teal-400 text-xl" title={t('video')}>ⴽ</Link>
+          <Link href={`/${locale}/live`} className={`text-xl transition-colors hover:text-teal-400 ${pathname.includes('/live') ? 'text-teal-400' : 'text-slate-500'}`} title={t('video')}>ⴽ</Link>
 
           {/* Learn ATK */}
-          <SSOButton target="atk" icon="ⴰ" label={t('learn')} className="!text-slate-500" />
+          <SSOButton target="atk" icon="ⴰ" label={t('learn')} className="!text-slate-500 hover:!text-teal-400" />
           
           {/* Friends ⵗ */}
-          <button onClick={() => p.setSidebarTab('friends')} className={`hover:text-teal-400 text-xl ${p.sidebarTab === 'friends' ? 'text-teal-400' : ''}`} title={t('friends')}>ⵗ</button>
+          <button onClick={() => p.setSidebarTab('friends')} className={`text-xl transition-colors hover:text-teal-400 ${p.sidebarTab === 'friends' ? 'text-teal-400' : 'text-slate-500'}`} title={t('friends')}>ⵗ</button>
         </div>
 
         <div className="mt-auto flex flex-col items-center gap-4 pb-4">
@@ -153,29 +153,30 @@ export function Sidebars(p: SidebarsProps) {
          {/* Mobile Quick Links */}
         <div className="flex gap-2 p-3 border-b border-slate-800 bg-[#1e293b] md:hidden">
           <Link href={`/${locale}/feed`} className="flex flex-col items-center justify-center flex-1 py-1">
-            <span className="text-xl font-bold text-teal-400">ⴼ</span>
+            <span className={`text-xl font-bold ${pathname === `/${locale}/feed` ? 'text-teal-400' : 'text-slate-500'}`}>ⴼ</span>
             <span className="text-[10px] text-gray-300 mt-1">{t('feed')}</span>
           </Link>
           <Link href={`/${locale}/discover`} className="flex flex-col items-center justify-center flex-1 py-1">
-            <span className="text-xl font-bold text-teal-400">ⴳ</span>
+            <span className={`text-xl font-bold ${pathname === `/${locale}/discover` ? 'text-teal-400' : 'text-slate-500'}`}>ⴳ</span>
             <span className="text-[10px] text-gray-300 mt-1">{t('communities')}</span>
           </Link>
           <div className="flex flex-col items-center justify-center flex-1 py-1">
-            <SSOButton target="atk" icon="ⵍ" label={t('learn')} className="!text-teal-400 !text-xl" />
+            <SSOButton target="atk" icon="ⵍ" label={t('learn')} className="!text-slate-500 !text-xl" />
             <span className="text-[10px] text-gray-300 mt-1">Learn</span>
           </div>
         </div>
 
         {/* TOP TABS */}
         <div className="flex border-b border-slate-800">
-          <button onClick={() => p.setSidebarTab('rooms')} className={`flex-1 py-3 px-1 text-xs md:text-sm font-medium ${p.sidebarTab === 'rooms' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500'}`}>{t('thajmaathin')}</button>
-          <button onClick={() => p.setSidebarTab('friends')} className={`flex-1 py-3 px-1 text-xs md:text-sm font-medium relative ${p.sidebarTab === 'friends' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500'}`}>
+          <button onClick={() => p.setSidebarTab('rooms')} className={`flex-1 py-3 px-1 text-xs md:text-sm font-medium transition-colors ${p.sidebarTab === 'rooms' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500 hover:text-gray-300'}`}>{t('thajmaathin')}</button>
+          <button onClick={() => p.setSidebarTab('friends')} className={`flex-1 py-3 px-1 text-xs md:text-sm font-medium relative transition-colors ${p.sidebarTab === 'friends' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500 hover:text-gray-300'}`}>
             {t('friends')}
             {p.friendRequests.length > 0 && <span className="absolute top-2 right-1 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center">{p.friendRequests.length}</span>}
           </button>
-          <button onClick={() => p.setSidebarTab('search')} className={`flex-1 py-3 px-1 text-xs md:text-sm font-medium ${p.sidebarTab === 'search' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500'}`}>{t('find')}</button>
+          <button onClick={() => p.setSidebarTab('search')} className={`flex-1 py-3 px-1 text-xs md:text-sm font-medium transition-colors ${p.sidebarTab === 'search' ? 'text-teal-400 border-b-2 border-teal-400' : 'text-gray-500 hover:text-gray-300'}`}>{t('find')}</button>
         </div>
 
+        {/* ... (Rest of the tabs and Monetization code remains exactly the same as your file) ... */}
         {/* 1. ROOMS TAB */}
         {p.sidebarTab === 'rooms' && (
           <>

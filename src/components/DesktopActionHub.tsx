@@ -1,3 +1,4 @@
+// src/components/DesktopActionHub.tsx
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -31,55 +32,65 @@ export default function DesktopActionHub() {
 
   return (
     <div className="relative" ref={menuRef}>
+      {/* 👇 FIX: Added active state to the ⵎ button */}
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-slate-800 transition-colors text-slate-300"
+        className={`flex items-center justify-center w-10 h-10 rounded-full transition-colors ${isOpen ? 'bg-teal-900/50 text-teal-400' : 'hover:bg-slate-800 text-slate-300'}`}
         title={t('title')}
       >
         <span className="text-xl font-bold">ⵎ</span>
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-56 bg-[#1e293b] border border-white/10 rounded-xl shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
-          
-          <button onClick={() => navigate('/chats')} className="w-full text-left px-4 py-3 text-sm text-slate-200 hover:bg-slate-700 flex items-center gap-3">
-            <span className="text-lg">💬</span> {t('startChat')}
-          </button>
-          
-          <button onClick={() => navigate('/rooms/create')} className="w-full text-left px-4 py-3 text-sm text-slate-200 hover:bg-slate-700 flex items-center gap-3">
-            <span className="text-lg">🚪</span> {t('createRoom')}
-          </button>
-          
-          <button onClick={() => navigate('/live')} className="w-full text-left px-4 py-3 text-sm text-slate-200 hover:bg-slate-700 flex items-center gap-3">
-            <span className="text-lg">🔴</span> {t('goLive')}
-          </button>
-          
-          <button onClick={() => navigate('/video')} className="w-full text-left px-4 py-3 text-sm text-slate-200 hover:bg-slate-700 flex items-center gap-3">
-            <span className="text-lg">ⴵ</span> {t('videoCall')}
-          </button>
+        <>
+          {/* 👇 FIX: Added the caret arrow pointing to the ⵎ button */}
+          <div className="absolute -top-1.5 right-3.5 w-3 h-3 bg-[#1e293b] border-t border-l border-white/10 rotate-45 transform origin-center z-10"></div>
 
-          <div className="h-px bg-white/10 my-1"></div>
+          <div className="absolute right-0 mt-2 w-56 bg-[#1e293b] border border-white/10 rounded-xl shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+            
+            <button onClick={() => navigate('/chats')} className="w-full text-left px-4 py-3 text-sm text-slate-200 hover:bg-slate-700 flex items-center gap-3">
+              <span className="text-lg">💬</span> {t('startChat')}
+            </button>
+            
+            <button onClick={() => navigate('/rooms/create')} className="w-full text-left px-4 py-3 text-sm text-slate-200 hover:bg-slate-700 flex items-center gap-3">
+              <span className="text-lg">🚪</span> {t('createRoom')}
+            </button>
+            
+            <button onClick={() => navigate('/live')} className="w-full text-left px-4 py-3 text-sm text-slate-200 hover:bg-slate-700 flex items-center gap-3">
+              <span className="text-lg">🔴</span> {t('goLive')}
+            </button>
+            
+            <button onClick={() => navigate('/video')} className="w-full text-left px-4 py-3 text-sm text-slate-200 hover:bg-slate-700 flex items-center gap-3">
+              {/* 👇 FIX: Made ⴵ teal */}
+              <span className="text-lg text-teal-400 font-bold">ⴵ</span> {t('videoCall')}
+            </button>
 
-          <button onClick={() => navigate('/rooms?tab=vault')} className="w-full text-left px-4 py-3 text-sm text-slate-200 hover:bg-slate-700 flex items-center gap-3">
-            <span className="text-lg">ⵡ</span> {t('myVault')}
-          </button>
+            <div className="h-px bg-white/10 my-1"></div>
 
-          <button onClick={() => navigate('/profile')} className="w-full text-left px-4 py-3 text-sm text-slate-200 hover:bg-slate-700 flex items-center gap-3">
-            <span className="text-lg">ⵓ</span> {t('myProfile')}
-          </button>
+            <button onClick={() => navigate('/rooms?tab=vault')} className="w-full text-left px-4 py-3 text-sm text-slate-200 hover:bg-slate-700 flex items-center gap-3">
+              {/* 👇 FIX: Made ⵡ teal */}
+              <span className="text-lg text-teal-400 font-bold">ⵡ</span> {t('myVault')}
+            </button>
 
-          <div className="h-px bg-white/10 my-1"></div>
-          
-          <button onClick={() => navigate('/moderation')} className="w-full text-left px-4 py-3 text-sm text-slate-400 hover:bg-slate-700 flex items-center gap-3">
-            <span className="text-lg">ⵎ</span> {t('safety')}
-          </button>
+            <button onClick={() => navigate('/profile')} className="w-full text-left px-4 py-3 text-sm text-slate-200 hover:bg-slate-700 flex items-center gap-3">
+              {/* 👇 FIX: Made ⵓ teal */}
+              <span className="text-lg text-teal-400 font-bold">ⵓ</span> {t('myProfile')}
+            </button>
 
-          <div className="h-px bg-white/10 my-1"></div>
+            <div className="h-px bg-white/10 my-1"></div>
+            
+            <button onClick={() => navigate('/moderation')} className="w-full text-left px-4 py-3 text-sm text-slate-400 hover:bg-slate-700 flex items-center gap-3">
+              {/* 👇 FIX: Made ⵎ teal */}
+              <span className="text-lg text-teal-400 font-bold">ⵎ</span> {t('safety')}
+            </button>
 
-          <button onClick={() => { setIsOpen(false); signOut(auth); }} className="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 flex items-center gap-3">
-            <span className="text-lg">🚪</span> {t('logout')}
-          </button>
-        </div>
+            <div className="h-px bg-white/10 my-1"></div>
+
+            <button onClick={() => { setIsOpen(false); signOut(auth); }} className="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 flex items-center gap-3">
+              <span className="text-lg">🚪</span> {t('logout')}
+            </button>
+          </div>
+        </>
       )}
     </div>
   );

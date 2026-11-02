@@ -24,7 +24,7 @@ interface Props {
   onPromote?: (uid: string) => void;
   onDemote?: (uid: string) => void;
   onClose?: () => void;
-  onOpenUserAction?: (uid: string, name: string) => void; // 👈 ADDED THIS
+  onOpenUserAction?: (uid: string, name: string) => void;
 }
 
 export function RightSidebar({
@@ -36,7 +36,7 @@ export function RightSidebar({
   onPromote,
   onDemote,
   onClose,
-  onOpenUserAction, // 👈 ADDED THIS
+  onOpenUserAction,
 }: Props) {
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(false);
@@ -125,8 +125,8 @@ export function RightSidebar({
     return (
       <div
         key={m.id}
-        onClick={() => onOpenUserAction && onOpenUserAction(m.id, m.name)} // 👈 CLICK HANDLER ADDED HERE
-        className="relative flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-700/40 transition group cursor-pointer" // 👈 CURSOR POINTER ADDED
+        onClick={() => onOpenUserAction && onOpenUserAction(m.id, m.name)}
+        className="relative flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-700/40 transition group cursor-pointer"
       >
         <div className="relative flex-shrink-0">
           {m.photoURL ? (
@@ -153,24 +153,29 @@ export function RightSidebar({
         {hasActions && (
           <div className="relative">
             <button
-              onClick={(e) => { e.stopPropagation(); setActionMenuFor(actionMenuFor === m.id ? null : m.id); }} // 👈 STOP PROPAGATION SO IT DOESN'T OPEN PROFILE
+              onClick={(e) => { e.stopPropagation(); setActionMenuFor(actionMenuFor === m.id ? null : m.id); }}
               className="opacity-0 group-hover:opacity-100 transition text-gray-400 hover:text-white px-1"
               aria-label="Member actions"
             >
               ⋯
             </button>
             {actionMenuFor === m.id && (
-              <div className="absolute right-0 top-full mt-1 bg-[#1e293b] border border-slate-700 rounded-lg shadow-xl z-20 min-w-[140px] py-1">
-                {canPromote && onPromote && (
-                  <button onClick={() => { onPromote(m.id); setActionMenuFor(null); }} className="w-full text-left px-3 py-1.5 text-xs text-gray-300 hover:bg-slate-700">🛡️ Promote to Mod</button>
-                )}
-                {canDemote && onDemote && (
-                  <button onClick={() => { onDemote(m.id); setActionMenuFor(null); }} className="w-full text-left px-3 py-1.5 text-xs text-gray-300 hover:bg-slate-700">Remove Mod</button>
-                )}
-                {canKick && onKick && (
-                  <button onClick={() => { onKick(m.id, m.name); setActionMenuFor(null); }} className="w-full text-left px-3 py-1.5 text-xs text-red-400 hover:bg-slate-700">🚫 Kick</button>
-                )}
-              </div>
+              <>
+                {/* 👇 NEW: CARET ARROW POINTING TO THE 3 DOTS */}
+                <div className="absolute -top-1.5 right-2 w-3 h-3 bg-[#1e293b] border-t border-l border-slate-700 rotate-45 transform origin-center z-10"></div>
+                
+                <div className="absolute right-0 top-full mt-1 bg-[#1e293b] border border-slate-700 rounded-lg shadow-xl z-20 min-w-[140px] py-1">
+                  {canPromote && onPromote && (
+                    <button onClick={() => { onPromote(m.id); setActionMenuFor(null); }} className="w-full text-left px-3 py-1.5 text-xs text-gray-300 hover:bg-slate-700">🛡️ Promote to Mod</button>
+                  )}
+                  {canDemote && onDemote && (
+                    <button onClick={() => { onDemote(m.id); setActionMenuFor(null); }} className="w-full text-left px-3 py-1.5 text-xs text-gray-300 hover:bg-slate-700">Remove Mod</button>
+                  )}
+                  {canKick && onKick && (
+                    <button onClick={() => { onKick(m.id, m.name); setActionMenuFor(null); }} className="w-full text-left px-3 py-1.5 text-xs text-red-400 hover:bg-slate-700">🚫 Kick</button>
+                  )}
+                </div>
+              </>
             )}
           </div>
         )}
