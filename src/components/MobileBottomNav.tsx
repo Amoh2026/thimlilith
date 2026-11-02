@@ -1,3 +1,4 @@
+// src/components/MobileBottomNav.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -13,8 +14,10 @@ export default function MobileBottomNav() {
   const searchParams = useSearchParams();
   const params = useParams();
   const t = useTranslations('Nav');
+  
   const locale = (params?.locale as string) || 'en';
   const currentTab = searchParams.get('tab');
+  
   const [uid, setUid] = useState<string | null>(null);
   const [hubOpen, setHubOpen] = useState(false);
 
@@ -25,9 +28,11 @@ export default function MobileBottomNav() {
     return () => unsub();
   }, []);
 
+  // 👇 Improved active state check to handle locales properly
   const isActive = (path: string, tab?: string) => {
-    if (tab) return pathname === path && currentTab === tab;
-    return pathname === path && !currentTab;
+    const fullPath = `/${locale}${path}`;
+    if (tab) return pathname === fullPath && currentTab === tab;
+    return pathname === fullPath && !currentTab;
   };
 
   // Hide bottom nav on auth screens and full-screen immersive routes
@@ -40,34 +45,35 @@ export default function MobileBottomNav() {
 
   return (
     <>
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-[200] bg-[#0f172a]/95 backdrop-blur-md border-t border-slate-800 flex justify-between items-center px-2 pt-1 pb-[env(safe-area-inset-bottom)] h-[60px]">
+      {/* 👇 Increased z-index to z-[999] to ensure it stays on top of everything */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-[999] bg-[#0f172a]/95 backdrop-blur-md border-t border-slate-800 flex justify-between items-center px-1 pt-1 pb-[env(safe-area-inset-bottom)] h-[60px]">
 
         {/* CHATS */}
-        <Link href="/rooms" className={`flex flex-col items-center justify-center w-12 gap-0.5 ${isActive('/rooms') || isActive('/en/rooms') || isActive('/fr/rooms') ? 'text-teal-400' : 'text-gray-400'}`}>
+        <Link href={`/${locale}/rooms`} className={`flex flex-col items-center justify-center w-12 gap-0.5 ${isActive('/rooms') ? 'text-teal-400' : 'text-gray-400'}`}>
           <span className="text-[22px] font-bold leading-none">ⵣ</span>
           <span className="text-[10px] leading-tight">{t('chats')}</span>
         </Link>
 
         {/* FEED */}
-        <Link href="/feed" className={`flex flex-col items-center justify-center w-12 gap-0.5 ${isActive('/feed') || pathname.includes('/feed') ? 'text-teal-400' : 'text-gray-400'}`}>
+        <Link href={`/${locale}/feed`} className={`flex flex-col items-center justify-center w-12 gap-0.5 ${pathname.includes('/feed') && !currentTab ? 'text-teal-400' : 'text-gray-400'}`}>
           <span className="text-[22px] font-bold leading-none">ⴼ</span>
           <span className="text-[10px] leading-tight">{t('feed')}</span>
         </Link>
 
-        {/* FOLLOWING (Added from your request) */}
-        <Link href="/feed?tab=following" className={`flex flex-col items-center justify-center w-12 gap-0.5 ${currentTab === 'following' ? 'text-teal-400' : 'text-gray-400'}`}>
+        {/* FOLLOWING */}
+        <Link href={`/${locale}/feed?tab=following`} className={`flex flex-col items-center justify-center w-12 gap-0.5 ${currentTab === 'following' ? 'text-teal-400' : 'text-gray-400'}`}>
           <span className="text-[22px] font-bold leading-none">ⵏ</span>
           <span className="text-[10px] leading-tight">{t('following')}</span>
         </Link>
 
-        {/* COMMUNITIES (Added from your request) */}
-        <Link href="/discover" className={`flex flex-col items-center justify-center w-12 gap-0.5 ${pathname.includes('/discover') ? 'text-teal-400' : 'text-gray-400'}`}>
+        {/* COMMUNITIES */}
+        <Link href={`/${locale}/discover`} className={`flex flex-col items-center justify-center w-12 gap-0.5 ${pathname.includes('/discover') ? 'text-teal-400' : 'text-gray-400'}`}>
           <span className="text-[22px] font-bold leading-none">ⴳ</span>
           <span className="text-[10px] leading-tight">{t('communities')}</span>
         </Link>
 
         {/* VIDEO CALL (LiveKit) */}
-        <Link href="/call" className={`flex flex-col items-center justify-center w-12 gap-0.5 ${pathname.includes('/call') ? 'text-teal-400' : 'text-gray-400'}`}>
+        <Link href={`/${locale}/call`} className={`flex flex-col items-center justify-center w-12 gap-0.5 ${pathname.includes('/call') ? 'text-teal-400' : 'text-gray-400'}`}>
           <span className="text-[22px] font-bold leading-none">ⴽ</span>
           <span className="text-[10px] leading-tight">{t('video')}</span>
         </Link>

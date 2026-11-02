@@ -180,7 +180,8 @@ export function ChatArea(p: ChatAreaProps) {
   };
 
   return (
-    <div className="w-full flex-1 flex flex-col bg-[#0b1120] h-full overflow-hidden relative">
+    /* 👇 FIXED: Added pb-16 md:pb-0 here to prevent the bottom nav from covering the chat input 👇 */
+    <div className="w-full flex-1 flex flex-col bg-[#0b1120] h-full pb-16 md:pb-0 overflow-hidden relative">
       {/* Header */}
       <div className="h-16 border-b border-slate-800 flex items-center justify-between px-4 md:px-6 bg-[#0f172a] sticky top-0 z-50">
         
