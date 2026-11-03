@@ -204,5 +204,18 @@
     "privacyDescription": "Si réglé sur Privé, les gens peuvent toujours vous envoyer un message s'ils connaissent déjà votre e-mail ou partagent un salon avec vous.",
     "saving": "Enregistrement...",
     "save": "Enregistrer les paramètres"
-  }
+  },
+  "Practice": {
+  "title": "Pratiquer le Kabyle",
+  "subtitle": "Parlez avec des locuteurs natifs. Utilisez ce que vous venez d'apprendre.",
+  "backToChat": "Retour au Chat",
+  "loading": "Chargement du Salon de Pratique...",
+  "justLearned": "Phrases que vous venez d'apprendre :",
+  "noPartners": "Aucun Partenaire de Pratique en ligne pour le moment.",
+  "practicePartnerBadge": "Partenaire de Pratique",
+  "startChat": "Démarrer le Chat",
+  "becomePartner": "Devenir Partenaire de Pratique",
+  "wantToHelp": "Envie d'aider les apprenants ?",
+  "enablePartner": "Activez 'Partenaire de Pratique' sur votre profil."
+}
 }

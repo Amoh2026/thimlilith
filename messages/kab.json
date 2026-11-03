@@ -204,5 +204,18 @@
     "privacyDescription": "Ma yella ɣer Uffir, medden zemren ad ak-aznen izen ma yella ssnen imayl-ik neɣ bḍan taxxamt yid-ek.",
     "saving": "Asekles...",
     "save": "Sekles iɣewwaṛen"
-  }
+  },
+ "Practice": {
+  "title": "Meslay Taqbaylit",
+  "subtitle": "Meslay akked imeslayen iḍrisen. Seqdec ayen i tlemded tura.",
+  "backToChat": "Uɣal ɣer udiwenni",
+  "loading": "Asali n umkan n umeslay...",
+  "justLearned": "Tinfaliyin i tlemded tura:",
+  "noPartners": "Ulac amḍakel n umeslay yettwaqqen tura.",
+  "practicePartnerBadge": "Amḍakel n umeslay",
+  "startChat": "Bdu ameslay",
+  "becomePartner": "Ini-d d amḍakel n umeslay",
+  "wantToHelp": "Tebɣiḍ ad tɛawneḍ imeslayen?",
+  "enablePartner": "Sermed 'Amḍakel n umeslay' deg umaɣnu-ik."
+}
 }

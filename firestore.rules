@@ -1,24 +1,15 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /transactions/{txId} {
-      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null;
-    }
-    match /liveChats/{roomId}/messages/{messageId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-    }
 
+    // ==========================================
+    // HELPER FUNCTIONS
+    // ==========================================
     function isSignedIn() { return request.auth != null; }
     function uid() { return request.auth.uid; }
     function isEmailVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
     function userRole() { return (isSignedIn() && request.auth.token.role != null) ? request.auth.token.role : "reader"; }
-
-    function isAdmin() {
-      return userRole() == "admin" || (isSignedIn() && request.auth.token.email == "aoudiamohand70@gmail.com");
-    }
-
+    function isAdmin() { return userRole() == "admin" || (isSignedIn() && request.auth.token.email == "aoudiamohand70@gmail.com"); }
     function isReviewer() { return userRole() == "reviewer" || isAdmin(); }
     function userDocExists() { return isSignedIn() && exists(/databases/$(database)/documents/users/$(uid())); }
     function isContributor() {
@@ -26,6 +17,41 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(uid())).data.agreements.contributor.accepted == true;
     }
 
+    // ==========================================
+    // CANONICAL AUDIO (Echo System)
+    // ==========================================
+    match /canonical_audio/{wordId} {
+      // Anyone can listen to audio (for ATK lessons)
+      allow read: if true;
+      
+      // Only verified native speakers can create audio, and only if it doesn't exist
+      allow create: if isSignedIn()
+                    && request.auth.token.email_verified == true
+                    && !exists(/databases/$(database)/documents/canonical_audio/$(wordId))
+                    && request.resource.data.wordId == wordId
+                    && request.resource.data.audioUrl is string
+                    && request.resource.data.status in ['pending', 'approved'];
+      
+      // Only admins can modify or delete
+      allow update, delete: if isAdmin();
+    }
+
+    // ==========================================
+    // LIVE CHAT & TRANSACTIONS
+    // ==========================================
+    match /liveChats/{roomId}/messages/{messageId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.senderId == uid();
+    }
+
+    match /transactions/{txId} {
+      allow read: if isSignedIn() && resource.data.userId == uid();
+      allow create: if isSignedIn();
+    }
+
+    // ==========================================
+    // DICTIONARY (ATK BRIDGE)
+    // ==========================================
     match /db_all_submissions/{submissionId} {
       allow read: if isSignedIn() && (resource.data.submitted_by == uid() || isReviewer());
       allow create: if isSignedIn() && isContributor() && request.resource.data.submitted_by == uid();
@@ -50,15 +76,15 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // ==========================================
+    // USER SUBCOLLECTIONS (APC / Coeur)
+    // ==========================================
     match /users/{userId}/content/{contentId} { allow read, write: if isSignedIn() && userId == uid(); }
     match /users/{userId}/progress/{progressId} { allow read, write: if isSignedIn() && userId == uid(); }
     match /users/{userId}/vocabulary/{wordId} { allow read, write: if isSignedIn() && userId == uid(); }
     match /users/{userId}/audio/{audioId} { allow read, write: if isSignedIn() && userId == uid(); }
     match /users/{userId}/pending_words/{wordId} { allow read, write: if isSignedIn() && userId == uid(); }
-
-    match /users/{userId}/savedMessages/{savedId} {
-      allow read, write: if isSignedIn() && userId == uid();
-    }
+    match /users/{userId}/savedMessages/{savedId} { allow read, write: if isSignedIn() && userId == uid(); }
 
     match /lesson_feedback/{feedbackId} {
       allow read: if isSignedIn() && resource.data.userId == uid();
@@ -78,6 +104,9 @@ service cloud.firestore {
 
     match /audit_log/{entryId} { allow read: if isAdmin(); allow write: if false; }
 
+    // ==========================================
+    // USERS (CANONICAL PROFILE)
+    // ==========================================
     match /users/{userId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && userId == uid();
@@ -85,10 +114,12 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // ==========================================
+    // ROOMS (Chat)
+    // ==========================================
     match /rooms/{roomId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn();
-
       allow update: if isAdmin() || (isSignedIn() && (
         resource.data.createdBy == uid() ||
         (resource.data.admins != null && request.auth.uid in resource.data.admins) ||
@@ -102,18 +133,15 @@ service cloud.firestore {
           !request.resource.data.diff(resource.data).affectedKeys().hasAny(['pinnedMessages', 'admins', 'moderators', 'inviteCode'])
         )
       ));
-
       allow delete: if isAdmin() || (isSignedIn() && resource.data.createdBy == uid());
 
       match /messages/{messageId} {
         allow read: if isSignedIn();
         allow create: if isSignedIn() && request.resource.data.senderId == uid();
-
         allow update: if isSignedIn() && (
           resource.data.senderId == uid() ||
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions', 'readBy'])
         );
-
         allow delete: if isSignedIn() && (
           resource.data.senderId == uid() ||
           request.auth.uid in get(/databases/$(database)/documents/rooms/$(roomId)).data.admins ||
@@ -126,6 +154,9 @@ service cloud.firestore {
       }
     }
 
+    // ==========================================
+    // FEED, STORIES, FOLLOWS
+    // ==========================================
     match /posts/{postId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.authorId == uid();
@@ -149,6 +180,9 @@ service cloud.firestore {
       allow update: if false;
     }
 
+    // ==========================================
+    // NOTIFICATIONS & FRIENDS
+    // ==========================================
     match /notifications/{notificationId} {
       allow read: if isSignedIn() && resource.data.userId == uid();
       allow create: if isSignedIn();
@@ -167,6 +201,9 @@ service cloud.firestore {
       allow read, update, delete: if isAdmin();
     }
 
+    // ==========================================
+    // DEFAULT: DENY
+    // ==========================================
     match /{document=**} {
       allow read, write: if false;
     }

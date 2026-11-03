@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation'; // 👈 Added useParams
+import { useRouter, useParams } from 'next/navigation';
 import { db } from '@/lib/firebase/client';
 import { doc, getDoc, updateDoc, setDoc, deleteDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { User } from 'firebase/auth';
@@ -17,7 +17,7 @@ interface ProfileViewProps {
 
 export function ProfileView({ profileId, currentUser, currentUserDoc, onClose }: ProfileViewProps) {
   const router = useRouter();
-  const params = useParams(); // 👈 Get current language
+  const params = useParams();
   const locale = (params?.locale as string) || 'en';
 
   const [profile, setProfile] = useState<any>(null);
@@ -25,14 +25,13 @@ export function ProfileView({ profileId, currentUser, currentUserDoc, onClose }:
   const [isEditing, setIsEditing] = useState(false);
   const [editBio, setEditBio] = useState("");
   const [editBanner, setEditBanner] = useState("");
+  const [isUpdatingPractice, setIsUpdatingPractice] = useState(false);
 
-  // 🤝 Follow State
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
 
   const isMe = currentUser.uid === profileId;
 
-  // Fetch Profile Data
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -50,15 +49,12 @@ export function ProfileView({ profileId, currentUser, currentUserDoc, onClose }:
     fetchProfile();
   }, [profileId]);
 
-  // Check Follow Status
   useEffect(() => {
     if (!currentUser || !profileId || isMe) return;
-    
     const followRef = doc(db, "follows", `${currentUser.uid}_${profileId}`);
     const unsub = onSnapshot(followRef, (docSnap) => {
       setIsFollowing(docSnap.exists());
     });
-    
     return () => unsub();
   }, [currentUser, profileId, isMe]);
 
@@ -78,9 +74,7 @@ export function ProfileView({ profileId, currentUser, currentUserDoc, onClose }:
   const handleFollow = async () => {
     if (!currentUser || isMe) return;
     setFollowLoading(true);
-    
     const followRef = doc(db, "follows", `${currentUser.uid}_${profileId}`);
-    
     try {
       if (isFollowing) {
         await deleteDoc(followRef);
@@ -97,13 +91,29 @@ export function ProfileView({ profileId, currentUser, currentUserDoc, onClose }:
     setFollowLoading(false);
   };
 
+  const handleTogglePracticePartner = async () => {
+    if (!isMe) return;
+    setIsUpdatingPractice(true);
+    const newValue = !profile.practicePartner;
+    try {
+      await updateDoc(doc(db, "users", profileId), {
+        practicePartner: newValue,
+        practiceLanguages: newValue ? ["kab"] : [],
+      });
+      setProfile({ ...profile, practicePartner: newValue, practiceLanguages: newValue ? ["kab"] : [] });
+    } catch (err) {
+      alert("Failed to update Practice Partner status.");
+      console.error(err);
+    }
+    setIsUpdatingPractice(false);
+  };
+
   if (loading) return <div className="text-white text-center py-20">Loading Profile...</div>;
   if (!profile) return <div className="text-white text-center py-20">User not found.</div>;
 
   return (
     <div className="w-full max-w-2xl mx-auto bg-[#1e293b] rounded-2xl border border-slate-700 overflow-hidden shadow-2xl">
       
-      {/* BANNER */}
       <div className="h-40 w-full bg-slate-800 relative group">
         {profile.bannerUrl ? (
           <img src={profile.bannerUrl} alt="Banner" className="w-full h-full object-cover" />
@@ -117,14 +127,13 @@ export function ProfileView({ profileId, currentUser, currentUserDoc, onClose }:
         )}
       </div>
 
-      {/* AVATAR & INFO */}
       <div className="px-6 pb-6 relative">
         <div className="flex justify-between items-end -mt-12 mb-4">
           <div className="w-24 h-24 rounded-full border-4 border-[#1e293b] bg-teal-600 flex items-center justify-center text-4xl text-white font-bold shadow-lg z-10 overflow-hidden">
             {profile.photoURL ? (
               <img src={profile.photoURL} alt="Avatar" className="w-full h-full object-cover" />
             ) : (
-              profile.name?.[0].toUpperCase()
+              profile.name?.[0]?.toUpperCase()
             )}
           </div>
 
@@ -137,7 +146,6 @@ export function ProfileView({ profileId, currentUser, currentUserDoc, onClose }:
               )
             ) : (
               <>
-                {/* FOLLOW BUTTON */}
                 <button 
                   onClick={handleFollow} 
                   disabled={followLoading}
@@ -150,7 +158,6 @@ export function ProfileView({ profileId, currentUser, currentUserDoc, onClose }:
                   {followLoading ? '...' : isFollowing ? 'Following' : 'Follow'}
                 </button>
 
-                {/* SEND MESSAGE BUTTON */}
                 <button onClick={() => { if (onClose) onClose(); router.push(`/${locale}/rooms?dm=${profileId}`); }} className="bg-teal-600 hover:bg-teal-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
                   💬 Send Message
                 </button>
@@ -160,9 +167,14 @@ export function ProfileView({ profileId, currentUser, currentUserDoc, onClose }:
         </div>
 
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2 flex-wrap">
             {profile.name}
             {profile.isPremium && <span title="Premium" className="text-xl">👑</span>}
+            {profile.practicePartner && (
+              <span title="Practice Partner" className="text-xs bg-teal-900 text-teal-300 border border-teal-600 px-2 py-1 rounded-full">
+                🌟 Practice Partner
+              </span>
+            )}
           </h1>
           <p className="text-sm text-gray-400">Joined {profile.lastSeen ? new Date(profile.lastSeen.toMillis()).toLocaleDateString() : "Recently"}</p>
           
@@ -188,7 +200,6 @@ export function ProfileView({ profileId, currentUser, currentUserDoc, onClose }:
           )}
         </div>
 
-        {/* PROFILE STATS / TABS */}
         <div className="flex gap-6 mt-8 border-b border-slate-700 pb-2">
           <div className="text-center">
             <p className="text-white font-bold">{profile.savedMessageCount || 0}</p>
@@ -204,7 +215,37 @@ export function ProfileView({ profileId, currentUser, currentUserDoc, onClose }:
           </div>
         </div>
 
-        {/* 👇 NEW: CREATOR PAYOUTS SECTION 👇 */}
+        {isMe && (
+          <div className="mt-8 bg-[#0f172a] p-5 rounded-xl border border-slate-700">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h3 className="text-white font-bold mb-1">🌟 Practice Partner</h3>
+                <p className="text-xs text-gray-400">
+                  When enabled, learners from ATK can find you on Thimlilith to practice Kabyle conversation.
+                </p>
+              </div>
+              <button
+                onClick={handleTogglePracticePartner}
+                disabled={isUpdatingPractice}
+                className={`relative w-14 h-8 rounded-full transition-colors ${
+                  profile.practicePartner ? 'bg-teal-600' : 'bg-slate-700'
+                } ${isUpdatingPractice ? 'opacity-50' : ''}`}
+              >
+                <span
+                  className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full transition-transform ${
+                    profile.practicePartner ? 'translate-x-6' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+            {profile.practicePartner && (
+              <p className="text-xs text-teal-400 mt-3">
+                ✅ You are visible to learners. Language: Kabyle.
+              </p>
+            )}
+          </div>
+        )}
+
         {isMe && (
           <div className="mt-8 bg-[#0f172a] p-5 rounded-xl border border-slate-700">
             <h3 className="text-white font-bold mb-1">Creator Payouts</h3>
@@ -214,7 +255,6 @@ export function ProfileView({ profileId, currentUser, currentUserDoc, onClose }:
             <StripeConnectButton />
           </div>
         )}
-        {/* 👆 END OF CREATOR PAYOUTS SECTION 👆 */}
 
         <div className="mt-6 text-center text-gray-500 text-sm py-8 border border-slate-700 border-dashed rounded-xl">
           Posts from {profile.name} will appear here in the next update.

@@ -208,5 +208,18 @@
     "privacyDescription": "If set to Private, people can still message you if they already know your email or share a room with you.",
     "saving": "Saving...",
     "save": "Save Settings"
-  }
+  },
+  "Practice": {
+  "title": "Practice Kabyle",
+  "subtitle": "Speak with native speakers. Use what you just learned.",
+  "backToChat": "Back to Chat",
+  "loading": "Loading Practice Lobby...",
+  "justLearned": "Phrases you just learned:",
+  "noPartners": "No Practice Partners online right now.",
+  "practicePartnerBadge": "Practice Partner",
+  "startChat": "Start Chat",
+  "becomePartner": "Become a Practice Partner",
+  "wantToHelp": "Want to help learners?",
+  "enablePartner": "Enable Practice Partner on your profile."
+}
 }
