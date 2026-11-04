@@ -387,7 +387,7 @@ export default function FeedPage() {
             )}
 
             {displayedPosts.map(post => {
-              const hasLiked = post.likes?.includes(user.uid);
+              const hasLiked = Array.isArray(post.likes) && post.likes.includes(user.uid);
               const postDate = post.createdAt ? new Date(post.createdAt.toMillis()) : new Date();
               
               return (
