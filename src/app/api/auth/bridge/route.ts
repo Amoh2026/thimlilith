@@ -9,20 +9,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing ID token' }, { status: 401 });
     }
 
-    // adminAuth imported directly above
-    
-    // 1. Verify the user is actually logged in on ATK
-    const decodedToken = await adminAuth.verifyIdToken(idToken);
-    
-    // 2. Create a custom token for Thimlilith
-    const customToken = await adminAuth.createCustomToken(decodedToken.uid);
+    // adminAuth is a FUNCTION in Thimlilith (not an instance)
+    // So we call it: adminAuth()
+    const decodedToken = await adminAuth().verifyIdToken(idToken);
+    const customToken = await adminAuth().createCustomToken(decodedToken.uid);
 
-    // 3. Build the exact URL
     const baseUrl = process.env.NODE_ENV === 'production' 
       ? 'https://www.thimlilith.com' 
       : 'http://localhost:3001';
       
-    // Append the 'next' path if provided (e.g., /en/practice?lesson=1)
     const nextPath = next ? `&next=${encodeURIComponent(next)}` : '';
     const redirectUrl = `${baseUrl}/sso?token=${customToken}${nextPath}`;
 
