@@ -9,8 +9,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing ID token' }, { status: 401 });
     }
 
-    // adminAuth is a FUNCTION in Thimlilith (not an instance)
-    // So we call it: adminAuth()
+    // adminAuth() is a FUNCTION in Thimlilith — must be called
     const decodedToken = await adminAuth().verifyIdToken(idToken);
     const customToken = await adminAuth().createCustomToken(decodedToken.uid);
 
